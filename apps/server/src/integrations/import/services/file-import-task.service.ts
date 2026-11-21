@@ -42,6 +42,8 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../../integrations/audit/audit.service';
+import { HtmlBlockRepo } from '@docmost/db/repos/html-block/html-block.repo';
+import { convertImportedHtmlBlocks } from '../../../common/helpers/prosemirror/html-block.utils';
 
 @Injectable()
 export class FileImportTaskService {
@@ -57,6 +59,7 @@ export class FileImportTaskService {
     private moduleRef: ModuleRef,
     private eventEmitter: EventEmitter2,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly htmlBlockRepo: HtmlBlockRepo,
   ) {}
 
   async processZIpImport(fileTaskId: string): Promise<void> {
@@ -467,6 +470,10 @@ export class FileImportTaskService {
 
     // Sort levels to process in order
     const sortedLevels = Array.from(pagesByLevel.keys()).sort((a, b) => a - b);
+    const allowHtmlBlocks = await this.importService.canImportHtmlBlocks(
+      fileTask.creatorId,
+      fileTask.workspaceId,
+    );
 
     try {
       await executeTx(this.db, async (trx) => {
@@ -519,8 +526,13 @@ export class FileImportTaskService {
               await this.importService.processHTML(html),
             );
 
-            const { title, prosemirrorJson } =
+            const { title, prosemirrorJson: extractedJson } =
               this.importService.extractTitleAndRemoveHeading(pmState);
+            const { json: prosemirrorJson, blocks: htmlBlocks } =
+              convertImportedHtmlBlocks(extractedJson, {
+                allowed: allowHtmlBlocks,
+                generateId: v7,
+              });
 
             const insertablePage: InsertablePage = {
               id: page.id,
@@ -539,6 +551,16 @@ export class FileImportTaskService {
             };
 
             await trx.insertInto('pages').values(insertablePage).execute();
+            await this.htmlBlockRepo.insertMany(
+              htmlBlocks.map((block) => ({
+                id: block.id,
+                workspaceId: fileTask.workspaceId,
+                pageId: page.id,
+                content: block.content,
+                creatorId: fileTask.creatorId,
+              })),
+              trx,
+            );
 
             // Track valid page IDs, titles, and collect backlinks
             validPageIds.add(insertablePage.id);

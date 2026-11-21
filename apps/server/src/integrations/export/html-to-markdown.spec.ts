@@ -19,6 +19,66 @@ describe('htmlToMarkdown', () => {
     ]);
   });
 
+  it('keeps a literal <br> in code', () => {
+    const markdown = htmlToMarkdown(
+      '<pre><code class="language-html">&lt;p&gt;a&lt;br&gt;b&lt;/p&gt;</code></pre>' +
+        '<p>Use <code>&lt;br&gt;</code> for a break</p>',
+    );
+
+    expect(markdown.trim().split('\n')).toEqual([
+      '```html',
+      '<p>a<br>b</p>',
+      '```',
+      '',
+      'Use `<br>` for a break',
+    ]);
+  });
+
+  it('keeps private-use characters that are not part of a guarded <br>', () => {
+    const guardChars = String.fromCharCode(0xe000, 0xe001);
+    const markdown = htmlToMarkdown(
+      `<p>keep ${guardChars} here</p>` +
+        `<p>Use <code>${guardChars}</code></p>` +
+        '<pre><code>a&lt;br&gt;b</code></pre>',
+    );
+
+    expect(markdown.trim().split('\n')).toEqual([
+      `keep ${guardChars} here`,
+      '',
+      `Use \`${guardChars}\``,
+      '',
+      '```',
+      'a<br>b',
+      '```',
+    ]);
+  });
+
+  it('keeps a <br> in code inside a table that stays HTML', () => {
+    const markdown = htmlToMarkdown(
+      `<table>${colgroup}<tbody>` +
+        '<tr><th><p>Code</p></th></tr>' +
+        '<tr><td><pre><code>a&lt;br&gt;b</code></pre></td></tr>' +
+        '</tbody></table>',
+    );
+
+    expect(markdown).toContain('<pre><code>a&lt;br&gt;b</code></pre>');
+  });
+
+  it('still joins the lines of a table cell with spaces', () => {
+    const markdown = htmlToMarkdown(
+      `<table>${colgroup}<tbody>` +
+        '<tr><th><p>Name</p></th></tr>' +
+        '<tr><td><p>one</p><p>two</p></td></tr>' +
+        '</tbody></table>',
+    );
+
+    expect(markdown.trim().split('\n')).toEqual([
+      '| Name |',
+      '| --- |',
+      '| one  two |',
+    ]);
+  });
+
   it('adds an empty header when the table has no header row', () => {
     const markdown = htmlToMarkdown(
       `<table>${colgroup}<tbody>` +

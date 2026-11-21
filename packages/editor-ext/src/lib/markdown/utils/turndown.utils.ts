@@ -9,6 +9,8 @@ const TurndownService = (_TurndownService as any).default || _TurndownService;
 // queried one at a time, as domino sorts all matches of a selector list
 const NESTING_BLOCKS = ['details', 'ol.footnotes'];
 
+const CODE_BR_GUARD = '\uE000\uE001';
+
 function sanitizeMdLinkText(value: string): string {
   return value
     .replace(/\\/g, '\\\\')
@@ -48,7 +50,16 @@ export function htmlToMarkdown(html: string): string {
     /<colgroup\b[^>]*>[\s\S]*?<\/colgroup>/gi,
     '',
   );
-  return turndownService.turndown(htmlWithoutColgroups).replaceAll('<br>', ' ');
+  // turndown writes table cell line breaks as <br>; keep any <br> typed in code
+  const guardedHtml = htmlWithoutColgroups.replace(
+    /<code\b[^>]*>[\s\S]*?<\/code>/gi,
+    (code) => code.replaceAll('&lt;br&gt;', `&lt;br${CODE_BR_GUARD}&gt;`),
+  );
+  return turndownService
+    .turndown(guardedHtml)
+    .replaceAll('<br>', ' ')
+    .replaceAll(`<br${CODE_BR_GUARD}>`, '<br>')
+    .replaceAll(`&lt;br${CODE_BR_GUARD}&gt;`, '&lt;br&gt;');
 }
 
 // domino, the server's DOM, silently matches nothing for :scope selectors

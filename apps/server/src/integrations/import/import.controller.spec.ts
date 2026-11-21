@@ -91,6 +91,11 @@ describe('ImportController uploads', () => {
       db as any,
       fileTaskQueue as any,
       {} as any,
+      { findById: async () => undefined } as any,
+      { findById: async () => undefined } as any,
+      {} as any,
+      {} as any,
+      {} as any,
     );
     const controller = new ImportController(
       importService,

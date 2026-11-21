@@ -46,6 +46,7 @@ import {
   getHtmlBlockIds,
   replaceHtmlBlocksWithCode,
 } from '../../common/helpers/prosemirror/html-block.utils';
+import { HTML_BLOCK_EXPORT_LANGUAGE } from '../../common/helpers/prosemirror/html-block.constants';
 import { htmlToMarkdown } from '@docmost/editor-ext';
 import { validate as isValidUUID } from 'uuid';
 
@@ -168,6 +169,7 @@ export class ExportService {
       content = replaceHtmlBlocksWithCode(
         content,
         await this.getHtmlBlockContents([pages[0]]),
+        { language: HTML_BLOCK_EXPORT_LANGUAGE },
       );
       const pageContent = await this.exportPage(format, {
         ...pages[0],
@@ -324,6 +326,7 @@ export class ExportService {
         prosemirrorJson = replaceHtmlBlocksWithCode(
           prosemirrorJson,
           htmlBlockContents,
+          { language: HTML_BLOCK_EXPORT_LANGUAGE },
         );
 
         const currentPagePath = slugIdToPath[page.slugId];

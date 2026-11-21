@@ -12,6 +12,7 @@ import { KyselyDB } from '@docmost/db/types/kysely.types';
 import {
   bufferMultipartFile,
   generateSlugId,
+  isUserDisabled,
   sanitizeFileName,
   streamMultipartFile,
 } from '../../../common/helpers';
@@ -32,6 +33,19 @@ import { QueueJob, QueueName } from '../../queue/constants';
 import { ModuleRef } from '@nestjs/core';
 import { load } from 'cheerio';
 import { normalizeImportHtml } from '../utils/import-formatter';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import { HtmlBlockRepo } from '@docmost/db/repos/html-block/html-block.repo';
+import { InsertablePage } from '@docmost/db/types/entity.types';
+import { executeTx } from '@docmost/db/utils';
+import { LicenseCheckService } from '../../environment/license-check.service';
+import { Feature } from '../../../common/features';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventName } from '../../../common/events/event.contants';
+import {
+  canAuthorHtmlBlocks,
+  convertImportedHtmlBlocks,
+} from '../../../common/helpers/prosemirror/html-block.utils';
 
 @Injectable()
 export class ImportService {
@@ -44,6 +58,11 @@ export class ImportService {
     @InjectQueue(QueueName.FILE_TASK_QUEUE)
     private readonly fileTaskQueue: Queue,
     private moduleRef: ModuleRef,
+    private readonly workspaceRepo: WorkspaceRepo,
+    private readonly userRepo: UserRepo,
+    private readonly htmlBlockRepo: HtmlBlockRepo,
+    private readonly licenseCheckService: LicenseCheckService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async importPage(
@@ -113,20 +132,55 @@ export class ImportService {
     if (prosemirrorJson) {
       try {
         const pagePosition = await this.getNewPagePosition(spaceId);
+        const { json: content, blocks } = convertImportedHtmlBlocks(
+          prosemirrorJson,
+          {
+            allowed: await this.canImportHtmlBlocks(userId, workspaceId),
+            generateId: uuid7,
+          },
+        );
 
-        createdPage = await this.pageRepo.insertPage({
+        const insertablePage: InsertablePage = {
           ...(pageId ? { id: pageId } : {}),
           slugId: generateSlugId(),
           title: pageTitle,
-          content: prosemirrorJson,
-          textContent: jsonToText(prosemirrorJson),
-          ydoc: await this.createYdoc(prosemirrorJson),
+          content,
+          textContent: jsonToText(content),
+          ydoc: await this.createYdoc(content),
           position: pagePosition,
           spaceId: spaceId,
           creatorId: userId,
           workspaceId: workspaceId,
           lastUpdatedById: userId,
-        });
+        };
+
+        if (blocks.length === 0) {
+          createdPage = await this.pageRepo.insertPage(insertablePage);
+        } else {
+          // not insertPage: it emits PAGE_CREATED, which must wait for the commit
+          createdPage = await executeTx(this.db, async (trx) => {
+            const { id } = await trx
+              .insertInto('pages')
+              .values(insertablePage)
+              .returning('id')
+              .executeTakeFirstOrThrow();
+            await this.htmlBlockRepo.insertMany(
+              blocks.map((block) => ({
+                id: block.id,
+                workspaceId,
+                pageId: id,
+                content: block.content,
+                creatorId: userId,
+              })),
+              trx,
+            );
+            return this.pageRepo.findById(id, { trx });
+          });
+          this.eventEmitter.emit(EventName.PAGE_CREATED, {
+            pageIds: [createdPage.id],
+            workspaceId,
+          });
+        }
 
         this.logger.debug(
           `Successfully imported "${title}${fileExtension}. ID: ${createdPage.id} - SlugId: ${createdPage.slugId}"`,
@@ -139,6 +193,27 @@ export class ImportService {
     }
 
     return createdPage;
+  }
+
+  async canImportHtmlBlocks(
+    userId: string,
+    workspaceId: string,
+  ): Promise<boolean> {
+    const [workspace, user] = await Promise.all([
+      this.workspaceRepo.findById(workspaceId, { withLicenseKey: true }),
+      this.userRepo.findById(userId, workspaceId),
+    ]);
+    if (!workspace || !user || isUserDisabled(user)) return false;
+
+    return canAuthorHtmlBlocks({
+      settings: workspace.settings,
+      role: user.role,
+      licensed: this.licenseCheckService.hasFeature(
+        workspace.licenseKey,
+        Feature.HTML_BLOCKS,
+        workspace.plan,
+      ),
+    });
   }
 
   async processMarkdown(markdownInput: string): Promise<any> {

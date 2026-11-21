@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
-import { dbOrTx } from '@docmost/db/utils';
+import { dbOrTx, executeTx } from '@docmost/db/utils';
 import { HtmlBlock, InsertableHtmlBlock } from '@docmost/db/types/entity.types';
 
 @Injectable()
@@ -24,7 +24,20 @@ export class HtmlBlockRepo {
     trx?: KyselyTransaction,
   ): Promise<void> {
     if (rows.length === 0) return;
-    await dbOrTx(this.db, trx).insertInto('htmlBlocks').values(rows).execute();
+    // Postgres allows at most 65535 parameters per statement
+    const batchSize = 1000;
+    await executeTx(
+      this.db,
+      async (tx) => {
+        for (let i = 0; i < rows.length; i += batchSize) {
+          await tx
+            .insertInto('htmlBlocks')
+            .values(rows.slice(i, i + batchSize))
+            .execute();
+        }
+      },
+      trx,
+    );
   }
 
   async findById(

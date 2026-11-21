@@ -7,6 +7,7 @@ import {
   PostgresIntrospector,
   PostgresQueryCompiler,
 } from 'kysely';
+import * as JSZip from 'jszip';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { ExportFormat } from './dto/export-dto';
@@ -129,10 +130,13 @@ function buildService(opts: {
   return { service, queries, pagePermissionRepo };
 }
 
-async function exportSinglePage(service: ExportService) {
+async function exportSinglePage(
+  service: ExportService,
+  format = ExportFormat.HTML,
+) {
   const result = await service.exportPages(
     SOURCE_PAGE_ID,
-    ExportFormat.HTML,
+    format,
     false,
     false,
     USER_ID,
@@ -227,12 +231,12 @@ describe('ExportService unknown nodes', () => {
 });
 
 describe('ExportService html blocks', () => {
-  it('exports the source of a block the page owns as html code and drops a block owned elsewhere', async () => {
-    const htmlBlock = (htmlBlockId: string) => ({
-      type: 'htmlBlock',
-      attrs: { htmlBlockId, height: null },
-    });
-    const { service } = buildService({
+  const htmlBlock = (htmlBlockId: string) => ({
+    type: 'htmlBlock',
+    attrs: { htmlBlockId, height: null },
+  });
+  const buildBlockService = () =>
+    buildService({
       accessiblePageIds: [],
       content: {
         type: 'doc',
@@ -254,15 +258,83 @@ describe('ExportService html blocks', () => {
           content: '<i>foreign source</i>',
         },
       ],
-    });
+    }).service;
+  const ownedSourceCode =
+    '<code class="language-html-block">&lt;b&gt;owned source&lt;/b&gt;</code>';
 
-    const html = await exportSinglePage(service);
+  it('exports the source of a block the page owns as html-block code and drops a block owned elsewhere', async () => {
+    const html = await exportSinglePage(buildBlockService());
 
-    expect(html).toContain(
-      '<code class="language-html">&lt;b&gt;owned source&lt;/b&gt;</code>',
-    );
+    expect(html).toContain(ownedSourceCode);
     expect(html).not.toContain('foreign source');
     expect(html).not.toContain(FOREIGN_BLOCK_ID);
+  });
+
+  it('exports the source as an html-block fence in Markdown', async () => {
+    const markdown = await exportSinglePage(
+      buildBlockService(),
+      ExportFormat.Markdown,
+    );
+
+    expect(markdown).toContain('```html-block\n<b>owned source</b>\n```');
+    expect(markdown).not.toContain('foreign source');
+  });
+
+  it('exports the source as html-block code in a zip export', async () => {
+    const result = await buildBlockService().exportPages(
+      SOURCE_PAGE_ID,
+      ExportFormat.HTML,
+      true,
+      false,
+      USER_ID,
+    );
+    if (result.type !== 'zip') throw new Error('expected a zip');
+    const chunks: Buffer[] = [];
+    await new Promise((resolve, reject) =>
+      result.stream
+        .on('data', (chunk: Buffer) => chunks.push(chunk))
+        .on('end', resolve)
+        .on('error', reject),
+    );
+    const zip = await JSZip.loadAsync(Buffer.concat(chunks));
+
+    const html = await zip.file('Source.html').async('string');
+
+    expect(html).toContain(ownedSourceCode);
+    expect(html).not.toContain('foreign source');
+  });
+});
+
+describe('ExportService code blocks', () => {
+  it('keeps a literal <br> in code block text in a Markdown export', async () => {
+    const { service } = buildService({
+      accessiblePageIds: [],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'codeBlock',
+            attrs: { language: 'html' },
+            content: [{ type: 'text', text: '<p>a<br>b</p>' }],
+          },
+          { type: 'htmlBlock', attrs: { htmlBlockId: OWNED_BLOCK_ID } },
+        ],
+      },
+      htmlBlocks: [
+        {
+          id: OWNED_BLOCK_ID,
+          workspaceId: WORKSPACE_ID,
+          pageId: SOURCE_PAGE_ID,
+          templateId: null,
+          content: '<p>c<br>d</p>',
+        },
+      ],
+    });
+
+    const markdown = await exportSinglePage(service, ExportFormat.Markdown);
+
+    expect(markdown).toContain('```html\n<p>a<br>b</p>\n```');
+    expect(markdown).toContain('```html-block\n<p>c<br>d</p>\n```');
   });
 });
 
