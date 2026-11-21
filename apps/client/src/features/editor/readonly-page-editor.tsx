@@ -17,6 +17,7 @@ import LightboxView, {
   getLightboxClickRequest,
 } from "@/features/editor/components/common/lightbox-view";
 import { MicrosoftFullscreenModal } from "@/features/editor/components/microsoft/microsoft-fullscreen-modal.tsx";
+import { publicImageLink } from "./components/image/public-image-link";
 
 interface PageEditorProps {
   title: string;
@@ -71,9 +72,15 @@ export default function ReadonlyPageEditor({
       "uniqueID",
       ...(printMode ? ["tableHeaderPin", "tableReadonlySort"] : []),
     ]);
-    const filteredExtensions = mainExtensions.filter(
-      (ext) => !excludedExtensions.has(ext.name),
-    );
+    const filteredExtensions = mainExtensions
+      .filter((ext) => !excludedExtensions.has(ext.name))
+      .map((ext) =>
+        ext.name === "image" && (shareId || spaceSlug)
+          ? ext.configure({
+              resolveLink: (href: string) => publicImageLink(href, shareId, spaceSlug),
+            })
+          : ext,
+      );
 
     return [
       ...filteredExtensions,
@@ -82,7 +89,7 @@ export default function ReadonlyPageEditor({
         updateDocument: false,
       }),
     ];
-  }, [printMode]);
+  }, [printMode, shareId, spaceSlug]);
 
   const titleExtensions = [
     Document.extend({
