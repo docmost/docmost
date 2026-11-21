@@ -1,5 +1,6 @@
 export type ConfluenceAuthType = "cloud_token" | "pat" | "basic";
 export type ConfluenceEdition = "cloud" | "server";
+export type ConfluencePageHistoryMode = "previous" | "full";
 
 export type ConfluenceCredentials = {
   siteUrl: string;
@@ -28,6 +29,7 @@ export type TestConnectionResponse = {
 export type ListSpacesResponse = {
   success: boolean;
   spaces?: ConfluenceSpaceSummary[];
+  pageHistoryAvailable?: boolean;
   error?: string;
 };
 
@@ -39,7 +41,15 @@ export type StartImportResponse = {
 
 export type ConfluenceImportStatus = "processing" | "success" | "failed";
 
-export type ImportStatusResponse = {
+type ConfluenceImportCounts = {
+  includeBlogPosts: boolean;
+  totalBlogPosts: number | null;
+  importedBlogPosts: number | null;
+  includePageHistory: boolean;
+  importedPageRevisions: number | null;
+};
+
+export type ImportStatusResponse = Partial<ConfluenceImportCounts> & {
   fileTaskId?: string;
   status?: ConfluenceImportStatus;
   errorMessage?: string | null;
@@ -62,7 +72,7 @@ export type ImportStatusResponse = {
   error?: string;
 };
 
-export type ConfluenceImportHistoryItem = {
+export type ConfluenceImportHistoryItem = ConfluenceImportCounts & {
   fileTaskId: string;
   siteUrl: string;
   status: ConfluenceImportStatus;

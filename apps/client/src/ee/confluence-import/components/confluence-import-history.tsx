@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import {
+  Anchor,
   Badge,
+  Button,
   Group,
   Loader,
   Modal,
@@ -11,7 +13,12 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { IconAlertCircle, IconCheck, IconX } from "@tabler/icons-react";
+import {
+  IconAlertCircle,
+  IconCheck,
+  IconDownload,
+  IconX,
+} from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import {
   ConfluenceImportHistoryItem,
@@ -82,6 +89,7 @@ function statusBadge(
 
 function phaseLabel(phase: string | null, t: (key: string) => string): string {
   if (!phase) return "—";
+  if (phase === "history") return t("Page history");
   return t(phase.charAt(0).toUpperCase() + phase.slice(1));
 }
 
@@ -133,6 +141,11 @@ function ImportStatsModal({
 }) {
   const { t } = useTranslation();
 
+  function optionalCount(requested: boolean, imported: number | null) {
+    if (requested === false) return t("Not requested");
+    return imported ?? t("Not recorded");
+  }
+
   const stats = item
     ? [
         {
@@ -144,6 +157,15 @@ function ImportStatsModal({
           label: t("Pages"),
           imported: item.importedPages,
           total: item.totalPages,
+        },
+        {
+          label: t("Blog posts (included in Pages)"),
+          imported: optionalCount(item.includeBlogPosts, item.importedBlogPosts),
+          total: item.importedBlogPosts == null ? null : item.totalBlogPosts,
+        },
+        {
+          label: t("Page history revisions"),
+          imported: optionalCount(item.includePageHistory, item.importedPageRevisions),
         },
         {
           label: t("Templates"),
@@ -210,13 +232,24 @@ function ImportStatsModal({
                   </Table.Td>
                   <Table.Td>
                     <Text fz="sm" ta="right">
-                      {stat.imported} / {stat.total}
+                      {stat.imported}{stat.total != null && ` / ${stat.total}`}
                     </Text>
                   </Table.Td>
                 </Table.Tr>
               ))}
             </Table.Tbody>
           </Table>
+          <Group justify="flex-end">
+            <Button
+              component="a"
+              href={`/api/confluence-import/${item.fileTaskId}/log`}
+              download
+              variant="default"
+              leftSection={<IconDownload size={16} />}
+            >
+              {t("Download import log")}
+            </Button>
+          </Group>
         </Stack>
       )}
     </Modal>
@@ -255,10 +288,10 @@ function TableSkeleton() {
 export default function ConfluenceImportHistory() {
   const { t } = useTranslation();
   const { data, isLoading } = useConfluenceImportsQuery();
-  const [selectedItem, setSelectedItem] =
-    useState<ConfluenceImportHistoryItem | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const items = useMemo(() => data?.items ?? [], [data]);
+  const selectedItem = items.find((item) => item.fileTaskId === selectedId) ?? null;
 
   return (
     <Table.ScrollContainer minWidth={720}>
@@ -281,7 +314,7 @@ export default function ConfluenceImportHistory() {
             items.map((item) => (
               <Table.Tr
                 key={item.fileTaskId}
-                onClick={() => setSelectedItem(item)}
+                onClick={() => setSelectedId(item.fileTaskId)}
                 style={{ cursor: "pointer" }}
               >
                 <Table.Td>
@@ -295,9 +328,20 @@ export default function ConfluenceImportHistory() {
                   )}
                 </Table.Td>
                 <Table.Td>
-                  <Text fz="sm" lineClamp={1} maw={240}>
+                  <Anchor
+                    component="button"
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-label={t("Import details for {{site}} ({{date}})", {
+                      site: item.siteUrl,
+                      date: formattedDate(new Date(item.createdAt)),
+                    })}
+                    size="sm"
+                    lineClamp={1}
+                    maw={240}
+                  >
                     {item.siteUrl}
-                  </Text>
+                  </Anchor>
                 </Table.Td>
                 <Table.Td>
                   <Text fz="sm">{phaseLabel(item.currentPhase, t)}</Text>
@@ -338,7 +382,7 @@ export default function ConfluenceImportHistory() {
 
       <ImportStatsModal
         item={selectedItem}
-        onClose={() => setSelectedItem(null)}
+        onClose={() => setSelectedId(null)}
       />
     </Table.ScrollContainer>
   );

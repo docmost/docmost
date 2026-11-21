@@ -18,6 +18,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 const optionName = "Check every page for attachments and comments";
+const pageHistoryOption = "Import page history (experimental)";
 const post = vi.mocked(api.post);
 
 beforeEach(() => {
@@ -83,13 +84,17 @@ function enterCredentials(edition: ConfluenceEdition) {
   );
 }
 
-async function selectSpaces(edition: ConfluenceEdition) {
+async function selectSpaces(
+  edition: ConfluenceEdition,
+  capabilities: { pageHistoryAvailable?: boolean } = {},
+) {
   post
     .mockResolvedValueOnce({ data: { success: true, edition } })
     .mockResolvedValueOnce({
       data: {
         success: true,
         spaces: [{ id: "1", key: "ENG", name: "Engineering" }],
+        ...capabilities,
       },
     });
   fireEvent.click(screen.getByRole("button", { name: "Test & continue" }));
@@ -170,18 +175,82 @@ it.each(["cloud", "server"] as const)(
   },
 );
 
-it("submits a new import with blueprints off after reopening the wizard", async () => {
+it("clears optional imports when the wizard is reopened", async () => {
   const setOpened = renderImport();
-  await selectSpaces("server");
+  await selectSpaces("server", { pageHistoryAvailable: true });
   fireEvent.click(blueprintsOption());
+  fireEvent.click(screen.getByRole("checkbox", { name: pageHistoryOption }));
+  fireEvent.click(screen.getByRole("radio", { name: "Full history" }));
   setOpened(false);
   setOpened(true);
 
   enterCredentials("server");
-  await selectSpaces("server");
+  await selectSpaces("server", { pageHistoryAvailable: true });
   expect(blueprintsOption().checked).toBe(false);
-  expect(await startImport()).toHaveProperty("includeBlueprints", false);
+  expect(screen.queryByRole("radio", { name: "Full history" })).toBeNull();
+  const payload = await startImport();
+  expect(payload).toHaveProperty("includeBlueprints", false);
+  expect(payload).not.toHaveProperty("pageHistoryMode");
 });
+
+it.each([
+  ["server", "previous"],
+  ["cloud", "full"],
+] as const)("submits the selected history mode for %s", async (edition, mode) => {
+  renderImport(edition);
+  await selectSpaces(edition, { pageHistoryAvailable: true });
+
+  const checkbox = screen.getByRole<HTMLInputElement>("checkbox", {
+    name: pageHistoryOption,
+  });
+  expect(checkbox.checked).toBe(false);
+  expect(screen.queryByRole("alert")).toBeNull();
+  fireEvent.click(checkbox);
+
+  const warning = screen.getByRole("alert").textContent;
+  expect(warning).toMatch(/once the pages are imported/i);
+  expect(warning).toMatch(/some revisions may be skipped/i);
+  const previous = screen.getByRole<HTMLInputElement>("radio", {
+    name: "Previous version only",
+  });
+  expect(previous.checked).toBe(true);
+  if (mode === "full") {
+    fireEvent.click(screen.getByRole("radio", { name: "Full history" }));
+  }
+  expect(await startImport()).toHaveProperty("pageHistoryMode", mode);
+});
+
+it("omits page history if the administrator turns it back off", async () => {
+  renderImport();
+  await selectSpaces("server", { pageHistoryAvailable: true });
+  const checkbox = screen.getByRole("checkbox", { name: pageHistoryOption });
+  fireEvent.click(checkbox);
+  fireEvent.click(screen.getByRole("radio", { name: "Full history" }));
+  fireEvent.click(checkbox);
+
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByRole("radio", { name: "Full history" })).toBeNull();
+  expect(await startImport()).not.toHaveProperty("pageHistoryMode");
+});
+
+it.each([{}, { pageHistoryAvailable: false }])(
+  "hides and omits page history when unavailable (%j)",
+  async (capabilities) => {
+    renderImport();
+    await selectSpaces("server", { pageHistoryAvailable: true });
+    fireEvent.click(screen.getByRole("checkbox", { name: pageHistoryOption }));
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    fireEvent.change(screen.getByLabelText(/^Site URL/), {
+      target: { value: "https://another.example.com" },
+    });
+    await selectSpaces("server", capabilities);
+
+    expect(
+      screen.queryByRole("checkbox", { name: pageHistoryOption }),
+    ).toBeNull();
+    expect(await startImport()).not.toHaveProperty("pageHistoryMode");
+  },
+);
 
 it.each(["server", "cloud"] as const)("opts into blog posts as pages on %s", async (edition) => {
   renderImport(edition);

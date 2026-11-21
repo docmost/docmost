@@ -6,6 +6,7 @@ import {
   Group,
   Modal,
   PasswordInput,
+  Radio,
   ScrollArea,
   SegmentedControl,
   Stack,
@@ -32,6 +33,7 @@ import {
   ConfluenceAuthType,
   ConfluenceCredentials,
   ConfluenceEdition,
+  ConfluencePageHistoryMode,
   ConfluenceSpaceSummary,
 } from "@/ee/confluence-import/types/confluence-import.types";
 import { confluenceImportsQueryKey } from "@/ee/confluence-import/queries/confluence-import-queries";
@@ -62,6 +64,9 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
   const [importAll, setImportAll] = useState(true);
   const [detectedEdition, setDetectedEdition] = useState<ConfluenceEdition>();
   const [fullEnumeration, setFullEnumeration] = useState(false);
+  const [pageHistoryAvailable, setPageHistoryAvailable] = useState(false);
+  const [pageHistoryMode, setPageHistoryMode] =
+    useState<ConfluencePageHistoryMode>();
   const [includeBlueprints, setIncludeBlueprints] = useState(false);
   const [includeBlogPosts, setIncludeBlogPosts] = useState(false);
 
@@ -156,6 +161,8 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
       setImportAll(true);
       setDetectedEdition(test.edition);
       setFullEnumeration(false);
+      setPageHistoryAvailable(list.pageHistoryAvailable === true);
+      setPageHistoryMode(undefined);
       setIncludeBlueprints(false);
       setIncludeBlogPosts(false);
       setActive(1);
@@ -200,6 +207,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
         includeBlueprints,
         ...(includeBlogPosts && { includeBlogPosts: true }),
         ...(isDataCenter && fullEnumeration && { fullEnumeration: true }),
+        ...(pageHistoryMode && { pageHistoryMode }),
       });
       if (!result.success || !result.fileTaskId) {
         setError(result.error || t("Failed to start import"));
@@ -448,6 +456,42 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
               checked={fullEnumeration}
               onChange={(e) => setFullEnumeration(e.currentTarget.checked)}
             />
+          )}
+
+          {pageHistoryAvailable && (
+            <Stack gap="xs">
+              <Checkbox
+                label={t("Import page history (experimental)")}
+                checked={!!pageHistoryMode}
+                onChange={(e) =>
+                  setPageHistoryMode(
+                    e.currentTarget.checked ? "previous" : undefined,
+                  )
+                }
+              />
+              {pageHistoryMode && (
+                <>
+                  <Alert color="yellow" icon={<IconAlertCircle size={18} />}>
+                    {t(
+                      "Once the pages are imported, Docmost imports their history on a best-effort basis. Some revisions may be skipped.",
+                    )}
+                  </Alert>
+                  <Radio.Group<ConfluencePageHistoryMode>
+                    label={t("Versions to import")}
+                    value={pageHistoryMode}
+                    onChange={setPageHistoryMode}
+                  >
+                    <Group gap="md" mt={4}>
+                      <Radio
+                        value="previous"
+                        label={t("Previous version only")}
+                      />
+                      <Radio value="full" label={t("Full history")} />
+                    </Group>
+                  </Radio.Group>
+                </>
+              )}
+            </Stack>
           )}
 
           {error && (

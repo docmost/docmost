@@ -1,6 +1,7 @@
 import api from "@/lib/api-client";
 import {
   ConfluenceCredentials,
+  ConfluencePageHistoryMode,
   ImportStatusResponse,
   ListImportsResponse,
   ListSpacesResponse,
@@ -32,6 +33,7 @@ export async function startConfluenceImport(
   data: ConfluenceCredentials & {
     spaceKeys?: string[];
     fullEnumeration?: boolean;
+    pageHistoryMode?: ConfluencePageHistoryMode;
     includeBlueprints?: boolean;
     includeBlogPosts?: boolean;
   },
