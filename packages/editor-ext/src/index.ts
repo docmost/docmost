@@ -1,5 +1,6 @@
 export * from "./lib/trailing-node";
 export * from "./lib/comment/comment";
+export * from "./lib/comment/comment-image";
 export * from "./lib/utils";
 export * from "./lib/math";
 export * from "./lib/details";
