@@ -15,7 +15,7 @@ import { AttachmentType } from '../../../core/attachment/attachment.constants';
 import { unwrapFromParagraph } from '../utils/import-formatter';
 import { resolveRelativeAttachmentPath } from '../utils/import.utils';
 import { imageDimensionsFromData } from 'image-dimensions';
-import { load } from 'cheerio';
+import { loadImportHtml } from '../utils/import-dates';
 import pLimit from 'p-limit';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -268,7 +268,7 @@ export class ImportAttachmentService {
       return fresh;
     };
 
-    const $ = load(html);
+    const $ = loadImportHtml(html);
 
     // image
     for (const imgEl of $('img').toArray()) {

@@ -3,7 +3,8 @@ import { Logger } from '@nestjs/common';
 import * as path from 'path';
 import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
-import { Cheerio, CheerioAPI, load } from 'cheerio';
+import { Cheerio, CheerioAPI } from 'cheerio';
+import { loadImportHtml, normalizeImportDates } from './import-dates';
 import slugify from '@sindresorhus/slugify';
 import { normalizeTableColumnWidths } from './table-utils';
 
@@ -38,7 +39,7 @@ export async function formatImportHtml(opts: {
     sourcePageId,
     workspaceId,
   } = opts;
-  const $: CheerioAPI = load(html);
+  const $: CheerioAPI = loadImportHtml(html);
   const $root: Cheerio<any> = $.root();
 
   let pageIcon: string | null = null;
@@ -84,6 +85,7 @@ export function normalizeImportHtml(
   $: CheerioAPI,
   $root: Cheerio<any>,
 ): void {
+  normalizeImportDates($, $root);
   notionFormatter($, $root);
   xwikiFormatter($, $root);
   defaultHtmlFormatter($, $root);
@@ -398,7 +400,7 @@ export async function rewriteInternalLinksToMentionHtml(
       linkText === meta.title ||
       linkText === meta.title?.trim();
 
-    if (titleMatch) {
+    if (titleMatch && !$a.find('time[data-type="date"]').length) {
       const mentionId = v7();
       const $mention = $('<span>')
         .attr({
