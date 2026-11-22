@@ -1,4 +1,4 @@
-import { mapConfluenceHighlightColor } from './confluence-highlight-color';
+import { mapConfluenceHighlightColor } from './cf-highlight-color';
 
 describe('mapConfluenceHighlightColor', () => {
   it('maps named DC colours to the Docmost table palette', () => {
