@@ -24,7 +24,18 @@ vi.mock("@/features/label/queries/label-query", () => ({
   useWorkspaceLabelsQuery: () => ({ data: { items: [{ name: "guide" }] } }),
 }));
 vi.mock("@/features/space/queries/space-query", () => ({
-  useGetSpacesQuery: () => ({ data: { items: [] } }),
+  useGetSpacesQuery: () => ({
+    data: {
+      items: [
+        {
+          id: "a1d0dfc0-1000-4000-8000-000000000001",
+          name: "Design",
+          slug: "design",
+        },
+      ],
+    },
+  }),
+  useUnlistedSpaceQuery: () => ({ data: undefined }),
 }));
 vi.mock("@/features/user/atoms/current-user-atom", async () => ({
   userAtom: (await import("jotai")).atom({
@@ -33,7 +44,10 @@ vi.mock("@/features/user/atoms/current-user-atom", async () => ({
   }),
 }));
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, values?: { name: string }) =>
+      key.replace("{{name}}", values?.name ?? ""),
+  }),
 }));
 
 const editors: Editor[] = [];
@@ -80,6 +94,20 @@ function show(
   return { editor, client, store };
 }
 
+function applyRemoteEdit(
+  editor: Editor,
+  changes: Partial<PagesByLabelAttributes>,
+) {
+  act(() => {
+    editor.view.dispatch(
+      editor.state.tr.setNodeMarkup(0, undefined, {
+        ...editor.state.doc.firstChild.attrs,
+        ...changes,
+      }),
+    );
+  });
+}
+
 beforeAll(() => {
   window.matchMedia ??= (() => ({
     matches: false,
@@ -107,7 +135,7 @@ it("opens settings on local insertion and leaves a previously stored empty block
   act(() => {
     editor.commands.insertPagesByLabel();
   });
-  await screen.findByRole("dialog", { name: "Pages by label settings" });
+  await screen.findByRole("dialog", { name: "Pages by label" });
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
@@ -130,7 +158,7 @@ it("lets an editor repair a malformed saved filter before making a lookup", asyn
   });
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Choose labels" }));
-  const input = screen.getByRole("combobox", { name: /Include labels/ });
+  const input = screen.getByRole("combobox", { name: "Labels" });
   fireEvent.click(input);
   fireEvent.click(await screen.findByRole("option", { name: "guide" }));
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -187,20 +215,139 @@ it("saves edited settings without overwriting another collaborator's changes", a
   );
   const field = await screen.findByRole("textbox", { name: "Heading" });
   fireEvent.change(field, { target: { value: "New list" } });
-  act(() => {
-    const attrs = editor.state.doc.firstChild.attrs;
-    editor.view.dispatch(
-      editor.state.tr.setNodeMarkup(0, undefined, {
-        ...attrs,
-        excludeLabels: ["draft"],
-      }),
-    );
-  });
+  applyRemoteEdit(editor, { excludeLabels: ["draft"] });
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() =>
     expect(editor.state.doc.firstChild.attrs.heading).toBe("New list"),
   );
   expect(editor.state.doc.firstChild.attrs.excludeLabels).toEqual(["draft"]);
+});
+
+it("replaces scope choices with named spaces and keeps imported ordering and display settings", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: { items: [] } });
+  const original = {
+    labels: ["guide"],
+    excludeLabels: ["draft"],
+    sortBy: "createdAt" as const,
+    sortDirection: "asc" as const,
+    heading: "Guides",
+    limit: 8,
+    showLabels: true,
+    showSpace: true,
+    excludeCurrentPage: true,
+  };
+  const { editor } = show(original);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Pages by label settings" }),
+  );
+  expect(screen.getByRole("heading", { name: "Find pages" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Display" })).toBeTruthy();
+  expect(screen.getByRole("combobox", { name: "Sort by" })).toBeTruthy();
+  expect(screen.getByRole("combobox", { name: "Exclude labels" })).toBeTruthy();
+  const spaces = screen.getByRole("combobox", { name: "Spaces" });
+  fireEvent.click(spaces);
+  fireEvent.click(await screen.findByRole("option", { name: "Design" }));
+  expect(
+    screen.queryByRole("button", { name: "Remove Current space" }),
+  ).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Remove Design" }));
+  expect(
+    (screen.getByRole("button", { name: "Save" }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(true);
+  fireEvent.click(spaces);
+  fireEvent.click(await screen.findByRole("option", { name: "Design" }));
+  fireEvent.click(spaces);
+  fireEvent.click(
+    await screen.findByRole("option", { name: "All accessible spaces" }),
+  );
+  expect(screen.queryByRole("button", { name: "Remove Design" })).toBeNull();
+  applyRemoteEdit(editor, {
+    scope: "spaces",
+    spaceIds: ["a1d0dfc0-1000-4000-8000-000000000001"],
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(editor.state.doc.firstChild.attrs).toMatchObject({
+    ...original,
+    scope: "workspace",
+    spaceIds: [],
+  });
+});
+
+it("offers three sorts and uses newest first when switching from a saved reverse title sort to a date", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: { items: [] } });
+  const { editor } = show({
+    labels: ["guide"],
+    sortBy: "title",
+    sortDirection: "desc",
+  });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Pages by label settings" }),
+  );
+  const sort = await screen.findByRole("combobox", { name: "Sort by" });
+  fireEvent.click(sort);
+  expect(
+    screen.getAllByRole("option").map((option) => option.textContent),
+  ).toEqual(["Title", "Last updated", "Date created"]);
+  expect(screen.getByText("Reverse alphabetical order")).toBeTruthy();
+  fireEvent.click(screen.getByRole("option", { name: "Last updated" }));
+  applyRemoteEdit(editor, { sortDirection: "asc" });
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(editor.state.doc.firstChild.attrs).toMatchObject({
+    sortBy: "updatedAt",
+    sortDirection: "desc",
+  });
+});
+
+it("switches match mode and reveals exclusions without losing the included labels", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: { items: [] } });
+  const { editor } = show({ labels: ["guide", "handbook"] });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Pages by label settings" }),
+  );
+  const dialog = screen.getByRole("dialog", { name: "Pages by label" });
+  await waitFor(() =>
+    expect(dialog.contains(document.activeElement)).toBe(true),
+  );
+  expect(
+    screen.getByRole("combobox", {
+      name: "Labels",
+      description: /Pages need at least one of these labels\./,
+    }),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("textbox", { name: "Show up to", description: "pages" }),
+  ).toBeTruthy();
+  fireEvent.click(screen.getByRole("radio", { name: "All" }));
+  expect(screen.getByText("Pages need all of these labels.")).toBeTruthy();
+  expect(screen.queryByRole("combobox", { name: "Exclude labels" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Exclude labels" }));
+  const excluded = screen.getByRole("combobox", { name: "Exclude labels" });
+  expect(document.activeElement).toBe(excluded);
+  fireEvent.change(excluded, { target: { value: "draft" } });
+  fireEvent.click(await screen.findByRole("option", { name: "draft" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(editor.state.doc.firstChild.attrs).toMatchObject({
+    labels: ["guide", "handbook"],
+    match: "all",
+    excludeLabels: ["draft"],
+  });
+
+  await waitFor(() =>
+    expect(api.post).toHaveBeenCalledWith(
+      "/labels/query-pages",
+      expect.objectContaining({ match: "all", excludeLabels: ["draft"] }),
+    ),
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Pages by label settings" }),
+  );
+  expect(
+    await screen.findByRole("combobox", { name: "Exclude labels" }),
+  ).toBeTruthy();
+  fireEvent.click(screen.getByRole("radio", { name: "Any" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(editor.state.doc.firstChild.attrs.match).toBe("all");
 });
 
 it("closes settings immediately on switching to read mode and restores controls on edit", async () => {
