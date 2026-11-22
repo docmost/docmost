@@ -3,9 +3,10 @@
 }
 
 .headless {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
+  display: flex;
+  flex-flow: row-reverse wrap;
+  align-items: flex-start;
+  column-gap: var(--mantine-spacing-xs);
 }
 
 .header {
@@ -28,8 +29,9 @@
 }
 
 .headless > .actions {
-  grid-area: 1 / 2;
-  margin-inline-start: var(--mantine-spacing-xs);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-inline-start: 0;
 }
 
 .content {
@@ -38,7 +40,7 @@
 }
 
 .headless > .content {
-  grid-area: 1 / 1;
+  flex: 1 1 rem(200px);
 }
 
 .header + .content {

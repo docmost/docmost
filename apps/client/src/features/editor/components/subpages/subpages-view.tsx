@@ -1,13 +1,16 @@
 import { NodeViewProps, NodeViewWrapper, useEditorState } from "@tiptap/react";
-import { SegmentedControl, Skeleton } from "@mantine/core";
-import { useId, useRef, useState } from "react";
+import { ActionIcon, SegmentedControl, Skeleton } from "@mantine/core";
+import { IconSettings } from "@tabler/icons-react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAtomValue } from "jotai";
-import type { SubpagesSortBy } from "@docmost/editor-ext";
+import type { SubpagesAttributes, SubpagesSortBy } from "@docmost/editor-ext";
+import { pageEditorBindingAtom } from "@/features/editor/atoms/editor-atoms";
 import { publicSpaceTreeDataAtom } from "@/features/public-space/atoms/public-space-atoms.ts";
 import { extractPageSlugId } from "@/lib";
 import SubpageItem from "./subpage-item";
+import { SubpagesSettings } from "./subpages-settings";
 import { useSubpages } from "./use-subpages";
 import {
   PageListLayout,
@@ -23,15 +26,24 @@ export default function SubpagesView(props: NodeViewProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const headingId = useId();
+  const settingsButton = useRef<HTMLButtonElement>(null);
   const expandedBranches = useRef(new Set<() => Promise<unknown>>()).current;
   const [refreshing, setRefreshing] = useState(false);
+  const [settingsOpened, setSettingsOpened] = useState(false);
   const isShareRoute = location.pathname.startsWith("/share/");
   const isPublicSpaceRoute = location.pathname.startsWith("/docs/");
   const isPublicView = isShareRoute || isPublicSpaceRoute;
-  const isEditable = useEditorState({
+  const binding = useAtomValue(pageEditorBindingAtom);
+  const editorEditable = useEditorState({
     editor,
     selector: (ctx) => ctx.editor.isEditable,
   });
+  const editable =
+    !isPublicView &&
+    (binding?.editor === editor ? binding.editable : editorEditable);
+  useEffect(() => {
+    if (!editable) setSettingsOpened(false);
+  }, [editable]);
 
   const publicSpaceTreeData = useAtomValue(publicSpaceTreeDataAtom);
 
@@ -52,7 +64,11 @@ export default function SubpagesView(props: NodeViewProps) {
     currentPageId = routePageId ?? publicSpaceTreeData?.[0]?.slugId;
   }
 
-  const sortBy: SubpagesSortBy = node.attrs.sortBy || "default";
+  const {
+    sortBy = "default",
+    heading,
+    hideHeading = false,
+  } = node.attrs as SubpagesAttributes;
   const { subpages, isLoading, error, refetch } = useSubpages(
     rootSpaceId ? { spaceId: rootSpaceId } : { pageId: currentPageId },
     sortBy,
@@ -70,6 +86,15 @@ export default function SubpagesView(props: NodeViewProps) {
         empty: t("No subpages"),
         error: t("Failed to load subpages"),
       };
+  const customHeading = heading?.trim() || "";
+  const listName = customHeading || copy.heading;
+
+  function closeSettings() {
+    setSettingsOpened(false);
+    requestAnimationFrame(() =>
+      settingsButton.current?.focus({ preventScroll: true }),
+    );
+  }
 
   async function refreshSubpages() {
     if (!refetch) return;
@@ -93,11 +118,11 @@ export default function SubpagesView(props: NodeViewProps) {
     >
       <PageListLayout
         headingId={headingId}
-        heading={copy.heading}
+        heading={hideHeading ? undefined : listName}
         actions={
-          refetch && (
+          (refetch || editable) && (
             <>
-              {isEditable && subpages.length > 1 && (
+              {editable && subpages.length > 1 && (
                 <SegmentedControl<SubpagesSortBy>
                   size="xs"
                   className={classes.sortControl}
@@ -113,11 +138,26 @@ export default function SubpagesView(props: NodeViewProps) {
                   aria-label={t("Sort subpages")}
                 />
               )}
-              <PageListRefreshButton
-                label={copy.refresh}
-                loading={isLoading || refreshing}
-                onClick={refreshSubpages}
-              />
+              {refetch && (
+                <PageListRefreshButton
+                  label={copy.refresh}
+                  loading={isLoading || refreshing}
+                  onClick={refreshSubpages}
+                />
+              )}
+              {editable && (
+                <ActionIcon
+                  ref={settingsButton}
+                  variant="subtle"
+                  color="gray"
+                  size="md"
+                  aria-label={t("Subpages settings")}
+                  title={t("Subpages settings")}
+                  onClick={() => setSettingsOpened(true)}
+                >
+                  <IconSettings size={16} />
+                </ActionIcon>
+              )}
             </>
           )
         }
@@ -125,7 +165,11 @@ export default function SubpagesView(props: NodeViewProps) {
         {isLoading ? (
           <Skeleton h={32} m="xs" />
         ) : subpages.length > 0 ? (
-          <div role="list" aria-labelledby={headingId}>
+          <div
+            role="list"
+            aria-labelledby={hideHeading ? undefined : headingId}
+            aria-label={hideHeading ? listName : undefined}
+          >
             {subpages.map((page) => (
               <SubpageItem
                 key={page.id}
@@ -147,6 +191,20 @@ export default function SubpagesView(props: NodeViewProps) {
           </div>
         )}
       </PageListLayout>
+      {editable && settingsOpened && (
+        <SubpagesSettings
+          heading={customHeading}
+          hideHeading={hideHeading}
+          defaultHeading={copy.heading}
+          onClose={closeSettings}
+          onSave={(changes) => {
+            if (editor.isEditable && Object.keys(changes).length) {
+              updateAttributes(changes);
+            }
+            closeSettings();
+          }}
+        />
+      )}
     </NodeViewWrapper>
   );
 }
