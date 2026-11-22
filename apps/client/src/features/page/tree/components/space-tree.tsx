@@ -47,12 +47,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   const { pageSlug } = useParams();
   const [data, setData] = useAtom(treeDataAtom);
   const { handleMove } = useTreeMutation(spaceId);
-  const {
-    data: pagesData,
-    hasNextPage,
-    fetchNextPage,
-    isFetching,
-  } = useGetRootSidebarPagesQuery({ spaceId });
+  const { data: pagesData, hasNextPage } = useGetRootSidebarPagesQuery({ spaceId });
   const [openTreeNodes, setOpenTreeNodes] = useAtom(openTreeNodesAtom);
   const [pressedId, setPressedId] = useState<string>();
   const [pendingPage, setPendingPage] = useState<{
@@ -111,12 +106,6 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
   useEffect(() => {
     setIsDataLoaded(false);
   }, [spaceId]);
-
-  useEffect(() => {
-    if (hasNextPage && !isFetching) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, fetchNextPage, isFetching, spaceId]);
 
   useEffect(() => {
     if (!pagesData?.pages || hasNextPage) return;

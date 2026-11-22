@@ -24,6 +24,8 @@ interface PageEditorProps {
   title: string;
   content: any;
   pageId?: string;
+  /** Shows the space tree in Subpages blocks on a configured space home. */
+  homeSpaceId?: string;
   printMode?: boolean;
   /**
    * When rendering inside a public share, pass the share's id (or key). Lookups
@@ -50,6 +52,7 @@ export default function ReadonlyPageEditor({
   title,
   content,
   pageId,
+  homeSpaceId,
   printMode = false,
   shareId,
   spaceSlug,
@@ -78,13 +81,18 @@ export default function ReadonlyPageEditor({
     ]);
     const filteredExtensions = mainExtensions
       .filter((ext) => !excludedExtensions.has(ext.name))
-      .map((ext) =>
-        ext.name === "image" && (shareId || spaceSlug)
-          ? ext.configure({
-              resolveLink: (href: string) => publicImageLink(href, shareId, spaceSlug),
-            })
-          : ext,
-      );
+      .map((ext) => {
+        if (ext.name === "subpages" && homeSpaceId) {
+          return ext.configure({ rootSpaceId: homeSpaceId });
+        }
+        if (ext.name === "image" && (shareId || spaceSlug)) {
+          return ext.configure({
+            resolveLink: (href: string) =>
+              publicImageLink(href, shareId, spaceSlug),
+          });
+        }
+        return ext;
+      });
 
     return [
       ...filteredExtensions,
@@ -94,7 +102,7 @@ export default function ReadonlyPageEditor({
         updateDocument: false,
       }),
     ];
-  }, [printMode, shareId, spaceSlug]);
+  }, [printMode, shareId, spaceSlug, homeSpaceId]);
 
   const titleExtensions = [
     Document.extend({

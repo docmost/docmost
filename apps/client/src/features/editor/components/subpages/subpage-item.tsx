@@ -26,6 +26,7 @@ type SubpageItemProps = {
   isPublicSpaceRoute: boolean;
   shareId?: string;
   spaceSlug?: string;
+  loadAll: boolean;
 };
 
 function subpageIndent(depth: number) {
@@ -41,6 +42,7 @@ export default function SubpageItem({
   isPublicSpaceRoute,
   shareId,
   spaceSlug,
+  loadAll,
 }: SubpageItemProps) {
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
@@ -48,7 +50,10 @@ export default function SubpageItem({
     subpages: children,
     isLoading,
     refetch,
-  } = useSubpages(page.id, sortBy, opened && page.hasChildren);
+  } = useSubpages({ pageId: page.id }, sortBy, {
+    enabled: opened && page.hasChildren,
+    loadAll,
+  });
   useEffect(() => {
     if (!refetch) return;
     expandedBranches.add(refetch);
@@ -149,6 +154,7 @@ export default function SubpageItem({
                   isPublicSpaceRoute={isPublicSpaceRoute}
                   shareId={shareId}
                   spaceSlug={spaceSlug}
+                  loadAll={loadAll}
                 />
               ))}
             </div>

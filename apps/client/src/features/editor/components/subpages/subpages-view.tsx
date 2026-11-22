@@ -17,7 +17,8 @@ import listStyles from "../common/page-list.module.css";
 import classes from "./subpages.module.css";
 
 export default function SubpagesView(props: NodeViewProps) {
-  const { editor, node, updateAttributes } = props;
+  const { editor, node, extension, updateAttributes } = props;
+  const rootSpaceId: string | undefined = extension.options.rootSpaceId;
   const { spaceSlug, shareId, pageSlug } = useParams();
   const { t } = useTranslation();
   const location = useLocation();
@@ -53,9 +54,22 @@ export default function SubpagesView(props: NodeViewProps) {
 
   const sortBy: SubpagesSortBy = node.attrs.sortBy || "default";
   const { subpages, isLoading, error, refetch } = useSubpages(
-    currentPageId,
+    rootSpaceId ? { spaceId: rootSpaceId } : { pageId: currentPageId },
     sortBy,
   );
+  const copy = rootSpaceId
+    ? {
+        heading: t("Pages"),
+        refresh: t("Refresh space pages"),
+        empty: t("No pages"),
+        error: t("Failed to load space pages"),
+      }
+    : {
+        heading: t("Subpages"),
+        refresh: t("Refresh subpages"),
+        empty: t("No subpages"),
+        error: t("Failed to load subpages"),
+      };
 
   async function refreshSubpages() {
     if (!refetch) return;
@@ -79,7 +93,7 @@ export default function SubpagesView(props: NodeViewProps) {
     >
       <PageListLayout
         headingId={headingId}
-        heading={t("Subpages")}
+        heading={copy.heading}
         actions={
           refetch && (
             <>
@@ -100,7 +114,7 @@ export default function SubpagesView(props: NodeViewProps) {
                 />
               )}
               <PageListRefreshButton
-                label={t("Refresh subpages")}
+                label={copy.refresh}
                 loading={isLoading || refreshing}
                 onClick={refreshSubpages}
               />
@@ -123,12 +137,13 @@ export default function SubpagesView(props: NodeViewProps) {
                 isPublicSpaceRoute={isPublicSpaceRoute}
                 shareId={shareId}
                 spaceSlug={spaceSlug}
+                loadAll={!!rootSpaceId}
               />
             ))}
           </div>
         ) : (
           <div className={listStyles.empty}>
-            {error ? t("Failed to load subpages") : t("No subpages")}
+            {error ? copy.error : copy.empty}
           </div>
         )}
       </PageListLayout>

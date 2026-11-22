@@ -69,9 +69,13 @@ const treePages = [
 
 function renderSubpages(
   path: string,
-  pageId: string,
+  source: { pageId?: string; spaceId?: string },
   sortBy: SubpagesSortBy,
-  { enabled = true, store = createStore() } = {},
+  {
+    enabled = true,
+    loadAll,
+    store = createStore(),
+  }: { enabled?: boolean; loadAll?: boolean; store?: ReturnType<typeof createStore> } = {},
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -81,6 +85,7 @@ function renderSubpages(
       <JotaiProvider store={store}>
         <MemoryRouter initialEntries={[path]}>
           <Routes>
+            <Route path="/s/:spaceSlug" element={children} />
             <Route path="/s/:spaceSlug/p/:pageSlug" element={children} />
             <Route path="/share/:shareId/p/:pageSlug" element={children} />
             <Route path="/share/p/:pageSlug" element={children} />
@@ -91,7 +96,12 @@ function renderSubpages(
     </QueryClientProvider>
   );
 
-  return renderHook(() => useSubpages(pageId, sortBy, enabled), { wrapper });
+  return {
+    ...renderHook(() => useSubpages(source, sortBy, { enabled, loadAll }), {
+      wrapper,
+    }),
+    queryClient,
+  };
 }
 
 const ids = (items: { id: string }[]) => items.map((item) => item.id);
@@ -116,7 +126,7 @@ describe("useSubpages", () => {
       },
     } as never);
 
-    const { result } = renderSubpages("/s/general/p/parent-p1", "p1", "recent");
+    const { result } = renderSubpages("/s/general/p/parent-p1", { pageId: "p1" }, "recent");
 
     await waitFor(() => expect(ids(result.current.subpages)).toEqual(["c2", "c1"]));
     expect(getSidebarPages).toHaveBeenCalledWith(
@@ -129,8 +139,28 @@ describe("useSubpages", () => {
     await waitFor(() => expect(result.current.subpages).toEqual([]));
   });
 
+  it.each([
+    { source: { spaceId: "space-1" }, key: ["root-sidebar-pages", "space-1"], options: {} },
+    { source: { pageId: "p1" }, key: ["sidebar-pages", { pageId: "p1" }], options: { loadAll: true } },
+  ])(
+    "loads every accessible sibling on a space home for $source",
+    async ({ source, key, options }) => {
+      const last = sidebarPage("visible", "Visible", "a0", "2026-10-02", false);
+      vi.mocked(getSidebarPages)
+        .mockResolvedValueOnce({ items: [], meta: { nextCursor: "next" } } as never)
+        .mockResolvedValueOnce({ items: [last], meta: { nextCursor: null } } as never);
+      const { result, queryClient } = renderSubpages("/s/general", source, "default", options);
+
+      await waitFor(() => expect(ids(result.current.subpages)).toEqual(["visible"]));
+      expect(getSidebarPages).toHaveBeenNthCalledWith(1, { ...source, cursor: undefined, limit: 100 });
+      expect(getSidebarPages).toHaveBeenNthCalledWith(2, { ...source, cursor: "next", limit: 100 });
+      expect(queryClient.getQueryData(key)).toBeDefined();
+      expect(result.current.refetch).toBeDefined();
+    },
+  );
+
   it("does not request children until enabled", () => {
-    const { result } = renderSubpages("/s/general/p/parent-p1", "p1", "default", {
+    const { result } = renderSubpages("/s/general/p/parent-p1", { pageId: "p1" }, "default", {
       enabled: false,
     });
 
@@ -143,7 +173,7 @@ describe("useSubpages", () => {
     const store = createStore();
     store.set(sharedTreeDataAtom, buildSharedPageTree(treePages as never));
 
-    const { result } = renderSubpages("/share/abc/p/parent-slug-p1", "slug-p1", "recent", {
+    const { result } = renderSubpages("/share/abc/p/parent-slug-p1", { pageId: "slug-p1" }, "recent", {
       store,
     });
 
@@ -156,7 +186,7 @@ describe("useSubpages", () => {
     const store = createStore();
     store.set(sharedTreeDataAtom, buildSharedPageTree(treePages as never));
 
-    const { result } = renderSubpages("/share/p/parent-slug-p1", "slug-p1", "default", {
+    const { result } = renderSubpages("/share/p/parent-slug-p1", { pageId: "slug-p1" }, "default", {
       store,
     });
 
@@ -169,7 +199,7 @@ describe("useSubpages", () => {
     const store = createStore();
     store.set(publicSpaceTreeDataAtom, buildSharedPageTree(treePages as never));
 
-    const { result } = renderSubpages("/docs/handbook/parent-slug-p1", "p1", "default", {
+    const { result } = renderSubpages("/docs/handbook/parent-slug-p1", { pageId: "p1" }, "default", {
       store,
     });
 

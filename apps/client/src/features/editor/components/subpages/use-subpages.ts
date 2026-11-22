@@ -3,26 +3,30 @@ import { useLocation } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import type { SubpagesSortBy } from "@docmost/editor-ext";
 import { useGetSidebarPagesQuery } from "@/features/page/queries/page-query";
+import type { SidebarPagesParams } from "@/features/page/types/page.types";
 import { sharedTreeDataAtom } from "@/features/share/atoms/shared-page-atom";
 import { publicSpaceTreeDataAtom } from "@/features/public-space/atoms/public-space-atoms.ts";
 import { findSubpagesInTree } from "@/features/share/utils";
 import { sortSubpages } from "./subpages.utils";
 
 export function useSubpages(
-  pageId: string | undefined,
+  parent: Pick<SidebarPagesParams, "pageId" | "spaceId">,
   sortBy: SubpagesSortBy,
-  enabled = true,
+  { enabled = true, loadAll = !!parent.spaceId } = {},
 ) {
   const { pathname } = useLocation();
+  const { pageId, spaceId } = parent;
   const isShareRoute = pathname.startsWith("/share/");
   const isPublicView = isShareRoute || pathname.startsWith("/docs/");
 
   const sharedTreeData = useAtomValue(sharedTreeDataAtom);
   const publicSpaceTreeData = useAtomValue(publicSpaceTreeDataAtom);
 
-  const { data, isLoading, error, refetch } = useGetSidebarPagesQuery(
-    !isPublicView && enabled ? { pageId } : null,
-  );
+  const canFetch = !isPublicView && enabled && !!(pageId || spaceId);
+  const { data, isLoading, hasNextPage, error, refetch } =
+    useGetSidebarPagesQuery(canFetch ? parent : null, {
+      loadAll: canFetch && loadAll,
+    });
 
   const subpages = useMemo(() => {
     if (isPublicView) {
@@ -53,8 +57,10 @@ export function useSubpages(
 
   return {
     subpages,
-    isLoading,
+    isLoading:
+      isLoading ||
+      (canFetch && loadAll && hasNextPage && !subpages.length && !error),
     error,
-    refetch: !isPublicView && enabled && pageId ? refetch : undefined,
+    refetch: canFetch ? refetch : undefined,
   };
 }

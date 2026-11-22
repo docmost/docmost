@@ -4,6 +4,7 @@ import { ReactNodeViewRenderer } from "@tiptap/react";
 export interface SubpagesOptions {
   HTMLAttributes: Record<string, any>;
   view: any;
+  rootSpaceId?: string;
 }
 
 export type SubpagesSortBy = "default" | "title-asc" | "recent";

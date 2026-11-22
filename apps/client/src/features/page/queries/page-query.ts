@@ -282,27 +282,31 @@ export function useRestorePageMutation() {
 
 export function useGetSidebarPagesQuery(
   data: SidebarPagesParams | null,
+  { loadAll = false } = {},
 ): UseInfiniteQueryResult<InfiniteData<IPagination<IPage>, unknown>> {
-  return useInfiniteQuery({
-    queryKey: ["sidebar-pages", data],
+  const query = useInfiniteQuery({
+    queryKey:
+      data?.spaceId && !data.pageId
+        ? ["root-sidebar-pages", data.spaceId]
+        : ["sidebar-pages", data],
     enabled: !!data?.pageId || !!data?.spaceId,
-    queryFn: ({ pageParam }) => getSidebarPages({ ...data, cursor: pageParam, limit: 100 }),
+    queryFn: ({ pageParam }) =>
+      getSidebarPages({ ...data, cursor: pageParam, limit: 100 }),
     initialPageParam: undefined,
     getNextPageParam: (lastPage) =>
       lastPage.meta?.nextCursor ?? undefined,
   });
+  const { hasNextPage, isFetching, isError, fetchNextPage } = query;
+  useEffect(() => {
+    if (loadAll && hasNextPage && !isFetching && !isError) {
+      void fetchNextPage({ cancelRefetch: false });
+    }
+  }, [loadAll, hasNextPage, isFetching, isError, fetchNextPage]);
+  return query;
 }
 
-export function useGetRootSidebarPagesQuery(data: SidebarPagesParams) {
-  return useInfiniteQuery({
-    queryKey: ["root-sidebar-pages", data.spaceId],
-    queryFn: async ({ pageParam }) => {
-      return getSidebarPages({ spaceId: data.spaceId, cursor: pageParam, limit: 100 });
-    },
-    initialPageParam: undefined,
-    getNextPageParam: (lastPage) =>
-      lastPage.meta?.nextCursor ?? undefined,
-  });
+export function useGetRootSidebarPagesQuery({ spaceId }: SidebarPagesParams) {
+  return useGetSidebarPagesQuery({ spaceId }, { loadAll: true });
 }
 
 export function usePageBreadcrumbsQuery(
