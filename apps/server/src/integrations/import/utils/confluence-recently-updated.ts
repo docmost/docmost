@@ -1,7 +1,4 @@
-import {
-  encodeRecentlyUpdatedLabel,
-  normalizeRecentlyUpdatedLimit,
-} from '@docmost/editor-ext';
+import { normalizeRecentlyUpdatedLimit } from '@docmost/editor-ext';
 import type { Cheerio, CheerioAPI } from 'cheerio';
 
 export type ConfluenceSpaceIds = Readonly<Record<string, string | null>>;
@@ -64,12 +61,10 @@ export function replaceConfluenceRecentUpdates(
     'data-limit': String(normalizeRecentlyUpdatedLimit(params.limit)),
     'data-hide-heading': String(params.hideHeading === true),
   });
-  for (const field of ['spaces', 'labels'] as const) {
-    if (!params[field]?.length) continue;
-    const tokens = params[field].map((token) => {
+  if (params.spaces?.length) {
+    const tokens = params.spaces.map((token) => {
       const [sign, value] = splitConfluenceFilter(token);
       if (!value) return sign + '?';
-      if (field === 'labels') return sign + encodeRecentlyUpdatedLabel(value);
       const scope = scopeNames.get(value.toLowerCase());
       if (scope) return sign + scope;
       const key = value.toUpperCase();
@@ -80,7 +75,29 @@ export function replaceConfluenceRecentUpdates(
           : undefined;
       return sign + (id ?? '?' + value);
     });
-    block.attr('data-' + field, JSON.stringify(tokens));
+    block.attr('data-spaces', JSON.stringify(tokens));
+  }
+  if (params.labels?.length) {
+    const required: string[] = [];
+    const included: string[] = [];
+    const excluded: string[] = [];
+    for (const token of params.labels) {
+      const [sign, name] = splitConfluenceFilter(token);
+      if (!name) {
+        macro.replaceWith(
+          $('<em>').text('[Confluence macro: recently-updated]'),
+        );
+        return;
+      }
+      if (sign === '+') required.push(name);
+      else if (sign === '-') excluded.push(name);
+      else included.push(name);
+    }
+    const labels = required.length ? required : included;
+    if (labels.length) block.attr('data-labels', JSON.stringify(labels));
+    if (excluded.length)
+      block.attr('data-exclude-labels', JSON.stringify(excluded));
+    if (required.length > 1) block.attr('data-match', 'all');
   }
   macro.replaceWith(block);
 }

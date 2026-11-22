@@ -1,4 +1,3 @@
-import { decodeRecentlyUpdatedLabel } from '@docmost/editor-ext';
 import { Expression, ExpressionBuilder, SqlBool, sql } from 'kysely';
 import { validate as isUuid } from 'uuid';
 import type { DB } from '@docmost/db/types/db';
@@ -7,7 +6,7 @@ import { normalizeLabelName } from '../../../core/label/utils';
 
 type Builder = ExpressionBuilder<DB, 'pages' | 'spaces'>;
 
-function matchTokens(
+function matchSpaces(
   eb: Builder,
   tokens: string[],
   resolve: (value: string) => Expression<SqlBool> | undefined,
@@ -35,8 +34,40 @@ export function recentlyUpdatedFilter(
   viewerId: string,
 ) {
   const spaces = options.spaces.length ? options.spaces : ['@self'];
+  const labels = [...new Set(options.labels.map(normalizeLabelName))];
+  const labeledPages = eb
+    .selectFrom('pageLabels')
+    .innerJoin('labels', 'labels.id', 'pageLabels.labelId')
+    .select('pageLabels.pageId')
+    .whereRef('pageLabels.pageId', '=', 'pages.id')
+    .whereRef('labels.workspaceId', '=', 'pages.workspaceId')
+    .where('labels.type', '=', 'page');
+
+  const conditions: Expression<SqlBool>[] = [];
+  if (labels.length) {
+    let included = labeledPages.where('labels.name', 'in', labels);
+    if (options.match === 'all' && labels.length > 1) {
+      included = included
+        .groupBy('pageLabels.pageId')
+        .having((eb) => eb.fn.count('labels.id'), '=', labels.length);
+    }
+    conditions.push(eb.exists(included));
+  }
+  if (options.excludeLabels.length) {
+    conditions.push(
+      eb.not(
+        eb.exists(
+          labeledPages.where(
+            'labels.name',
+            'in',
+            options.excludeLabels.map(normalizeLabelName),
+          ),
+        ),
+      ),
+    );
+  }
   return eb.and([
-    matchTokens(eb, spaces, (value) => {
+    matchSpaces(eb, spaces, (value) => {
       switch (value.toLowerCase()) {
         case '@all':
         case '*':
@@ -64,18 +95,6 @@ export function recentlyUpdatedFilter(
           return isUuid(value) ? eb('pages.spaceId', '=', value) : undefined;
       }
     }),
-    matchTokens(eb, options.labels, (value) => {
-      const name = normalizeLabelName(decodeRecentlyUpdatedLabel(value));
-      return eb.exists(
-        eb
-          .selectFrom('pageLabels')
-          .innerJoin('labels', 'labels.id', 'pageLabels.labelId')
-          .select('pageLabels.id')
-          .whereRef('pageLabels.pageId', '=', 'pages.id')
-          .whereRef('labels.workspaceId', '=', 'pages.workspaceId')
-          .where('labels.type', '=', 'page')
-          .where('labels.name', '=', name),
-      );
-    }),
+    ...conditions,
   ]);
 }

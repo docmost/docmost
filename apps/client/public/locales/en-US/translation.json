@@ -2397,7 +2397,7 @@
   "Non-personal spaces": "Non-personal spaces",
   "Maximum results": "Maximum results",
   "Show heading": "Show heading",
-  "Start a search with + to require a match or - to exclude it.": "Start a search with + to require a match or - to exclude it.",
+  "Tip: Start a space search with + to require a match or - to exclude it.": "Tip: Start a space search with + to require a match or - to exclude it.",
   "No matching pages": "No matching pages",
   "Recently updated settings": "Recently updated settings",
   "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value."

@@ -10,12 +10,14 @@ const validate = (payload: object) =>
   });
 
 describe('RecentlyUpdatedDto', () => {
-  it('uses bounded defaults for omitted options and retains signed and unresolved tokens', async () => {
+  it('uses bounded defaults for omitted options and retains literal label names', async () => {
     await expect(
       validate({ spaceId, labels: ['-old', '?missing'] }),
     ).resolves.toEqual({
       spaceId,
       labels: ['-old', '?missing'],
+      excludeLabels: [],
+      match: 'any',
       spaces: [],
       limit: 15,
     });
@@ -31,6 +33,8 @@ describe('RecentlyUpdatedDto', () => {
       limit: 2,
       spaces: ['@all'],
       labels: ['+review'],
+      excludeLabels: ['?retired'],
+      match: 'all',
     };
     await expect(validate({ ...options, authors })).resolves.toEqual(options);
   });
@@ -43,6 +47,12 @@ describe('RecentlyUpdatedDto', () => {
     { limit: '10' },
     { spaces: '@all' },
     { labels: null },
+    { excludeLabels: null },
+    { excludeLabels: [' '] },
+    { excludeLabels: Array(101).fill('x') },
+    { excludeLabels: ['x'.repeat(257)] },
+    { match: 'some' },
+    { match: null },
     { labels: [12] },
     { spaces: ['  '] },
     { spaces: Array(101).fill('@self') },

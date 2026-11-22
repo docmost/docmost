@@ -12,6 +12,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { Editor, EditorContent } from "@tiptap/react";
 import { Document } from "@tiptap/extension-document";
@@ -108,6 +109,7 @@ function show(
 }
 
 beforeAll(() => {
+  HTMLElement.prototype.scrollIntoView ??= vi.fn();
   globalThis.ResizeObserver ??= class {
     observe() {}
     unobserve() {}
@@ -161,8 +163,14 @@ it.each([
   },
   {
     field: "labels",
-    label: "Labels",
+    label: "Include labels",
     kept: ["a".repeat(254) + "📌☀️"],
+    extra: "x".repeat(257),
+  },
+  {
+    field: "excludeLabels",
+    label: "Exclude labels",
+    kept: ["-literal"],
     extra: "x".repeat(257),
   },
 ])(
@@ -230,6 +238,8 @@ it("loads once across edits, polling intervals, focus, reconnect and recent-page
     limit: 15,
     spaces: [otherId],
     labels: [],
+    excludeLabels: [],
+    match: "any",
   });
   expect(
     screen.getByRole("button", { name: "Recently updated settings" }),
@@ -261,12 +271,14 @@ it("loads once across edits, polling intervals, focus, reconnect and recent-page
   expect(api.post).toHaveBeenLastCalledWith("/pages/recently-updated", {
     spaceId,
     labels: [],
+    excludeLabels: [],
+    match: "any",
     spaces: [otherId],
     limit: 4,
   });
 });
 
-it("edits the limit, heading and signed name choices while preserving unresolved tokens", async () => {
+it("edits the limit, heading and signed space choices while preserving literal labels", async () => {
   vi.mocked(api.post).mockResolvedValue({ data: [] });
   const { editor } = show(
     "/s/team",
@@ -301,6 +313,8 @@ it("edits the limit, heading and signed name choices while preserving unresolved
     hideHeading: true,
     spaces: ["-" + otherId],
     labels: ["?missing", "+review"],
+    excludeLabels: [],
+    match: "any",
   });
   await waitFor(() => {
     const settings = screen.getByRole("button", {
@@ -313,7 +327,7 @@ it("edits the limit, heading and signed name choices while preserving unresolved
   });
 });
 
-it("keeps a literal signed label as an optional match and shows its stored name", async () => {
+it("saves literal names, exclusions and the match mode, then requests the new filter", async () => {
   vi.mocked(api.post).mockResolvedValue({ data: [] });
   const { editor } = show("/s/team", { labels: ["review"] }, spaceId);
   fireEvent.click(
@@ -324,7 +338,8 @@ it("keeps a literal signed label as an optional match and shows its stored name"
       true,
     ),
   );
-  const labels = screen.getByRole("combobox", { name: "Labels" });
+  expect(screen.queryByRole("combobox", { name: "Label matching" })).toBeNull();
+  const labels = screen.getByRole("combobox", { name: "Include labels" });
   act(() => labels.focus());
   fireEvent.input(labels, {
     inputType: "insertText",
@@ -332,13 +347,60 @@ it("keeps a literal signed label as an optional match and shows its stored name"
     target: { value: "draft" },
   });
   fireEvent.click(await screen.findByRole("option", { name: "-draft" }));
+  const mode = screen.getByRole("combobox", { name: "Label matching" });
+  fireEvent.click(mode);
+  fireEvent.click(
+    await screen.findByRole("option", { name: "Match all labels" }),
+  );
+  fireEvent.click(screen.getByRole("combobox", { name: "Exclude labels" }));
+  fireEvent.click(
+    within(screen.getByRole("listbox", { name: "Exclude labels" })).getByRole(
+      "option",
+      { name: "draft" },
+    ),
+  );
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
-  expect(editor.getJSON().content[0].attrs.labels).toEqual([
-    "review",
-    "\\-draft",
-  ]);
+  const filters = {
+    labels: ["review", "-draft"],
+    excludeLabels: ["draft"],
+    match: "all",
+  };
+  expect(editor.getJSON().content[0].attrs).toMatchObject(filters);
+  await waitFor(() =>
+    expect(api.post).toHaveBeenLastCalledWith(
+      "/pages/recently-updated",
+      expect.objectContaining(filters),
+    ),
+  );
   fireEvent.click(
     screen.getByRole("button", { name: "Recently updated settings" }),
   );
-  expect(screen.getByText("-draft")).toBeTruthy();
+  expect(screen.getByDisplayValue("Match all labels")).toBeTruthy();
+});
+
+it("refetches for changes to just the mode or just the exclusions and supports exclude-only settings", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: [] });
+  const { editor } = show("/s/team", { labels: ["a", "b"] }, spaceId);
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+  const change = (
+    field: keyof RecentlyUpdatedAttributes,
+    value: string | string[],
+  ) =>
+    act(() => {
+      editor.view.dispatch(editor.state.tr.setNodeAttribute(0, field, value));
+    });
+  change("match", "all");
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
+  change("excludeLabels", ["?"]);
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(3));
+  change("labels", []);
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(4));
+  expect(api.post).toHaveBeenLastCalledWith("/pages/recently-updated", {
+    spaceId,
+    spaces: [],
+    limit: 15,
+    labels: [],
+    excludeLabels: ["?"],
+    match: "all",
+  });
 });

@@ -10,7 +10,7 @@ import {
 import {
   RECENTLY_UPDATED_FILTER_LIMITS,
   type RecentlyUpdatedAttributes,
-  normalizeRecentlyUpdatedFilterList,
+  normalizeRecentlyUpdatedFilters,
   normalizeRecentlyUpdatedLimit,
   recentlyUpdatedFiltersWithinLimits,
 } from "@docmost/editor-ext";
@@ -114,8 +114,8 @@ function Feed({ options }: { options: RecentlyUpdatedAttributes }) {
     editorSpaceId ? undefined : spaceSlug,
   );
   const spaceId = editorSpaceId ?? space?.id;
-  const { spaces, labels, limit } = options;
-  const filters = { spaces, labels, limit };
+  const { spaces, labels, excludeLabels, match, limit } = options;
+  const filters = { spaces, labels, excludeLabels, match, limit };
   const { data, isError, isLoading } = useQuery({
     queryKey: ["recently-updated", spaceId, viewer?.id, filters],
     queryFn: async () => {
@@ -155,8 +155,7 @@ export default function RecentlyUpdatedView({
   const options: RecentlyUpdatedAttributes = {
     limit: normalizeRecentlyUpdatedLimit(node.attrs.limit),
     hideHeading: node.attrs.hideHeading === true,
-    spaces: normalizeRecentlyUpdatedFilterList(node.attrs.spaces),
-    labels: normalizeRecentlyUpdatedFilterList(node.attrs.labels),
+    ...normalizeRecentlyUpdatedFilters(node.attrs),
   };
   const settingsButton = editable && (
     <ActionIcon

@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsInt,
+  IsIn,
   IsString,
   Matches,
   Max,
@@ -36,4 +37,10 @@ export class RecentlyUpdatedDto extends SpaceIdDto {
 
   @FilterList()
   labels: string[] = [];
+
+  @FilterList()
+  excludeLabels: string[] = [];
+
+  @IsIn(['any', 'all'])
+  match: 'any' | 'all' = 'any';
 }

@@ -35,6 +35,8 @@ describe('recently updated block', () => {
           hideHeading: false,
           spaces: [],
           labels: [],
+          excludeLabels: [],
+          match: 'any',
         },
       },
     ]);
@@ -43,10 +45,12 @@ describe('recently updated block', () => {
   it('preserves the settings in synced blocks and both kinds of table cell after a collaborative save', () => {
     const filters = {
       spaces: ['@self', '+OPS', '-ARCHIVE'],
-      labels: ['+release', '-old', 'r&d,review'],
+      labels: ['+release', '-old', '?', 'r&d,review'],
+      excludeLabels: ['?draft', '+review'],
+      match: 'all',
     };
     const custom = block(
-      `data-limit="6" data-hide-heading="true" data-spaces='${JSON.stringify(filters.spaces)}' data-labels='${JSON.stringify(filters.labels)}'`,
+      `data-limit="6" data-hide-heading="true" data-spaces='${JSON.stringify(filters.spaces)}' data-labels='${JSON.stringify(filters.labels)}' data-exclude-labels='${JSON.stringify(filters.excludeLabels)}' data-match="all"`,
     );
     const doc = htmlToJson(
       `<div data-type="transclusionSource">${custom}<table><tr><th>${custom}</th><td>${custom}</td></tr></table></div>`,
@@ -88,15 +92,20 @@ describe('recently updated block', () => {
   });
 
   it.each([
-    ['data-spaces', 'bad JSON', 'spaces'],
-    ['data-labels', '{"invalid":"shape"}', 'labels'],
-    ['data-labels', '["release",false]', 'labels'],
+    ['data-spaces', 'bad JSON'],
+    ['data-labels', '{"invalid":"shape"}'],
+    ['data-labels', '["release",false]'],
+    ['data-exclude-labels', 'null'],
+    ['data-exclude-labels', '[""]'],
+    ['data-match', 'some'],
   ])(
     'keeps malformed %s=%s from removing a restriction',
-    (attribute, value, name) => {
+    (attribute, value) => {
       const doc = htmlToJson(block(`${attribute}='${value}'`));
-      expect(doc.content[0].attrs[name]).toEqual(['?']);
-      expect(htmlToJson(jsonToHtml(doc)).content[0].attrs[name]).toEqual(['?']);
+      expect(doc.content[0].attrs.spaces).toEqual(['?']);
+      expect(htmlToJson(jsonToHtml(doc)).content[0].attrs.spaces).toEqual([
+        '?',
+      ]);
     },
   );
 
@@ -148,6 +157,8 @@ describe('recently updated block', () => {
     const legacy = {
       spaces: ['@self'],
       labels: [],
+      excludeLabels: [],
+      match: 'any' as const,
       authors: Array(101).fill('x'.repeat(257)),
     };
     expect(recentlyUpdatedFiltersWithinLimits(legacy)).toBe(true);
@@ -158,7 +169,9 @@ describe('recently updated block', () => {
 
   it('omits empty filter lists from exported HTML', () => {
     const doc = htmlToJson(block(`data-spaces='[]' data-labels='[]'`));
-    expect(jsonToHtml(doc)).not.toMatch(/data-(spaces|labels|authors)=/);
+    expect(jsonToHtml(doc)).not.toMatch(
+      /data-(spaces|labels|exclude-labels|authors)=/,
+    );
   });
 
   it.each([false, true])(

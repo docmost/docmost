@@ -21,53 +21,20 @@ import {
 } from "@docmost/editor-ext";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useWorkspaceLabelsQuery } from "@/features/label/queries/label-query";
-import { normalizeLabelName } from "@/features/label/utils/normalize-label";
+import {
+  LabelFilter,
+  LabelMatchSelect,
+} from "@/features/label/components/label-filter";
 import { useGetSpacesQuery } from "@/features/space/queries/space-query";
 import { getSpaceById } from "@/features/space/services/space-service";
 
 type FilterProps = { value: string[]; onChange: (value: string[]) => void };
 
-function LabelFilter({
-  label,
-  value,
-  onChange,
-  required,
-}: FilterProps & { label: string; required?: boolean }) {
-  const { t } = useTranslation();
-  const [search, setSearch] = useState("");
-  const [debouncedSearch] = useDebouncedValue(search, 200);
-  const { data } = useWorkspaceLabelsQuery(debouncedSearch, true);
-  const candidate = normalizeLabelName(search);
-  const names = new Set([
-    ...value,
-    ...(data?.items.map((item) => item.name) ?? []),
-  ]);
-  if (candidate && [...candidate].length <= PAGES_BY_LABEL_MAX_LABEL_LENGTH)
-    names.add(candidate);
-  return (
-    <MultiSelect
-      label={label}
-      required={required}
-      searchable
-      hidePickedOptions
-      placeholder={t("Choose labels")}
-      searchValue={search}
-      onSearchChange={setSearch}
-      data={[...names]}
-      value={value}
-      onChange={onChange}
-      maxValues={PAGES_BY_LABEL_MAX_FILTERS}
-      filter={({ options }) =>
-        options.filter(
-          (item) =>
-            "label" in item && item.label.toLowerCase().includes(candidate),
-        )
-      }
-      comboboxProps={{ withinPortal: false }}
-    />
-  );
-}
+const labelLimits = {
+  maxValues: PAGES_BY_LABEL_MAX_FILTERS,
+  isWithinLength: (name: string) =>
+    [...name].length <= PAGES_BY_LABEL_MAX_LABEL_LENGTH,
+};
 
 function SpaceFilter({ value, onChange }: FilterProps) {
   const { t } = useTranslation();
@@ -157,27 +124,20 @@ export function PagesByLabelSettings({
     >
       <Stack>
         <LabelFilter
+          {...labelLimits}
           label={t("Include labels")}
           required
           value={draft.labels}
           onChange={(v) => update("labels", v)}
         />
         {draft.labels.length > 1 && (
-          <Select
-            label={t("Label matching")}
-            allowDeselect={false}
+          <LabelMatchSelect
             value={draft.match}
-            data={[
-              { value: "any", label: t("Match any label") },
-              { value: "all", label: t("Match all labels") },
-            ]}
-            onChange={(v) =>
-              update("match", v as PagesByLabelAttributes["match"])
-            }
-            comboboxProps={{ withinPortal: false }}
+            onChange={(match) => update("match", match)}
           />
         )}
         <LabelFilter
+          {...labelLimits}
           label={t("Exclude labels")}
           value={draft.excludeLabels}
           onChange={(v) => update("excludeLabels", v)}

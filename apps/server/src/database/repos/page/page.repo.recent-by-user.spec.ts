@@ -118,7 +118,7 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
   }
 
   it('restricts each destination to the viewer before taking the most recent matches', async () => {
-    const query = await run({ spaces: ['@all'], labels: ['+review', '-obsolete'] });
+    const query = await run({ spaces: ['@all'], labels: ['review'], excludeLabels: ['obsolete'] });
     expect(query.sql).toContain('"spaces"."slug" as "space_slug"');
     expect(query.sql).toContain('"users"."name" as "last_editor_name"');
     expect(query.sql).toContain('"users"."avatar_url" as "last_editor_avatar_url"');
@@ -130,8 +130,8 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
     expect(boundAfter(query, 'pp.user_id = ')).toEqual(['viewer']);
     expect(boundAfter(query, 'gu.user_id = ')).toEqual(['viewer']);
     expect(query.sql).toContain('p.id = pages.id');
-    expect(query.sql).toMatch(/not exists \(select "page_labels"\."id"/);
-    expect(boundAfter(query, '"labels"."name" = ')).toEqual(['review', 'obsolete']);
+    expect(query.sql).toMatch(/not exists \(select "page_labels"\."page_id"/);
+    expect(boundAfter(query, '"labels"."name" in (')).toEqual(['review', 'obsolete']);
     expect(countOf(query.sql, ' limit ')).toBe(1);
     expect(query.sql).toMatch(/order by "pages"\."updated_at" desc, "pages"\."id" desc limit \$\d+$/);
     expect(query.parameters[query.parameters.length - 1]).toBe(2);
@@ -163,22 +163,29 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
     expect(boundAfter(query, '"pages"."space_id" = ')).toEqual([]);
   });
 
-  it('requires every signed label, retains exclusions and matches normalized imported label names', async () => {
-    const query = await run({ labels: ['+Übersicht', '+release', 'optional', '-old'] });
-    expect(boundAfter(query, '"labels"."name" = ')).toEqual(['übersicht', 'release', 'old']);
+  it('requires every distinct included label in all mode and respects literal exclusions', async () => {
+    const query = await run({ labels: ['Übersicht', 'release', 'RELEASE'], match: 'all', excludeLabels: ['?old'] });
+    expect(query.parameters).toEqual(expect.arrayContaining(['übersicht', 'release', '?old']));
     expect(query.sql).toContain('"labels"."workspace_id" = "pages"."workspace_id"');
+    expect(boundAfter(query, 'having count("labels"."id") = ')).toEqual([2]);
   });
 
-  it('includes literal leading signs in the optional label union and retains ordinary exclusions', async () => {
-    const query = await run({ labels: ['\\-draft', '\\+pending', 'review', '-old'] });
-    expect(boundAfter(query, '"labels"."name" = ')).toEqual(['-draft', '+pending', 'review', 'old']);
-    expect(query.sql.match(/ or exists \(select "page_labels"/g)).toHaveLength(2);
+  it('matches any literal label name, including prefixes, and filters exclusions separately', async () => {
+    const query = await run({ labels: ['-draft', '+pending', '?'], excludeLabels: ['-old'] });
+    expect(query.parameters).toEqual(expect.arrayContaining(['-draft', '+pending', '?', '-old']));
+    expect(query.sql).not.toContain('having count');
     expect(query.sql.match(/not exists \(select "page_labels"/g)).toHaveLength(1);
+    expect(query.sql.match(/"labels"\."name" in \(/g)).toHaveLength(2);
+  });
+
+  it('can exclude labels without requiring an included label', async () => {
+    const query = await run({ excludeLabels: ['draft'] });
+    expect(query.sql.match(/exists \(select "page_labels"/g)).toHaveLength(1);
+    expect(query.sql).toMatch(/not exists \(select "page_labels"/);
   });
 
   it.each([
     { spaces: ['@all', '-?missing'] },
-    { labels: ['+release', '-?old'] },
     { spaces: ['-unmapped-space'] },
   ])('does not broaden an unresolved filter %o', async (filter) => {
     expect((await run(filter)).sql).toMatch(/\bfalse\b/);

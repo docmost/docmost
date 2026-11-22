@@ -1,4 +1,4 @@
-import { mergeAttributes, Node, type Attribute } from '@tiptap/core';
+import { mergeAttributes, Node } from '@tiptap/core';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { ReactNodeViewRenderer, type ReactNodeViewProps } from '@tiptap/react';
 import type { ComponentType } from 'react';
@@ -23,6 +23,8 @@ export function normalizeRecentlyUpdatedLimit(value: unknown): number {
 export interface RecentlyUpdatedFilters {
   spaces: string[];
   labels: string[];
+  excludeLabels: string[];
+  match: 'any' | 'all';
 }
 
 export interface RecentlyUpdatedAttributes extends RecentlyUpdatedFilters {
@@ -30,15 +32,20 @@ export interface RecentlyUpdatedAttributes extends RecentlyUpdatedFilters {
   hideHeading: boolean;
 }
 
+export function recentlyUpdatedFilterValueWithinLimit(value: string): boolean {
+  return isLength(value, { max: RECENTLY_UPDATED_FILTER_LIMITS.maxLength });
+}
+
 export function recentlyUpdatedFiltersWithinLimits({
   spaces,
   labels,
+  excludeLabels,
 }: RecentlyUpdatedFilters): boolean {
-  const { maxValues, maxLength } = RECENTLY_UPDATED_FILTER_LIMITS;
-  return [spaces, labels].every(
+  const { maxValues } = RECENTLY_UPDATED_FILTER_LIMITS;
+  return [spaces, labels, excludeLabels].every(
     (values) =>
       values.length <= maxValues &&
-      values.every((value) => isLength(value, { max: maxLength })),
+      values.every(recentlyUpdatedFilterValueWithinLimit),
   );
 }
 
@@ -49,50 +56,45 @@ function isFilterList(value: unknown): value is string[] {
   );
 }
 
-export function normalizeRecentlyUpdatedFilterList(value: unknown): string[] {
-  if (value === undefined) return [];
-  return isFilterList(value) ? [...value] : ['?'];
-}
+type FilterInput = Partial<Record<keyof RecentlyUpdatedFilters, unknown>>;
 
-// Escape a leading operator when a label name is stored as a filter value.
-const LABEL_OPERATOR = /^[+?\\-]/;
-
-export function encodeRecentlyUpdatedLabel(name: string): string {
-  return LABEL_OPERATOR.test(name) ? '\\' + name : name;
-}
-
-export function decodeRecentlyUpdatedLabel(value: string): string {
-  if (value.startsWith('\\') && LABEL_OPERATOR.test(value.slice(1))) {
-    return value.slice(1);
+export function normalizeRecentlyUpdatedFilters({
+  spaces = [],
+  labels = [],
+  excludeLabels = [],
+  match = 'any',
+}: FilterInput): RecentlyUpdatedFilters {
+  if (
+    !isFilterList(spaces) ||
+    !isFilterList(labels) ||
+    !isFilterList(excludeLabels) ||
+    (match !== 'any' && match !== 'all')
+  ) {
+    // An unresolved space keeps a malformed restriction from exposing other pages.
+    return { spaces: ['?'], labels: [], excludeLabels: [], match: 'any' };
   }
-  return value;
+  return { spaces, labels, excludeLabels, match };
 }
 
-function filterAttribute(name: keyof RecentlyUpdatedFilters): Attribute {
-  const attribute = `data-${name}`;
-  return {
-    default: [],
-    validate: (value: unknown) => {
-      if (!isFilterList(value)) {
-        throw new RangeError(`Invalid recently updated ${name}`);
-      }
-    },
-    parseHTML: (element) => {
-      const raw = element.getAttribute(attribute);
-      if (raw === null) return [];
-      try {
-        return normalizeRecentlyUpdatedFilterList(JSON.parse(raw));
-      } catch {
-        // A malformed filter must still restrict the feed.
-        return ['?'];
-      }
-    },
-    renderHTML: (attributes) => {
-      const filters = normalizeRecentlyUpdatedFilterList(attributes[name]);
-      return filters.length ? { [attribute]: JSON.stringify(filters) } : {};
-    },
-  };
+function readFilterList(element: HTMLElement, attribute: string): unknown {
+  const raw = element.getAttribute(attribute);
+  if (raw === null) return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
+
+const filterListAttribute = {
+  default: [],
+  rendered: false,
+  parseHTML: () => null,
+  validate: (value: unknown) => {
+    if (!isFilterList(value))
+      throw new RangeError('Invalid recently updated filter');
+  },
+};
 
 interface RecentlyUpdatedOptions {
   HTMLAttributes: Record<string, any>;
@@ -133,8 +135,18 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
           normalizeRecentlyUpdatedLimit(element.getAttribute('data-limit')),
         renderHTML: ({ limit }) => ({ 'data-limit': limit }),
       },
-      spaces: filterAttribute('spaces'),
-      labels: filterAttribute('labels'),
+      spaces: filterListAttribute,
+      labels: filterListAttribute,
+      excludeLabels: filterListAttribute,
+      match: {
+        default: 'any',
+        rendered: false,
+        parseHTML: () => null,
+        validate: (value: unknown) => {
+          if (value !== 'any' && value !== 'all')
+            throw new RangeError('Invalid recently updated match');
+        },
+      },
       hideHeading: {
         default: false,
         validate: 'boolean',
@@ -146,7 +158,18 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
   },
 
   parseHTML() {
-    return [{ tag: 'div[data-type="recently-updated"]' }];
+    return [
+      {
+        tag: 'div[data-type="recently-updated"]',
+        getAttrs: (element: HTMLElement) =>
+          normalizeRecentlyUpdatedFilters({
+            spaces: readFilterList(element, 'data-spaces'),
+            labels: readFilterList(element, 'data-labels'),
+            excludeLabels: readFilterList(element, 'data-exclude-labels'),
+            match: element.getAttribute('data-match') ?? undefined,
+          }),
+      },
+    ];
   },
 
   extendNodeSchema(extension) {
@@ -160,10 +183,18 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
   },
 
   renderHTML({ node, HTMLAttributes }) {
+    const { spaces, labels, excludeLabels, match } =
+      normalizeRecentlyUpdatedFilters(node.attrs);
     return [
       'div',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-type': 'recently-updated',
+        'data-match': match,
+        ...(spaces.length && { 'data-spaces': JSON.stringify(spaces) }),
+        ...(labels.length && { 'data-labels': JSON.stringify(labels) }),
+        ...(excludeLabels.length && {
+          'data-exclude-labels': JSON.stringify(excludeLabels),
+        }),
       }),
       node.textContent,
     ];
@@ -183,8 +214,7 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
             attrs: {
               limit: normalizeRecentlyUpdatedLimit(attributes?.limit),
               hideHeading: attributes?.hideHeading === true,
-              spaces: normalizeRecentlyUpdatedFilterList(attributes?.spaces),
-              labels: normalizeRecentlyUpdatedFilterList(attributes?.labels),
+              ...normalizeRecentlyUpdatedFilters(attributes ?? {}),
             },
           }),
     };
