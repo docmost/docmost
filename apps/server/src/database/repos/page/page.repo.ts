@@ -391,8 +391,8 @@ export class PageRepo {
         .onRef('users.workspaceId', '=', 'pages.workspaceId'))
       .select([
         'pages.id', 'pages.slugId', 'pages.title', 'pages.icon', 'pages.isBase',
-        'pages.updatedAt', 'spaces.slug as spaceSlug', 'users.name as lastEditorName',
-        'users.avatarUrl as lastEditorAvatarUrl',
+        'pages.updatedAt', 'spaces.slug as spaceSlug', 'spaces.name as spaceName',
+        'users.name as lastEditorName', 'users.avatarUrl as lastEditorAvatarUrl',
       ])
       .where('pages.workspaceId', '=', workspaceId)
       .whereRef('spaces.workspaceId', '=', 'pages.workspaceId')

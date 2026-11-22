@@ -117,6 +117,13 @@ describe("LabelPage space filter", () => {
     expect(lastSpaceFilter()).toBe("space-2");
   });
 
+  it("opens a label containing a slash and a literal percent sign", () => {
+    renderLabelPage("/labels/review%2F100%25");
+    expect(vi.mocked(useLabelPagesQuery).mock.lastCall?.[0]).toBe(
+      "review/100%",
+    );
+  });
+
   it("drops the filter when a link leaves the space out of the URL", () => {
     renderLabelPage("/labels/roadmap?spaceId=space-2");
 

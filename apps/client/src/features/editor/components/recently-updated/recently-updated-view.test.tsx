@@ -219,6 +219,7 @@ it("loads once across edits, polling intervals, focus, reconnect and recent-page
     id: "p",
     slugId: "abc",
     title: "First",
+    icon: "📘",
     spaceSlug: "destination",
     lastEditorName: "Alex Morgan",
     lastEditorAvatarUrl: "alex.png",
@@ -230,9 +231,8 @@ it("loads once across edits, polling intervals, focus, reconnect and recent-page
   const { editor, queryClient } = show("/s/team", legacyOptions, spaceId);
   const link = await screen.findByRole("link", { name: /First.*Alex Morgan/ });
   expect(link.getAttribute("href")).toBe("/s/destination/p/first-abc");
-  expect(link.querySelector("img")?.getAttribute("src")).toContain(
-    "/attachments/img/avatar/alex.png",
-  );
+  expect(within(link).getByText("📘")).toBeTruthy();
+  expect(link.querySelector("img")).toBeNull();
   expect(api.post).toHaveBeenCalledWith("/pages/recently-updated", {
     spaceId,
     limit: 15,
@@ -256,7 +256,12 @@ it("loads once across edits, polling intervals, focus, reconnect and recent-page
     });
     await vi.advanceTimersByTimeAsync(65_000);
   });
-  expect(screen.queryByRole("button")).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Recently updated settings" }),
+  ).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "Refresh recently updated pages" }),
+  ).toBeTruthy();
   expect(screen.getByRole("link", { name: /First.*Alex Morgan/ })).toBeTruthy();
   expect(api.post).toHaveBeenCalledTimes(1);
 
@@ -276,6 +281,50 @@ it("loads once across edits, polling intervals, focus, reconnect and recent-page
     spaces: [otherId],
     limit: 4,
   });
+});
+
+it("refreshes on demand in read mode and shows space names only when results span spaces", async () => {
+  const page = {
+    id: "p1",
+    slugId: "abc",
+    title: "Decision record",
+    spaceSlug: "eng",
+    spaceName: "Engineering",
+    lastEditorName: "Alex Morgan",
+    updatedAt: "2026-08-01T08:30:00Z",
+  };
+  const other = {
+    ...page,
+    id: "p2",
+    slugId: "xyz",
+    title: "Release notes",
+    spaceSlug: "docs",
+    spaceName: "Documentation",
+    lastEditorName: null,
+  };
+  vi.mocked(api.post)
+    .mockResolvedValueOnce({ data: [page, other] })
+    .mockResolvedValueOnce({ data: [page] });
+  const { editor } = show("/s/team", { spaces: ["@all"] }, spaceId);
+  act(() => editor.setEditable(false));
+  expect(
+    screen.getByRole("heading", { name: "Recently updated" }),
+  ).toBeTruthy();
+  const first = await screen.findByRole("link", {
+    name: /Decision record.*Updated by Alex Morgan.*Engineering/,
+  });
+  expect(first.querySelector("time")?.dateTime).toBe(page.updatedAt);
+  const second = screen.getByRole("link", {
+    name: /Release notes.*Documentation/,
+  });
+  expect(second.textContent).not.toContain("Updated by");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Refresh recently updated pages" }),
+  );
+  await waitFor(() => expect(screen.queryByText("Release notes")).toBeNull());
+  expect(first.textContent).not.toContain("Engineering");
+  expect(first.textContent).toContain("Updated by Alex Morgan");
+  expect(api.post).toHaveBeenCalledTimes(2);
 });
 
 it("edits the limit, heading and signed space choices while preserving literal labels", async () => {
@@ -321,9 +370,13 @@ it("edits the limit, heading and signed space choices while preserving literal l
       name: "Recently updated settings",
     });
     expect(screen.queryByText("Recently updated", { exact: true })).toBeNull();
+    const block = within(
+      settings.closest<HTMLElement>('[data-type="recently-updated"]')!,
+    );
+    expect(block.getByText("No matching pages")).toBeTruthy();
     expect(
-      settings.parentElement.contains(screen.getByText("No matching pages")),
-    ).toBe(true);
+      block.getByRole("button", { name: "Refresh recently updated pages" }),
+    ).toBeTruthy();
   });
 });
 

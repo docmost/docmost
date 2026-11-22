@@ -741,6 +741,7 @@
   "Subpages": "Subpages",
   "Failed to load subpages": "Failed to load subpages",
   "Sort subpages": "Sort subpages",
+  "Refresh subpages": "Refresh subpages",
   "Manual": "Manual",
   "A–Z": "A–Z",
   "Recent": "Recent",
@@ -2410,5 +2411,8 @@
   "Tip: Start a space search with + to require a match or - to exclude it.": "Tip: Start a space search with + to require a match or - to exclude it.",
   "No matching pages": "No matching pages",
   "Recently updated settings": "Recently updated settings",
+  "Refresh recently updated pages": "Refresh recently updated pages",
+  "Refresh matching pages": "Refresh matching pages",
+  "Updated by {{name}}": "Updated by {{name}}",
   "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value."
 }

@@ -176,20 +176,43 @@ it.each([true, false])(
       id: "target",
       title: "Release handoff",
       slugId: "a42",
-      space: { slug: "other", name: "Other" },
-      labels: ["guide"],
+      space: { id: "other-id", slug: "other", name: "Other" },
+      labels: ["guide", "review/100%"],
     };
     vi.mocked(api.post)
       .mockResolvedValueOnce({ data: { items: [page] } })
+      .mockResolvedValueOnce({
+        data: {
+          items: [
+            {
+              ...page,
+              title: null,
+              isBase: true,
+              space: { ...page.space, archivedAt: "2026-06-01" },
+            },
+          ],
+        },
+      })
       .mockResolvedValueOnce({ data: { items: [] } });
     const { client } = show(
-      { labels: ["guide"], showLabels: true, showSpace: true },
+      {
+        labels: ["guide"],
+        heading: "Team guides",
+        showLabels: true,
+        showSpace: true,
+      },
       undefined,
       editable,
     );
-    const link = await screen.findByRole("link", { name: /Release handoff/ });
+    expect(screen.getByRole("heading", { name: "Team guides" })).toBeTruthy();
+    const link = await screen.findByRole("link", { name: "Release handoff" });
     expect(link.getAttribute("href")).toBe("/s/other/p/release-handoff-a42");
-    expect(link.textContent).toContain("guide");
+    const guide = screen.getByRole("link", { name: "guide" });
+    expect(guide.getAttribute("href")).toBe("/labels/guide");
+    expect(link.contains(guide)).toBe(false);
+    expect(
+      screen.getByRole("link", { name: "review/100%" }).getAttribute("href"),
+    ).toBe("/labels/review%2F100%25");
     expect(api.post).toHaveBeenCalledWith(
       "/labels/query-pages",
       expect.objectContaining({
@@ -202,6 +225,16 @@ it.each([true, false])(
     expect(
       !!screen.queryByRole("button", { name: "Pages by label settings" }),
     ).toBe(editable);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Refresh matching pages" }),
+    );
+    const base = await screen.findByRole("link", { name: /Untitled base/ });
+    expect(
+      base.closest('[role="listitem"]')?.querySelector(".tabler-icon-table"),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "guide" }).getAttribute("href"),
+    ).toBe("/labels/guide?spaceId=other-id");
     await act(() => client.invalidateQueries({ queryKey: ["label-pages"] }));
     expect(await screen.findByText("No matching pages")).toBeTruthy();
   },

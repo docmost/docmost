@@ -1,6 +1,6 @@
 import { NodeViewProps, NodeViewWrapper, useEditorState } from "@tiptap/react";
-import { SegmentedControl } from "@mantine/core";
-import { useId } from "react";
+import { SegmentedControl, Skeleton } from "@mantine/core";
+import { useId, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAtomValue } from "jotai";
@@ -9,6 +9,11 @@ import { publicSpaceTreeDataAtom } from "@/features/public-space/atoms/public-sp
 import { extractPageSlugId } from "@/lib";
 import SubpageItem from "./subpage-item";
 import { useSubpages } from "./use-subpages";
+import {
+  PageListLayout,
+  PageListRefreshButton,
+} from "../common/page-list-layout";
+import listStyles from "../common/page-list.module.css";
 import classes from "./subpages.module.css";
 
 export default function SubpagesView(props: NodeViewProps) {
@@ -17,6 +22,8 @@ export default function SubpagesView(props: NodeViewProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const headingId = useId();
+  const expandedBranches = useRef(new Set<() => Promise<unknown>>()).current;
+  const [refreshing, setRefreshing] = useState(false);
   const isShareRoute = location.pathname.startsWith("/share/");
   const isPublicSpaceRoute = location.pathname.startsWith("/docs/");
   const isPublicView = isShareRoute || isPublicSpaceRoute;
@@ -32,7 +39,7 @@ export default function SubpagesView(props: NodeViewProps) {
   const routePageId = extractPageSlugId(pageSlug);
   let currentPageId = storagePageId;
 
-  if (isShareRoute){
+  if (isShareRoute) {
     currentPageId = routePageId;
   }
 
@@ -45,47 +52,73 @@ export default function SubpagesView(props: NodeViewProps) {
   }
 
   const sortBy: SubpagesSortBy = node.attrs.sortBy || "default";
-  const { subpages, isLoading, error } = useSubpages(currentPageId, sortBy);
+  const { subpages, isLoading, error, refetch } = useSubpages(
+    currentPageId,
+    sortBy,
+  );
 
-  if (isLoading) {
-    return null;
+  async function refreshSubpages() {
+    if (!refetch) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetch(),
+        ...Array.from(expandedBranches, (reload) => reload()),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   return (
-    <NodeViewWrapper data-drag-handle>
-      <div className={classes.card}>
-        <div className={classes.header}>
-          <div id={headingId} className={classes.heading}>
-            {t("Subpages")}
-            {subpages.length > 0 && (
-              <span className={classes.count}>{subpages.length}</span>
-            )}
-          </div>
-
-          {isEditable && subpages.length > 1 && (
-            <SegmentedControl<SubpagesSortBy>
-              size="xs"
-              className={classes.sortControl}
-              value={sortBy}
-              onChange={(value) => updateAttributes({ sortBy: value })}
-              data={[
-                { label: t("Manual"), value: "default" },
-                { label: t("A–Z"), value: "title-asc" },
-                { label: t("Recent"), value: "recent" },
-              ]}
-              aria-label={t("Sort subpages")}
-            />
-          )}
-        </div>
-
-        {subpages.length > 0 ? (
-          <div role="list" aria-labelledby={headingId} className={classes.list}>
+    <NodeViewWrapper
+      data-drag-handle
+      data-type="subpages"
+      contentEditable={false}
+      className={listStyles.block + " " + classes.block}
+    >
+      <PageListLayout
+        headingId={headingId}
+        heading={t("Subpages")}
+        actions={
+          refetch && (
+            <>
+              {isEditable && subpages.length > 1 && (
+                <SegmentedControl<SubpagesSortBy>
+                  size="xs"
+                  className={classes.sortControl}
+                  value={sortBy}
+                  onChange={(value) => {
+                    if (editor.isEditable) updateAttributes({ sortBy: value });
+                  }}
+                  data={[
+                    { label: t("Manual"), value: "default" },
+                    { label: t("A–Z"), value: "title-asc" },
+                    { label: t("Recent"), value: "recent" },
+                  ]}
+                  aria-label={t("Sort subpages")}
+                />
+              )}
+              <PageListRefreshButton
+                label={t("Refresh subpages")}
+                loading={isLoading || refreshing}
+                onClick={refreshSubpages}
+              />
+            </>
+          )
+        }
+      >
+        {isLoading ? (
+          <Skeleton h={32} m="xs" />
+        ) : subpages.length > 0 ? (
+          <div role="list" aria-labelledby={headingId}>
             {subpages.map((page) => (
               <SubpageItem
                 key={page.id}
                 page={page}
                 depth={0}
                 sortBy={sortBy}
+                expandedBranches={expandedBranches}
                 showUpdatedAt={!isPublicView}
                 isPublicSpaceRoute={isPublicSpaceRoute}
                 shareId={shareId}
@@ -94,11 +127,11 @@ export default function SubpagesView(props: NodeViewProps) {
             ))}
           </div>
         ) : (
-          <div className={classes.empty}>
+          <div className={listStyles.empty}>
             {error ? t("Failed to load subpages") : t("No subpages")}
           </div>
         )}
-      </div>
+      </PageListLayout>
     </NodeViewWrapper>
   );
 }

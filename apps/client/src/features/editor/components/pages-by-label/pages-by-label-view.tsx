@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Modal } from "@mantine/core";
+import { ActionIcon, Group, Modal, Paper } from "@mantine/core";
 import { IconSettings, IconTags } from "@tabler/icons-react";
 import {
   normalizePagesByLabelAttributes,
@@ -18,7 +18,8 @@ import { PagesByLabelContext } from "./pages-by-label-context";
 import { pageEditorBindingAtom } from "@/features/editor/atoms/editor-atoms";
 import { PagesByLabelResults } from "./pages-by-label-results";
 import { PagesByLabelSettings } from "./pages-by-label-settings";
-import classes from "../subpages/subpages.module.css";
+import { PageListLayout } from "../common/page-list-layout";
+import classes from "../common/page-list.module.css";
 import styles from "./pages-by-label.module.css";
 
 export function PagesByLabelView({
@@ -58,17 +59,17 @@ export function PagesByLabelView({
   if (!host)
     return (
       <NodeViewWrapper>
-        {options.heading || t("Pages by label")}
+        <h3>{options.heading || t("Pages by label")}</h3>
       </NodeViewWrapper>
     );
 
   const settingsButton = editable && options.labels.length > 0 && (
     <ActionIcon
-      className={styles.settings + " print-hide"}
       variant="subtle"
       color="gray"
-      size="sm"
+      size="md"
       aria-label={t("Pages by label settings")}
+      title={t("Pages by label settings")}
       onClick={() => setEditing(options)}
     >
       <IconSettings size={16} />
@@ -78,40 +79,34 @@ export function PagesByLabelView({
     <NodeViewWrapper
       data-type="pages-by-label"
       contentEditable={false}
-      className={classes.card + " " + styles.block}
+      className={classes.block + " " + styles.block}
       data-print-heading={options.heading || t("Pages by label")}
     >
-      {!!options.heading && (
-        <div className={classes.header}>
-          <h3 className={styles.heading}>{options.heading}</h3>
-          {settingsButton}
-        </div>
+      {options.labels.length ? (
+        <PagesByLabelResults options={options} settings={settingsButton} />
+      ) : (
+        <PageListLayout heading={options.heading}>
+          {editable ? (
+            <Paper
+              component="button"
+              type="button"
+              withBorder
+              radius="md"
+              p="xs"
+              className={styles.chooseLabels}
+              onClick={() => setEditing(options)}
+            >
+              <IconTags size={18} aria-hidden />
+              {t("Choose labels")}
+            </Paper>
+          ) : (
+            <Group gap="xs" className={classes.empty}>
+              <IconTags size={18} aria-hidden />
+              {t("No labels selected")}
+            </Group>
+          )}
+        </PageListLayout>
       )}
-      <div
-        className={
-          !options.heading && settingsButton ? styles.headless : undefined
-        }
-      >
-        {!options.heading && settingsButton}
-        {options.labels.length ? (
-          <PagesByLabelResults options={options} />
-        ) : (
-          <Group gap="xs" className={classes.empty}>
-            <IconTags size={18} aria-hidden />
-            {editable ? (
-              <Button
-                variant="subtle"
-                size="compact-sm"
-                onClick={() => setEditing(options)}
-              >
-                {t("Choose labels")}
-              </Button>
-            ) : (
-              t("No labels selected")
-            )}
-          </Group>
-        )}
-      </div>
       {editable && editing && (
         <Modal
           opened

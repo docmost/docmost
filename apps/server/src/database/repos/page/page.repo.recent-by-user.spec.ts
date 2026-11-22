@@ -120,6 +120,7 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
   it('restricts each destination to the viewer before taking the most recent matches', async () => {
     const query = await run({ spaces: ['@all'], labels: ['review'], excludeLabels: ['obsolete'] });
     expect(query.sql).toContain('"spaces"."slug" as "space_slug"');
+    expect(query.sql).toContain('"spaces"."name" as "space_name"');
     expect(query.sql).toContain('"users"."name" as "last_editor_name"');
     expect(query.sql).toContain('"users"."avatar_url" as "last_editor_avatar_url"');
     expect(query.sql).not.toContain('"content"');

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createStore, Provider as JotaiProvider } from "jotai";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -122,6 +122,11 @@ describe("useSubpages", () => {
     expect(getSidebarPages).toHaveBeenCalledWith(
       expect.objectContaining({ pageId: "p1" }),
     );
+    vi.mocked(getSidebarPages).mockResolvedValueOnce({ items: [] } as never);
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.subpages).toEqual([]));
   });
 
   it("does not request children until enabled", () => {
@@ -130,6 +135,7 @@ describe("useSubpages", () => {
     });
 
     expect(result.current.subpages).toEqual([]);
+    expect(result.current.refetch).toBeUndefined();
     expect(getSidebarPages).not.toHaveBeenCalled();
   });
 
@@ -142,6 +148,7 @@ describe("useSubpages", () => {
     });
 
     expect(ids(result.current.subpages)).toEqual(["c2", "c1"]);
+    expect(result.current.refetch).toBeUndefined();
     expect(getSidebarPages).not.toHaveBeenCalled();
   });
 
@@ -154,6 +161,7 @@ describe("useSubpages", () => {
     });
 
     expect(ids(result.current.subpages)).toEqual(["c1", "c2"]);
+    expect(result.current.refetch).toBeUndefined();
     expect(getSidebarPages).not.toHaveBeenCalled();
   });
 
@@ -165,6 +173,7 @@ describe("useSubpages", () => {
       store,
     });
 
+    expect(result.current.refetch).toBeUndefined();
     expect(
       result.current.subpages.map(({ id, slugId, title, hasChildren }) => ({
         id,
