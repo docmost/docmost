@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { ActionIcon, Modal, Skeleton, Text } from "@mantine/core";
+import { ActionIcon, Box, Modal, Skeleton, Text } from "@mantine/core";
 import { IconSettings } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -18,7 +18,7 @@ import { useAtomValue } from "jotai";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import api from "@/lib/api-client";
-import { PageListIcon } from "@/components/common/page-list-icon";
+import { DefaultPageIcon } from "@/components/common/page-list-icon";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { buildPageUrl, getPageTitle } from "@/features/page/page.utils";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
@@ -66,9 +66,9 @@ function FeedRows({ rows }: { rows: RecentPage[] }) {
               className={classes.link}
               draggable={false}
             >
-              <span className={classes.icon} aria-hidden>
-                <PageListIcon icon={row.icon} isBase={row.isBase} />
-              </span>
+              <Box component="span" className={classes.icon} c="gray" aria-hidden>
+                {row.icon || <DefaultPageIcon isBase={row.isBase} />}
+              </Box>
               <span className={classes.title}>
                 {getPageTitle(row.title, row.isBase, t)}
               </span>

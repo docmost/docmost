@@ -4,13 +4,12 @@ import { useTranslation } from "react-i18next";
 import { ActionIcon, rem } from "@mantine/core";
 import {
   IconChevronDown,
-  IconFileDescription,
   IconPlus,
   IconPointFilled,
-  IconTable,
 } from "@tabler/icons-react";
 
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
+import { DefaultPageIcon } from "@/components/common/page-list-icon";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getPageTitle } from "@/features/page/page.utils";
 import { usePagePrefetch } from "@/features/page/hooks/use-page-prefetch";
@@ -163,15 +162,7 @@ export function SpaceTreeRow({
       <div data-page-action onClick={handleEmojiIconClick} style={{ marginRight: "4px" }}>
         <EmojiPicker
           onEmojiSelect={handleEmojiSelect}
-          icon={
-            node.icon ? (
-              node.icon
-            ) : node.isBase ? (
-              <IconTable size={18} />
-            ) : (
-              <IconFileDescription size="18" />
-            )
-          }
+          icon={node.icon || <DefaultPageIcon isBase={node.isBase} />}
           readOnly={!canEdit}
           removeEmojiAction={handleRemoveEmoji}
           actionIconProps={{ tabIndex: -1 }}
