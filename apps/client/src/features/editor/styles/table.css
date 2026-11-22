@@ -8,6 +8,16 @@
   }
 }
 
+/* Let a single-cell image table fit its layout column. */
+[data-type="column"] .tableWrapper > table:has(> tbody > tr:only-child > :is(td, th):only-child img) {
+  min-width: min(700px, 100%) !important;
+  max-width: 100%;
+
+  & > colgroup > col:only-child {
+    width: auto !important;
+  }
+}
+
 .table-dnd-preview {
   padding: 0;
   background-color: rgba(255, 255, 255, 0.3);
