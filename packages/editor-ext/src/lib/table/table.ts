@@ -2,9 +2,13 @@ import { Table } from "@tiptap/extension-table";
 import type { Command, Editor } from "@tiptap/core";
 import { DOMOutputSpec } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
-import { cellAround, goToNextCell } from "@tiptap/pm/tables";
+import { cellAround, columnResizing, goToNextCell } from "@tiptap/pm/tables";
 import { closestListItem } from "../list-item";
 import { handleCellEdgeArrow } from "./utils/cell-edge-arrow";
+import {
+  getPreferredTableWidth,
+  getTableColumnWidths,
+} from "./utils/column-widths";
 import { activeTemplatePlaceholder, hintMarks } from "../template-placeholder";
 
 function handleListIndent(editor: Editor): boolean {
@@ -43,6 +47,23 @@ function navigateToCell(direction: 1 | -1): Command {
 }
 
 export const CustomTable = Table.extend({
+
+  addProseMirrorPlugins() {
+    const plugins = this.parent?.() ?? [];
+    // Collaborative editors can mount read-only until the document has synced.
+    if (this.options.resizable && !this.editor.isEditable) {
+      plugins.unshift(
+        columnResizing({
+          handleWidth: this.options.handleWidth,
+          cellMinWidth: this.options.cellMinWidth,
+          defaultCellMinWidth: this.options.cellMinWidth,
+          lastColumnResizable: this.options.lastColumnResizable,
+          View: null,
+        }),
+      );
+    }
+    return plugins;
+  },
 
   addCommands() {
     return {
@@ -121,9 +142,13 @@ export const CustomTable = Table.extend({
   renderHTML({ node, HTMLAttributes }) {
     // https://github.com/ueberdosis/tiptap/issues/4872#issuecomment-2717554498
     const originalRender = this.parent?.({ node, HTMLAttributes });
+    const preferredWidth = getPreferredTableWidth(getTableColumnWidths(node));
     const wrapper: DOMOutputSpec = [
       "div",
-      { class: "tableWrapper" },
+      {
+        class: "tableWrapper",
+        ...(preferredWidth && { style: `--table-preferred-width: ${preferredWidth}` }),
+      },
       originalRender,
     ];
     return wrapper;

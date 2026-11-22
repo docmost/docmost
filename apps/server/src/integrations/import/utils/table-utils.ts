@@ -1,7 +1,5 @@
 import { CheerioAPI, Cheerio } from 'cheerio';
 
-const DEFAULT_IMPORT_COL_WIDTH_PX = 150;
-
 /**
  * Extracts a pixel-integer width from either the `width` attribute or
  * `style="width: Npx"` on a <col>/<td>/<th>. Returns null when absent,
@@ -75,19 +73,8 @@ export function normalizeTableColumnWidths(
     const firstRow = table.find('> tbody > tr, > thead > tr, > tr').first();
     if (!firstRow.length) return;
 
-    let colWidths = deriveColumnWidths($, table);
-    if (!colWidths) {
-      // No widths anywhere (e.g. markdown-sourced tables). Apply a default
-      // per-column width so the table's intrinsic width can exceed the
-      // editor container, letting .tableWrapper's overflow-x: auto scroll
-      // instead of cramming columns into the available width.
-      let count = 0;
-      firstRow.children('td, th').each(function () {
-        count += parseInt($(this).attr('colspan') || '1', 10) || 1;
-      });
-      if (count === 0) return;
-      colWidths = new Array(count).fill(DEFAULT_IMPORT_COL_WIDTH_PX);
-    }
+    const colWidths = deriveColumnWidths($, table);
+    if (!colWidths) return;
 
     let col = 0;
     firstRow.children('td, th').each(function () {
@@ -100,7 +87,8 @@ export function normalizeTableColumnWidths(
       const slice = colWidths.slice(col, col + colspan);
       col += colspan;
       if (slice.length === 0 || slice.every((w) => w === null)) return;
-      const values = slice.map((w) => (w == null ? 100 : w));
+      // ProseMirror uses zero for an unsized column inside a merged cell.
+      const values = slice.map((w) => w ?? 0);
       cell.attr('colwidth', values.join(','));
     });
   });

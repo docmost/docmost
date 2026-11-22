@@ -4,7 +4,6 @@
   overflow-x: auto;
   & table {
     overflow-x: hidden;
-    min-width: 700px !important;
   }
 }
 
@@ -34,7 +33,7 @@
     border-collapse: collapse;
     margin: 0;
     table-layout: fixed;
-    width: 100%;
+    width: max(100%, var(--table-preferred-width, 0px));
 
     td,
     th {

@@ -108,6 +108,17 @@ describe("pasting plain text", () => {
     ]);
   });
 
+  it("leaves pasted Markdown columns available for automatic sizing", () => {
+    createEditor([{ type: "paragraph" }], 1);
+    pastePlainText("| Name | Status |\n|---|---|\n| Launch | Ready |");
+
+    const table = editor.state.doc.firstChild!;
+    expect(table.type.name).toBe("table");
+    table.forEach((row) =>
+      row.forEach((cell) => expect(cell.attrs.colwidth).toBeNull()),
+    );
+  });
+
   it("keeps the text after the cursor out of a pasted callout", () => {
     createEditor(
       [{ type: "paragraph", content: [{ type: "text", text: "ab cd" }] }],
