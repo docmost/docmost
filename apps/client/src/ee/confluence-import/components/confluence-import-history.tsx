@@ -107,6 +107,10 @@ function progressValue(item: ConfluenceImportHistoryItem) {
 function ProgressCell({ item }: { item: ConfluenceImportHistoryItem }) {
   const { t } = useTranslation();
   const value = progressValue(item);
+  const userTotal =
+    item.totalUsers === 0 && (!item.currentPhase || item.currentPhase === "users")
+      ? "?"
+      : item.totalUsers;
   const color =
     item.status === "failed"
       ? "red"
@@ -125,7 +129,7 @@ function ProgressCell({ item }: { item: ConfluenceImportHistoryItem }) {
           · {item.importedSpaces}/{item.totalSpaces || "?"} {t("spaces")}
         </Text>
         <Text fz="xs" c="dimmed" style={{ whiteSpace: "nowrap" }}>
-          · {item.importedUsers}/{item.totalUsers || "?"} {t("users")}
+          · {item.importedUsers}/{userTotal} {t("users")}
         </Text>
       </Group>
     </Stack>

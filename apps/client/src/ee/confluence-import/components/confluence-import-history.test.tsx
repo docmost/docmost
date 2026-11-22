@@ -98,6 +98,19 @@ function showDetails() {
   return view;
 }
 
+it("shows a zero user total once discovery has finished", () => {
+  provide(historyItem({ currentPhase: "users" }));
+  const { rerender } = render(<ConfluenceImportHistory />, {
+    wrapper: ({ children }) => (
+      <MantineProvider env="test">{children}</MantineProvider>
+    ),
+  });
+  expect(screen.getByText(/0\/\? users/)).toBeDefined();
+  provide(historyItem({ currentPhase: "groups" }));
+  rerender(<ConfluenceImportHistory />);
+  expect(screen.getByText(/0\/0 users/)).toBeDefined();
+});
+
 it("updates the recorded counts while import details are open", () => {
   provide(historyItem());
   const { rerender } = showDetails();
