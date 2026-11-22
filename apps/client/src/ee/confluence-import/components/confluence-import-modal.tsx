@@ -392,7 +392,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
         <Stack>
           <Text size="sm" c="dimmed">
             {t(
-              "The selected spaces are imported with their pages, attachments, comments, labels, users, groups, permissions, and custom templates. Global custom templates are imported into the workspace.",
+              "The selected spaces are imported with their pages, attachments, comments, labels, users, groups, permissions, and custom templates.",
             )}
           </Text>
 
@@ -441,7 +441,7 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
           <Checkbox
             label={t("Import Confluence blueprints")}
             description={t(
-              "Add the full catalog to the Confluence Blueprints space and customized versions to their original spaces.",
+              "Add the full catalog to the Confluence Blueprints space.",
             )}
             checked={includeBlueprints}
             onChange={(e) => setIncludeBlueprints(e.currentTarget.checked)}
