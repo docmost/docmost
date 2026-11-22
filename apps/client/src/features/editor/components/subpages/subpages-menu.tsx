@@ -1,4 +1,4 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { NodeBubbleMenu } from "@/features/editor/components/bubble-menu/node-bubble-menu";
 import { posToDOMRect, findParentNode } from "@tiptap/react";
 import { Node as PMNode } from "@tiptap/pm/model";
 import React, { useCallback, type JSX } from "react";
@@ -58,7 +58,7 @@ export const SubpagesMenu = React.memo(
     }, [editor]);
 
     return (
-      <BaseBubbleMenu
+      <NodeBubbleMenu
         editor={editor}
         pluginKey={`subpages-menu`}
         ref={(element) => {
@@ -78,7 +78,7 @@ export const SubpagesMenu = React.memo(
             <IconTrash size={18} />
           </ActionIcon>
         </Tooltip>
-      </BaseBubbleMenu>
+      </NodeBubbleMenu>
     );
   }
 );

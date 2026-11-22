@@ -1,4 +1,4 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { NodeBubbleMenu } from "@/features/editor/components/bubble-menu/node-bubble-menu";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import { useCallback } from "react";
 import { useSetAtom } from "jotai";
@@ -129,7 +129,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
   });
 
   return (
-    <BaseBubbleMenu
+    <NodeBubbleMenu
       editor={editor}
       pluginKey={`video-menu`}
       ref={(element) => {
@@ -230,7 +230,7 @@ export function VideoMenu({ editor }: EditorMenuProps) {
         </Tooltip>
         </div>
       )}
-    </BaseBubbleMenu>
+    </NodeBubbleMenu>
   );
 }
 
