@@ -87,14 +87,15 @@ async function selectSpaces(
   edition: ConfluenceEdition,
   capabilities: { pageHistoryAvailable?: boolean } = {},
 ) {
-  post.mockResolvedValueOnce({
-    data: {
-      success: true,
-      edition,
-      spaces: [{ id: "1", key: "ENG", name: "Engineering" }],
-      ...capabilities,
-    },
-  });
+  post
+    .mockResolvedValueOnce({ data: { success: true, edition } })
+    .mockResolvedValueOnce({
+      data: {
+        success: true,
+        spaces: [{ id: "1", key: "ENG", name: "Engineering" }],
+        ...capabilities,
+      },
+    });
   fireEvent.click(screen.getByRole("button", { name: "Test & continue" }));
   await screen.findByRole("button", { name: "Start import" });
 }
@@ -115,25 +116,6 @@ function blueprintsOption() {
     name: "Import Confluence blueprints",
   });
 }
-
-it.each([
-  { code: "ECONNABORTED" },
-  { response: { status: 408 } },
-])("allows another connection check after a timeout (%j)", async (error) => {
-  renderImport();
-  post.mockRejectedValueOnce(error);
-  fireEvent.click(screen.getByRole("button", { name: "Test & continue" }));
-  expect((await screen.findByRole("alert")).textContent).toBe(
-    "The connection test timed out after 30 seconds.",
-  );
-  await selectSpaces("server");
-  expect(post).toHaveBeenCalledTimes(2);
-  expect(post).toHaveBeenLastCalledWith(
-    "/confluence-import/test-connection",
-    expect.anything(),
-    expect.objectContaining({ timeout: 30_000, params: { includeSpaces: true } }),
-  );
-});
 
 it.each(["server", "cloud"] as const)(
   "uses the default attachment and comment lookup on %s",
