@@ -123,12 +123,16 @@ function renderPageRoute() {
   return { router, scrollTo };
 }
 
-it("opens a different page at the top and lets the browser restore Back and Forward", async () => {
+it("positions a new page at the top immediately and lets the browser restore Back and Forward", async () => {
   const { router, scrollTo } = renderPageRoute();
   expect(scrollTo).not.toHaveBeenCalled();
 
   await act(() => router.navigate("/s/team/p/second-two"));
-  expect(scrollTo).toHaveBeenCalledExactlyOnceWith(0, 0);
+  expect(scrollTo).toHaveBeenCalledExactlyOnceWith({
+    top: 0,
+    left: 0,
+    behavior: "instant",
+  });
 
   scrollTo.mockClear();
   await act(() => router.navigate(-1));

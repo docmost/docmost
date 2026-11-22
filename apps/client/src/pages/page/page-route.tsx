@@ -15,7 +15,9 @@ export function PageRoute() {
   const { hash } = useLocation();
   const navigationType = useNavigationType();
   const scrollToPageStart = useEffectEvent(() => {
-    if (navigationType === "PUSH" && !hash) window.scrollTo(0, 0);
+    if (navigationType === "PUSH" && !hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
   });
 
   // A title edit can rewrite the URL while the reader is still on the same page.
