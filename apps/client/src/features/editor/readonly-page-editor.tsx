@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Editor, EditorProvider } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Document } from "@tiptap/extension-document";
-import { Heading, UniqueID } from "@docmost/editor-ext";
+import { Heading, RecentlyUpdated, UniqueID } from "@docmost/editor-ext";
 import { Text } from "@tiptap/extension-text";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { useAtom } from "jotai";
@@ -72,7 +72,9 @@ export default function ReadonlyPageEditor({
   const extensions = useMemo(() => {
     const excludedExtensions = new Set([
       "uniqueID",
-      ...(printMode ? ["tableHeaderPin", "tableReadonlySort"] : []),
+      ...(printMode
+        ? ["tableHeaderPin", "tableReadonlySort", RecentlyUpdated.name]
+        : []),
     ]);
     const filteredExtensions = mainExtensions
       .filter((ext) => !excludedExtensions.has(ext.name))
@@ -86,6 +88,7 @@ export default function ReadonlyPageEditor({
 
     return [
       ...filteredExtensions,
+      ...(printMode ? [RecentlyUpdated] : []),
       UniqueID.configure({
         types: ["heading", "paragraph"],
         updateDocument: false,

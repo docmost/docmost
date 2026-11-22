@@ -184,7 +184,7 @@ export default function RecentlyUpdatedView({
   const canEdit = editable && !isPublic;
   const settingsButton = canEdit && (
     <ActionIcon
-      className={styles.settings}
+      className={`${styles.settings} print-hide`}
       variant="subtle"
       color="gray"
       size="sm"

@@ -161,18 +161,21 @@ describe('recently updated block', () => {
     expect(jsonToHtml(doc)).not.toMatch(/data-(spaces|labels|authors)=/);
   });
 
-  it('exports a static title in HTML, plain text, Markdown and Word', async () => {
-    const doc = htmlToJson(block());
-    expect(jsonToHtml(doc)).toContain('>Recently updated</div>');
-    expect(jsonToText(doc).trim()).toBe('Recently updated');
-    expect(jsonToMarkdown(doc).trim()).toBe('Recently updated');
-    const buffer = await pageNodeToDocxBuffer(
-      jsonToNode(doc),
-      async () => new Uint8Array(),
-    );
-    const zip = await JSZip.loadAsync(buffer);
-    expect(await zip.file('word/document.xml')!.async('string')).toContain(
-      'Recently updated',
-    );
-  });
+  it.each([false, true])(
+    'honors hideHeading=%s in HTML, plain text, Markdown and Word',
+    async (hideHeading) => {
+      const doc = htmlToJson(block(`data-hide-heading="${hideHeading}"`));
+      const title = hideHeading ? '' : 'Recently updated';
+      expect(jsonToHtml(doc)).toContain(`>${title}</div>`);
+      expect(jsonToText(doc).trim()).toBe(title);
+      expect(jsonToMarkdown(doc).trim()).toBe(title);
+      const buffer = await pageNodeToDocxBuffer(
+        jsonToNode(doc),
+        async () => new Uint8Array(),
+      );
+      const zip = await JSZip.loadAsync(buffer);
+      const xml = await zip.file('word/document.xml')!.async('string');
+      expect(xml.includes('Recently updated')).toBe(!hideHeading);
+    },
+  );
 });
