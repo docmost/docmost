@@ -21,21 +21,15 @@ import api from "@/lib/api-client";
 import { PageListIcon } from "@/components/common/page-list-icon";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { buildPageUrl, getPageTitle } from "@/features/page/page.utils";
-import { usePublicSpaceTreeQuery } from "@/features/public-space/queries/public-space-query";
-import { useGetSharedPageTreeQuery } from "@/features/share/queries/share-query";
-import { useDocsSurface } from "@/features/public-space/components/docs/docs-surface-context";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
 import { formattedDate, shortTimeAgo } from "@/lib/time";
-import { publicRecentlyUpdatedPages } from "./public-recently-updated";
 import RecentlyUpdatedSettings from "./recently-updated-settings";
 import { EditorSpaceContext } from "./editor-space-context";
 import classes from "../subpages/subpages.module.css";
 import styles from "./recently-updated.module.css";
 
-const FEED_REFRESH_INTERVAL = 30_000;
-
-type FeedRow = {
+type RecentPage = {
   id: string;
   title: string;
   icon?: string;
@@ -43,12 +37,11 @@ type FeedRow = {
   updatedAt?: string;
   lastEditorName?: string;
   lastEditorAvatarUrl?: string | null;
-  url: string;
+  slugId: string;
+  spaceSlug: string;
 };
 
-type RecentPage = Omit<FeedRow, "url"> & { slugId: string; spaceSlug: string };
-
-function FeedRows({ rows }: { rows: FeedRow[] }) {
+function FeedRows({ rows }: { rows: RecentPage[] }) {
   const { t } = useTranslation();
   if (!rows.length)
     return <div className={classes.empty}>{t("No matching pages")}</div>;
@@ -68,7 +61,11 @@ function FeedRows({ rows }: { rows: FeedRow[] }) {
         );
         return (
           <div role="listitem" key={row.id} className={classes.row}>
-            <Link to={row.url} className={classes.link} draggable={false}>
+            <Link
+              to={buildPageUrl(row.spaceSlug, row.slugId, row.title)}
+              className={classes.link}
+              draggable={false}
+            >
               <span className={classes.icon} aria-hidden>
                 <PageListIcon icon={row.icon} isBase={row.isBase} />
               </span>
@@ -108,16 +105,7 @@ function FeedRows({ rows }: { rows: FeedRow[] }) {
   );
 }
 
-function PublicFeed({ options }: { options: RecentlyUpdatedAttributes }) {
-  const surface = useDocsSurface();
-  const { spaceSlug, shareId } = useParams();
-  const docs = usePublicSpaceTreeQuery(spaceSlug, FEED_REFRESH_INTERVAL);
-  const share = useGetSharedPageTreeQuery(shareId, FEED_REFRESH_INTERVAL);
-  if (docs.isError || share.isError) return <FeedRows rows={[]} />;
-  return <FeedRows rows={publicRecentlyUpdatedPages(surface, options)} />;
-}
-
-function PrivateFeed({ options }: { options: RecentlyUpdatedAttributes }) {
+function Feed({ options }: { options: RecentlyUpdatedAttributes }) {
   const { t } = useTranslation();
   const viewer = useAtomValue(userAtom);
   const editorSpaceId = useContext(EditorSpaceContext);
@@ -129,13 +117,7 @@ function PrivateFeed({ options }: { options: RecentlyUpdatedAttributes }) {
   const { spaces, labels, limit } = options;
   const filters = { spaces, labels, limit };
   const { data, isError, isLoading } = useQuery({
-    queryKey: [
-      "recent-changes",
-      spaceId,
-      "recently-updated",
-      viewer?.id,
-      filters,
-    ],
+    queryKey: ["recently-updated", spaceId, viewer?.id, filters],
     queryFn: async () => {
       const response = await api.post<RecentPage[]>("/pages/recently-updated", {
         spaceId,
@@ -144,10 +126,8 @@ function PrivateFeed({ options }: { options: RecentlyUpdatedAttributes }) {
       return response.data;
     },
     enabled: !!spaceId && !!viewer?.id,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    // Edits in other selected spaces need not reach the current space's socket room.
-    refetchInterval: FEED_REFRESH_INTERVAL,
+    staleTime: "static",
+    gcTime: 0,
   });
 
   if (isLoading) return <Skeleton h={32} m="xs" />;
@@ -155,11 +135,7 @@ function PrivateFeed({ options }: { options: RecentlyUpdatedAttributes }) {
     return (
       <div className={classes.empty}>{t("Failed to fetch recent pages")}</div>
     );
-  const rows = (data ?? []).map((page) => ({
-    ...page,
-    url: buildPageUrl(page.spaceSlug, page.slugId, page.title),
-  }));
-  return <FeedRows rows={rows} />;
+  return <FeedRows rows={data ?? []} />;
 }
 
 export default function RecentlyUpdatedView({
@@ -169,20 +145,20 @@ export default function RecentlyUpdatedView({
 }: NodeViewProps) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const isPublic = /^\/(share|docs)(\/|$)/i.test(pathname);
   const editable = useEditorState({
     editor,
     selector: ({ editor }) => editor.isEditable,
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  if (/^\/(share|docs)(\/|$)/i.test(pathname)) return null;
+
   const options: RecentlyUpdatedAttributes = {
     limit: normalizeRecentlyUpdatedLimit(node.attrs.limit),
     hideHeading: node.attrs.hideHeading === true,
     spaces: normalizeRecentlyUpdatedFilterList(node.attrs.spaces),
     labels: normalizeRecentlyUpdatedFilterList(node.attrs.labels),
   };
-  const canEdit = editable && !isPublic;
-  const settingsButton = canEdit && (
+  const settingsButton = editable && (
     <ActionIcon
       className={`${styles.settings} print-hide`}
       variant="subtle"
@@ -208,14 +184,12 @@ export default function RecentlyUpdatedView({
       )}
       <div
         className={
-          options.hideHeading && canEdit ? styles.headlessEditor : undefined
+          options.hideHeading && editable ? styles.headlessEditor : undefined
         }
       >
         {options.hideHeading && settingsButton}
-        {isPublic ? (
-          <PublicFeed options={options} />
-        ) : recentlyUpdatedFiltersWithinLimits(options) ? (
-          <PrivateFeed options={options} />
+        {recentlyUpdatedFiltersWithinLimits(options) ? (
+          <Feed options={options} />
         ) : (
           <div className={classes.empty}>
             {t(
@@ -225,7 +199,7 @@ export default function RecentlyUpdatedView({
           </div>
         )}
       </div>
-      {canEdit && settingsOpen && (
+      {editable && settingsOpen && (
         <Modal
           opened
           onClose={() => setSettingsOpen(false)}

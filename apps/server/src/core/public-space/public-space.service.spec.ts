@@ -1,5 +1,6 @@
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PublicSpaceService } from './public-space.service';
+import { ShareService } from '../share/share.service';
 import { Feature } from '../../common/features';
 
 const WORKSPACE_ID = '018f0000-0000-7000-8000-000000000001';
@@ -234,8 +235,8 @@ describe('PublicSpaceService', () => {
       expect(result.page.id).toBe('page1');
     });
 
-    it('sanitizes the served page content for public delivery', async () => {
-      const sanitizedDoc = { type: 'doc', sanitized: true };
+    it('omits the recently updated block from the published space homepage', async () => {
+      const share = new ShareService(null, null, null, null, null, null);
       const { service, shareService } = makeService({
         pageRepo: {
           findById: jest.fn().mockResolvedValue({
@@ -244,24 +245,40 @@ describe('PublicSpaceService', () => {
             spaceId: SPACE_ID,
             workspaceId: WORKSPACE_ID,
             deletedAt: null,
-            content: { type: 'doc', content: [] },
+            content: {
+              type: 'doc',
+              content: [
+                { type: 'recentlyUpdated', attrs: { labels: ['private'] } },
+                {
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: 'Welcome' }],
+                },
+              ],
+            },
           }),
         },
         shareService: {
-          updatePublicAttachments: jest.fn().mockResolvedValue(sanitizedDoc),
+          updatePublicAttachments: jest.fn((page) =>
+            share.updatePublicAttachments(page),
+          ),
         },
       });
 
       const result = await service.getPublicPage(
         'handbook',
-        'abc123XYZ0',
+        undefined,
         makeWorkspace(optInSettings),
       );
 
       expect(shareService.updatePublicAttachments.mock.calls[0][0]).toBe(
         result.page,
       );
-      expect(result.page.content).toBe(sanitizedDoc);
+      expect(result.page.content).toMatchObject({
+        type: 'doc',
+        content: [
+          { type: 'paragraph', content: [{ type: 'text', text: 'Welcome' }] },
+        ],
+      });
     });
 
     it('serves an uploaded cover through its public link', async () => {
