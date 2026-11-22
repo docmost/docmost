@@ -4,27 +4,18 @@ import {
   ConfluencePageHistoryMode,
   ImportStatusResponse,
   ListImportsResponse,
-  ListSpacesResponse,
   StartImportResponse,
   TestConnectionResponse,
 } from "@/ee/confluence-import/types/confluence-import.types";
 
 export async function testConfluenceConnection(
   data: ConfluenceCredentials,
+  signal?: AbortSignal,
 ): Promise<TestConnectionResponse> {
   const req = await api.post<TestConnectionResponse>(
     "/confluence-import/test-connection",
     data,
-  );
-  return req.data;
-}
-
-export async function listConfluenceSpaces(
-  data: ConfluenceCredentials,
-): Promise<ListSpacesResponse> {
-  const req = await api.post<ListSpacesResponse>(
-    "/confluence-import/spaces",
-    data,
+    { params: { includeSpaces: true }, timeout: 30_000, signal },
   );
   return req.data;
 }

@@ -151,6 +151,7 @@
   "Import Confluence blueprints": "Import Confluence blueprints",
   "Add the full catalog to the Confluence Blueprints space.": "Add the full catalog to the Confluence Blueprints space.",
   "Import page history (experimental)": "Import page history (experimental)",
+  "The connection test timed out after 30 seconds.": "The connection test timed out after 30 seconds.",
   "Once the pages are imported, Docmost imports their history on a best-effort basis.": "Once the pages are imported, Docmost imports their history on a best-effort basis.",
   "Importing pages": "Importing pages",
   "invalid invitation link": "Invalid invitation link",

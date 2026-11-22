@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Button,
@@ -24,7 +24,6 @@ import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  listConfluenceSpaces,
   startConfluenceImport,
   testConfluenceConnection,
 } from "@/ee/confluence-import/services/confluence-import-service";
@@ -54,6 +53,7 @@ type Props = {
 export default function ConfluenceImportModal({ opened, onClose }: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const connectionCheck = useRef<AbortController | null>(null);
   const [active, setActive] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +112,10 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
       setLoading(false);
       form.reset();
     }
+    return () => {
+      connectionCheck.current?.abort();
+      connectionCheck.current = null;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened]);
 
@@ -138,33 +142,44 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
 
   const handleNextFromCredentials = async () => {
     if ((await form.validate()).hasErrors) return;
+    connectionCheck.current?.abort();
+    const check = new AbortController();
+    connectionCheck.current = check;
     setLoading(true);
     setError(null);
     try {
-      const test = await testConfluenceConnection(credentials);
-      if (!test.success) {
+      const test = await testConfluenceConnection(credentials, check.signal);
+      if (check.signal.aborted) return;
+      if (!test.success || !test.spaces) {
         setError(test.error || t("Connection failed"));
         return;
       }
-      const list = await listConfluenceSpaces(credentials);
-      if (!list.success || !list.spaces) {
-        setError(list.error || t("Failed to load spaces"));
-        return;
-      }
-      setSpaces(list.spaces);
-      setSelectedKeys(list.spaces.map((s) => s.key));
+      setSpaces(test.spaces);
+      setSelectedKeys(test.spaces.map((s) => s.key));
       setImportAll(true);
-      setPageHistoryAvailable(list.pageHistoryAvailable === true);
+      setPageHistoryAvailable(test.pageHistoryAvailable === true);
       setIncludePageHistory(false);
       setIncludeBlueprints(false);
       setIncludeBlogPosts(false);
       setActive(1);
     } catch (err: any) {
+      if (check.signal.aborted) return;
+      const timedOut =
+        err?.code === "ECONNABORTED" ||
+        err?.code === "ETIMEDOUT" ||
+        err?.response?.status === 408;
       setError(
-        err?.response?.data?.message || err?.message || t("Unexpected error"),
+        timedOut
+          ? t("The connection test timed out after 30 seconds.")
+          : err?.response?.data?.message ||
+              err?.message ||
+              t("Unexpected error"),
       );
     } finally {
-      setLoading(false);
+      if (!check.signal.aborted) {
+        connectionCheck.current = null;
+        setLoading(false);
+      }
     }
   };
 

@@ -23,11 +23,6 @@ export type TestConnectionResponse = {
   success: boolean;
   edition?: ConfluenceEdition;
   spaceCount?: number;
-  error?: string;
-};
-
-export type ListSpacesResponse = {
-  success: boolean;
   spaces?: ConfluenceSpaceSummary[];
   pageHistoryAvailable?: boolean;
   error?: string;
