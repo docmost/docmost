@@ -2,6 +2,7 @@ import * as _TurndownService from '@joplin/turndown';
 import * as TurndownPluginGfm from '@joplin/turndown-plugin-gfm';
 import { getBasename } from './basename';
 import { getFileNameFromUrl } from '../../media-utils';
+import { normalizePagesByLabelAttributes } from '../../pages-by-label';
 
 // CJS/ESM interop: .default exists in Vite, not in NestJS
 const TurndownService = (_TurndownService as any).default || _TurndownService;
@@ -16,12 +17,42 @@ function sanitizeMdLinkText(value: string): string {
     .replace(/[\r\n]+/g, ' ');
 }
 
+function isPagesByLabel(node: HTMLElement): boolean {
+  return (
+    node.nodeName === 'DIV' &&
+    node.getAttribute('data-type') === 'pages-by-label'
+  );
+}
+
+function pagesByLabelMarkdown(
+  service: _TurndownService,
+  node: HTMLElement,
+): string {
+  const paragraph = node.ownerDocument.createElement('p');
+  let heading = '';
+  try {
+    const attrs = JSON.parse(node.getAttribute('data-config') ?? '{}');
+    heading = normalizePagesByLabelAttributes(attrs).heading.trim();
+  } catch {
+    // Older or incomplete HTML can contain only the marker.
+  }
+  paragraph.textContent = heading || 'Pages by label';
+  // Rich tables emit outerHTML after converting their children.
+  node.parentNode.replaceChild(paragraph, node);
+  return '\n\n' + service.turndown(paragraph) + '\n\n';
+}
+
 export function htmlToMarkdown(html: string): string {
   const turndownService = new TurndownService({
     headingStyle: 'atx',
     codeBlockStyle: 'fenced',
     hr: '---',
     bulletListMarker: '-',
+    // Turndown bypasses custom rules for nodes with no text.
+    blankReplacement: (_content: string, node: HTMLElement & { isBlock: boolean }) => {
+      if (isPagesByLabel(node)) return pagesByLabelMarkdown(turndownService, node);
+      return node.isBlock ? '\n\n' : '';
+    },
   });
 
   turndownService.use([
@@ -44,6 +75,11 @@ export function htmlToMarkdown(html: string): string {
     footnoteRef,
     footnotesList,
   ]);
+  turndownService.addRule('pagesByLabel', {
+    filter: isPagesByLabel,
+    replacement: (_content: string, node: HTMLElement) =>
+      pagesByLabelMarkdown(turndownService, node),
+  });
   const htmlWithoutColgroups = html.replace(
     /<colgroup\b[^>]*>[\s\S]*?<\/colgroup>/gi,
     '',
