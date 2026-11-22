@@ -1,7 +1,11 @@
 import { Editor } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
 import { afterEach, describe, expect, it } from "vitest";
-import { PagesByLabel, pagesByLabelSettingsKey } from "@docmost/editor-ext";
+import {
+  htmlToMarkdown,
+  PagesByLabel,
+  pagesByLabelSettingsKey,
+} from "@docmost/editor-ext";
 
 const editors: Editor[] = [];
 function createEditor(content?: string) {
@@ -54,6 +58,35 @@ describe("Pages by label", () => {
       ).toEqual([]);
     },
   );
+
+  it("keeps only the block's heading in Markdown, including tables preserved as HTML", () => {
+    const editor = createEditor();
+    editor.commands.insertPagesByLabel({
+      heading: "Release guides",
+      labels: ["confidential-filter"],
+    });
+    const blockHtml = editor.getHTML();
+    const blank =
+      '<div data-type="pages-by-label" data-config=\'{"labels":["hidden-label"]}\'></div>';
+    const richTable =
+      "<table><tr><td><h2>Reference</h2></td><td>" +
+      blockHtml +
+      blank +
+      "</td></tr></table>";
+
+    expect(htmlToMarkdown(blockHtml)).toBe("Release guides");
+    const markdown = htmlToMarkdown(richTable);
+    expect(markdown).toContain("<table");
+    expect(markdown).toContain("<h2>Reference</h2>");
+    expect(markdown).toContain("Release guides");
+    expect(markdown).toContain("Pages by label");
+    expect(markdown).not.toMatch(
+      /data-config|data-type="pages-by-label"|confidential-filter|hidden-label/,
+    );
+    expect(createEditor(blockHtml).getJSON().content[0].attrs.labels).toEqual([
+      "confidential-filter",
+    ]);
+  });
 
   it("only requests settings for the locally inserted empty block", () => {
     const editor = createEditor();
