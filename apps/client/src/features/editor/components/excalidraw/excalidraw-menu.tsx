@@ -1,4 +1,4 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { NodeBubbleMenu } from "@/features/editor/components/bubble-menu/node-bubble-menu";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSetAtom } from "jotai";
@@ -315,7 +315,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
 
   return (
     <>
-      <BaseBubbleMenu
+      <NodeBubbleMenu
         editor={editor}
         pluginKey={`excalidraw-menu`}
         ref={(element) => {
@@ -438,7 +438,7 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
           </Tooltip>
           </div>
         )}
-      </BaseBubbleMenu>
+      </NodeBubbleMenu>
 
       <ReactClearModal
         style={{

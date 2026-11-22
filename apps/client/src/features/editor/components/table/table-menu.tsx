@@ -17,7 +17,7 @@ import {
   IconTableRow,
   IconTrashX,
 } from "@tabler/icons-react";
-import { BubbleMenu } from "@tiptap/react/menus";
+import { NodeBubbleMenu } from "@/features/editor/components/bubble-menu/node-bubble-menu";
 import { isCellSelection, isEditorReady, isTextSelected } from "@docmost/editor-ext";
 import { useTranslation } from "react-i18next";
 import classes from "../common/toolbar-menu.module.css";
@@ -96,7 +96,7 @@ export const TableMenu = React.memo(
     }, [editor]);
 
     return (
-      <BubbleMenu
+      <NodeBubbleMenu
         editor={editor}
         pluginKey="table-menu"
         resizeDelay={0}
@@ -259,7 +259,7 @@ export const TableMenu = React.memo(
             </ActionIcon>
           </Tooltip>
         </div>
-      </BubbleMenu>
+      </NodeBubbleMenu>
     );
   },
 );

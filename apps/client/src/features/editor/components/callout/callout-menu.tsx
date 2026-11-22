@@ -1,4 +1,4 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { NodeBubbleMenu } from "@/features/editor/components/bubble-menu/node-bubble-menu";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import React, { useCallback } from "react";
 import { Node as PMNode } from "@tiptap/pm/model";
@@ -118,7 +118,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
   const currentIcon = getCurrentIcon();
 
   return (
-    <BaseBubbleMenu
+    <NodeBubbleMenu
       editor={editor}
       pluginKey={`callout-menu`}
       ref={(element) => {
@@ -214,7 +214,7 @@ export function CalloutMenu({ editor }: EditorMenuProps) {
           }}
         />
       </div>
-    </BaseBubbleMenu>
+    </NodeBubbleMenu>
   );
 }
 

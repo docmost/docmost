@@ -1,4 +1,4 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { NodeBubbleMenu } from "@/features/editor/components/bubble-menu/node-bubble-menu";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import React, { useCallback, useRef } from "react";
 import { useSetAtom } from "jotai";
@@ -157,7 +157,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
   });
 
   return (
-    <BaseBubbleMenu
+    <NodeBubbleMenu
       editor={editor}
       pluginKey={`image-menu`}
       ref={(element) => {
@@ -292,7 +292,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         style={{ display: "none" }}
         onChange={handleFileChange}
       />
-    </BaseBubbleMenu>
+    </NodeBubbleMenu>
   );
 }
 
