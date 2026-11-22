@@ -17,7 +17,6 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-const optionName = "Check every page for attachments and comments";
 const pageHistoryOption = "Import page history (experimental)";
 const post = vi.mocked(api.post);
 
@@ -88,15 +87,14 @@ async function selectSpaces(
   edition: ConfluenceEdition,
   capabilities: { pageHistoryAvailable?: boolean } = {},
 ) {
-  post
-    .mockResolvedValueOnce({ data: { success: true, edition } })
-    .mockResolvedValueOnce({
-      data: {
-        success: true,
-        spaces: [{ id: "1", key: "ENG", name: "Engineering" }],
-        ...capabilities,
-      },
-    });
+  post.mockResolvedValueOnce({
+    data: {
+      success: true,
+      edition,
+      spaces: [{ id: "1", key: "ENG", name: "Engineering" }],
+      ...capabilities,
+    },
+  });
   fireEvent.click(screen.getByRole("button", { name: "Test & continue" }));
   await screen.findByRole("button", { name: "Start import" });
 }
@@ -112,57 +110,44 @@ async function startImport() {
   return post.mock.lastCall[1];
 }
 
-function fullEnumerationOption() {
-  return screen.getByRole<HTMLInputElement>("checkbox", { name: optionName });
-}
-
 function blueprintsOption() {
   return screen.getByRole<HTMLInputElement>("checkbox", {
     name: "Import Confluence blueprints",
   });
 }
 
-it("sends the full enumeration option when selected for Data Center", async () => {
+it.each([
+  { code: "ECONNABORTED" },
+  { response: { status: 408 } },
+])("allows another connection check after a timeout (%j)", async (error) => {
   renderImport();
+  post.mockRejectedValueOnce(error);
+  fireEvent.click(screen.getByRole("button", { name: "Test & continue" }));
+  expect((await screen.findByRole("alert")).textContent).toBe(
+    "The connection test timed out after 30 seconds.",
+  );
   await selectSpaces("server");
-  expect(fullEnumerationOption().checked).toBe(false);
-  fireEvent.click(fullEnumerationOption());
-  expect(await startImport()).toHaveProperty("fullEnumeration", true);
+  expect(post).toHaveBeenCalledTimes(2);
+  expect(post).toHaveBeenLastCalledWith(
+    "/confluence-import/test-connection",
+    expect.anything(),
+    expect.objectContaining({ timeout: 30_000, params: { includeSpaces: true } }),
+  );
 });
 
-it("uses the fast default for a new Data Center connection", async () => {
-  renderImport();
-  await selectSpaces("server");
-  fireEvent.click(fullEnumerationOption());
-  fireEvent.click(screen.getByRole("button", { name: "Back" }));
-  fireEvent.change(screen.getByLabelText(/^Site URL/), {
-    target: { value: "https://another.example.com" },
-  });
-  await selectSpaces("server");
-
-  expect(fullEnumerationOption().checked).toBe(false);
-  expect(await startImport()).not.toHaveProperty("fullEnumeration");
-});
-
-it("requires Data Center detection before showing the option", async () => {
-  renderImport();
-  await selectSpaces("cloud");
-  expect(screen.queryByRole("checkbox", { name: optionName })).toBeNull();
-});
-
-it("drops a previous Data Center opt-in when switching to Cloud", async () => {
-  renderImport();
-  await selectSpaces("server");
-  fireEvent.click(fullEnumerationOption());
-  fireEvent.click(screen.getByRole("button", { name: "Back" }));
-  fireEvent.click(screen.getByRole("radio", { name: "Cloud" }));
-  await selectSpaces("cloud");
-
-  expect(screen.queryByRole("checkbox", { name: optionName })).toBeNull();
-  const payload = await startImport();
-  expect(payload).toHaveProperty("authType", "cloud_token");
-  expect(payload).not.toHaveProperty("fullEnumeration");
-});
+it.each(["server", "cloud"] as const)(
+  "uses the default attachment and comment lookup on %s",
+  async (edition) => {
+    renderImport(edition);
+    await selectSpaces(edition);
+    expect(
+      screen.queryByRole("checkbox", {
+        name: "Check every page for attachments and comments",
+      }),
+    ).toBeNull();
+    expect(await startImport()).not.toHaveProperty("fullEnumeration");
+  },
+);
 
 it.each(["cloud", "server"] as const)(
   "sends selected blueprints with a %s import",
@@ -180,56 +165,50 @@ it("clears optional imports when the wizard is reopened", async () => {
   await selectSpaces("server", { pageHistoryAvailable: true });
   fireEvent.click(blueprintsOption());
   fireEvent.click(screen.getByRole("checkbox", { name: pageHistoryOption }));
-  fireEvent.click(screen.getByRole("radio", { name: "Full history" }));
   setOpened(false);
   setOpened(true);
 
   enterCredentials("server");
   await selectSpaces("server", { pageHistoryAvailable: true });
   expect(blueprintsOption().checked).toBe(false);
-  expect(screen.queryByRole("radio", { name: "Full history" })).toBeNull();
+  expect(
+    screen.getByRole<HTMLInputElement>("checkbox", { name: pageHistoryOption })
+      .checked,
+  ).toBe(false);
   const payload = await startImport();
   expect(payload).toHaveProperty("includeBlueprints", false);
   expect(payload).not.toHaveProperty("pageHistoryMode");
 });
 
-it.each([
-  ["server", "previous"],
-  ["cloud", "full"],
-] as const)("submits the selected history mode for %s", async (edition, mode) => {
-  renderImport(edition);
-  await selectSpaces(edition, { pageHistoryAvailable: true });
+it.each(["server", "cloud"] as const)(
+  "requests full history when the administrator enables it on %s",
+  async (edition) => {
+    renderImport(edition);
+    await selectSpaces(edition, { pageHistoryAvailable: true });
 
-  const checkbox = screen.getByRole<HTMLInputElement>("checkbox", {
-    name: pageHistoryOption,
-  });
-  expect(checkbox.checked).toBe(false);
-  expect(screen.queryByRole("alert")).toBeNull();
-  fireEvent.click(checkbox);
+    const checkbox = screen.getByRole<HTMLInputElement>("checkbox", {
+      name: pageHistoryOption,
+    });
+    expect(checkbox.checked).toBe(false);
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.click(checkbox);
 
-  const warning = screen.getByRole("alert").textContent;
-  expect(warning).toMatch(/once the pages are imported/i);
-  expect(warning).toMatch(/some revisions may be skipped/i);
-  const previous = screen.getByRole<HTMLInputElement>("radio", {
-    name: "Previous version only",
-  });
-  expect(previous.checked).toBe(true);
-  if (mode === "full") {
-    fireEvent.click(screen.getByRole("radio", { name: "Full history" }));
-  }
-  expect(await startImport()).toHaveProperty("pageHistoryMode", mode);
-});
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.getByRole("alert").textContent).toBe(
+      "Once the pages are imported, Docmost imports their history on a best-effort basis.",
+    );
+    expect(await startImport()).toHaveProperty("pageHistoryMode", "full");
+  },
+);
 
 it("omits page history if the administrator turns it back off", async () => {
   renderImport();
   await selectSpaces("server", { pageHistoryAvailable: true });
   const checkbox = screen.getByRole("checkbox", { name: pageHistoryOption });
   fireEvent.click(checkbox);
-  fireEvent.click(screen.getByRole("radio", { name: "Full history" }));
   fireEvent.click(checkbox);
 
   expect(screen.queryByRole("alert")).toBeNull();
-  expect(screen.queryByRole("radio", { name: "Full history" })).toBeNull();
   expect(await startImport()).not.toHaveProperty("pageHistoryMode");
 });
 
