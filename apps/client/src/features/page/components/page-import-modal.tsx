@@ -35,6 +35,7 @@ import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { getFileTaskById } from "@/features/file-task/services/file-task-service.ts";
+import { notifyZipImportComplete } from "./zip-import-completion";
 import { queryClient } from "@/main.tsx";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
 import bytes from "bytes";
@@ -175,16 +176,7 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
         const status = fileTask.status;
 
         if (status === "success") {
-          notifications.update({
-            id: "import",
-            color: "teal",
-            title: t("Import complete"),
-            message: t("Your pages were successfully imported."),
-            icon: <IconCheck size={18} />,
-            loading: false,
-            withCloseButton: true,
-            autoClose: false,
-          });
+          notifyZipImportComplete(fileTask);
           clearInterval(intervalId);
           setFileTaskId(null);
 

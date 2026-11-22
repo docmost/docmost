@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import SpaceAbilityFactory from '../../core/casl/abilities/space-ability.factory';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { User, Workspace } from '@docmost/db/types/entity.types';
+import { FileTask, User, Workspace } from '@docmost/db/types/entity.types';
 import {
   SpaceCaslAction,
   SpaceCaslSubject,
@@ -30,6 +30,7 @@ import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo'
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
+import { FileImportSource } from './utils/file.utils';
 
 @Controller('file-tasks')
 export class FileTaskController {
@@ -60,7 +61,12 @@ export class FileTaskController {
     const query = this.db
       .selectFrom('fileTasks')
       .selectAll()
-      .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(user.id));
+      .where('workspaceId', '=', workspace.id)
+      .where(
+        'spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(user.id),
+      );
 
     const result = await executeWithCursorPagination(query, {
       perPage: pagination.limit,
@@ -74,18 +80,19 @@ export class FileTaskController {
     const pageIds = [
       ...new Set(result.items.map((task) => task.pageId).filter(Boolean)),
     ];
-    if (pageIds.length === 0) return result;
-    const accessible = new Set(
-      await this.pagePermissionRepo.filterAccessiblePageIds({
-        pageIds,
-        userId: user.id,
-      }),
-    );
+    const accessible = pageIds.length
+      ? new Set(
+          await this.pagePermissionRepo.filterAccessiblePageIds({
+            pageIds,
+            userId: user.id,
+          }),
+        )
+      : new Set<string>();
     return {
       ...result,
-      items: result.items.filter(
-        (task) => !task.pageId || accessible.has(task.pageId),
-      ),
+      items: result.items
+        .filter((task) => !task.pageId || accessible.has(task.pageId))
+        .map((task) => this.visibleFileTask(task, user.id)),
     };
   }
 
@@ -98,6 +105,7 @@ export class FileTaskController {
       .selectFrom('fileTasks')
       .selectAll()
       .where('id', '=', dto.fileTaskId)
+      .where('workspaceId', '=', user.workspaceId)
       .executeTakeFirst();
 
     if (!fileTask || !fileTask.spaceId) {
@@ -122,6 +130,23 @@ export class FileTaskController {
       throw new ForbiddenException();
     }
 
-    return fileTask;
+    return this.visibleFileTask(fileTask, user.id);
+  }
+
+  private visibleFileTask(task: FileTask, userId: string): FileTask {
+    const metadata = task.metadata;
+    if (
+      task.source !== FileImportSource.Confluence ||
+      task.creatorId === userId ||
+      !metadata ||
+      typeof metadata !== 'object' ||
+      Array.isArray(metadata) ||
+      !('warnings' in metadata)
+    ) {
+      return task;
+    }
+    const visibleMetadata = { ...metadata };
+    delete visibleMetadata.warnings;
+    return { ...task, metadata: visibleMetadata };
   }
 }

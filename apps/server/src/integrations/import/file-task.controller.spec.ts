@@ -33,6 +33,34 @@ function makeController(fileTask?: Record<string, unknown>) {
 }
 
 describe('FileTaskController', () => {
+  it('returns ZIP warnings to the uploader and only status and ordinary metadata to another space member', async () => {
+    const task = {
+      id: 'zip',
+      spaceId: 'space',
+      source: 'confluence',
+      creatorId: user.id,
+      metadata: { warnings: ['Private import details'], flag: true },
+      status: 'success',
+    };
+    const { controller } = makeController(task);
+    await expect(
+      controller.getFileTask({ fileTaskId: 'zip' }, user),
+    ).resolves.toMatchObject(task);
+    const member = { ...user, id: 'another-member' };
+    const otherView = await controller.getFileTask(
+      { fileTaskId: 'zip' },
+      member,
+    );
+    expect(otherView.metadata).toEqual({ flag: true });
+    expect(otherView.status).toEqual('success');
+    jest
+      .mocked(executeWithCursorPagination)
+      .mockResolvedValue({ items: [task], meta: {} } as any);
+    const list = await controller.getFileTasks({} as any, member, workspace);
+    expect(list.items[0].metadata).toEqual({ flag: true });
+    expect(task.metadata.warnings).toEqual(['Private import details']);
+  });
+
   it('leaves out tasks for pages the user cannot open', async () => {
     const { controller } = makeController();
     const tasks = [
