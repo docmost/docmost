@@ -11,6 +11,7 @@ import {
 } from "@testing-library/react";
 import { Editor, EditorContent } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
+import type { ContextType } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { createStore, Provider } from "jotai";
 import { pageEditorBindingAtom } from "@/features/editor/atoms/editor-atoms";
@@ -55,6 +56,10 @@ function show(
   attrs?: Partial<PagesByLabelAttributes>,
   path = "/s/team/p/host-abc",
   editable = true,
+  host: ContextType<typeof PagesByLabelContext> = {
+    pageId: "host",
+    spaceId: "team",
+  },
 ) {
   const editor = new Editor({
     extensions: [
@@ -81,9 +86,7 @@ function show(
       <MemoryRouter initialEntries={[path]}>
         <MantineProvider env="test">
           <QueryClientProvider client={client}>
-            <PagesByLabelContext.Provider
-              value={{ pageId: "host", spaceId: "team" }}
-            >
+            <PagesByLabelContext.Provider value={host}>
               <EditorContent editor={editor} />
             </PagesByLabelContext.Provider>
           </QueryClientProvider>
@@ -213,15 +216,11 @@ it.each([true, false])(
     expect(
       screen.getByRole("link", { name: "review/100%" }).getAttribute("href"),
     ).toBe("/labels/review%2F100%25");
-    expect(api.post).toHaveBeenCalledWith(
-      "/labels/query-pages",
-      expect.objectContaining({
-        pageId: "host",
-        contextSpaceId: "team",
-        labels: ["guide"],
-        scope: "current",
-      }),
-    );
+    expect(api.post).toHaveBeenCalledWith("/labels/query-pages", {
+      pageId: "host",
+      labels: ["guide"],
+      showLabels: true,
+    });
     expect(
       !!screen.queryByRole("button", { name: "Pages by label settings" }),
     ).toBe(editable);
@@ -237,6 +236,53 @@ it.each([true, false])(
     ).toBe("/labels/guide?spaceId=other-id");
     await act(() => client.invalidateQueries({ queryKey: ["label-pages"] }));
     expect(await screen.findByText("No matching pages")).toBeTruthy();
+  },
+);
+
+it("sends non-default filters and the selected space IDs for a page", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: { items: [] } });
+  const filters = {
+    labels: ["guide", "handbook"],
+    match: "all",
+    excludeLabels: ["draft"],
+    scope: "spaces",
+    spaceIds: ["a1d0dfc0-1000-4000-8000-000000000001"],
+    sortBy: "createdAt",
+    sortDirection: "desc",
+    limit: 8,
+    excludeCurrentPage: true,
+    showLabels: true,
+  } satisfies Partial<PagesByLabelAttributes>;
+  show({ ...filters, showSpace: true, heading: "Guides" });
+  await waitFor(() =>
+    expect(api.post).toHaveBeenCalledWith("/labels/query-pages", {
+      pageId: "host",
+      ...filters,
+    }),
+  );
+});
+
+it.each([
+  { spaceId: "team", context: { contextSpaceId: "team" } },
+  { spaceId: null, context: {} },
+])(
+  "requests workspace results from a template with space $spaceId",
+  async ({ spaceId, context }) => {
+    vi.mocked(api.post).mockResolvedValue({ data: { items: [] } });
+    const { editor } = show(
+      { labels: ["guide"], scope: "workspace", excludeCurrentPage: true },
+      "/templates",
+      true,
+      { spaceId },
+    );
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith("/labels/query-pages", {
+        labels: ["guide"],
+        scope: "workspace",
+        ...context,
+      }),
+    );
+    expect(editor.state.doc.firstChild.attrs.excludeCurrentPage).toBe(true);
   },
 );
 

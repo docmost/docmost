@@ -1,6 +1,9 @@
 import { Button, Group, Skeleton } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
-import type { PagesByLabelAttributes } from "@docmost/editor-ext";
+import {
+  PAGES_BY_LABEL_DEFAULT_LIMIT,
+  type PagesByLabelAttributes,
+} from "@docmost/editor-ext";
 import { useAtomValue } from "jotai";
 import { useContext, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -38,6 +41,7 @@ export function PagesByLabelResults({
   const { t } = useTranslation();
   const viewer = useAtomValue(userAtom);
   const host = useContext(PagesByLabelContext);
+  const { pageId, spaceId } = host ?? {};
   const {
     labels,
     match,
@@ -52,23 +56,23 @@ export function PagesByLabelResults({
   } = options;
   const params = {
     labels,
-    match,
-    excludeLabels,
-    scope,
-    spaceIds,
-    sortBy,
-    sortDirection,
-    limit,
-    showLabels,
-    excludeCurrentPage,
-    pageId: host?.pageId,
-    contextSpaceId: host?.spaceId ?? undefined,
+    ...(pageId && { pageId }),
+    ...(!pageId && spaceId && { contextSpaceId: spaceId }),
+    ...(scope !== "current" && { scope }),
+    ...(scope === "spaces" && { spaceIds }),
+    ...(match !== "any" && { match }),
+    ...(excludeLabels.length > 0 && { excludeLabels }),
+    ...(sortBy !== "title" && { sortBy }),
+    ...(sortDirection !== "asc" && { sortDirection }),
+    ...(limit !== PAGES_BY_LABEL_DEFAULT_LIMIT && { limit }),
+    ...(showLabels && { showLabels }),
+    ...(pageId && excludeCurrentPage && { excludeCurrentPage }),
   };
   const hasScope =
     scope === "workspace" ||
     (scope === "spaces"
       ? spaceIds.length > 0
-      : !!(host?.pageId || host?.spaceId));
+      : !!(pageId || spaceId));
   const enabled = !!host && !!viewer && labels.length > 0 && hasScope;
   const query = useQuery({
     // Label mutations already invalidate every query with this prefix.
@@ -94,7 +98,7 @@ export function PagesByLabelResults({
     content = (
       <div className={classes.empty}>
         {t(
-          scope === "current" && !host?.pageId && !host?.spaceId
+          scope === "current" && !hasScope
             ? "Results appear when this block is used in a space."
             : "No matching pages",
         )}
