@@ -1,12 +1,15 @@
 import {
-  Accordion,
+  Anchor,
   Button,
   Checkbox,
+  Divider,
   Group,
+  Input,
   NumberInput,
   Select,
   SimpleGrid,
   Stack,
+  Text,
   TextInput,
 } from "@mantine/core";
 import {
@@ -17,7 +20,8 @@ import {
   PAGES_BY_LABEL_MAX_LIMIT,
   type PagesByLabelAttributes,
 } from "@docmost/editor-ext";
-import { useState } from "react";
+import { IconPlus } from "@tabler/icons-react";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   LabelFilter,
@@ -42,7 +46,9 @@ export function PagesByLabelSettings({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const id = useId();
   const [draft, setDraft] = useState(initial);
+  const [addingExclusions, setAddingExclusions] = useState(false);
   const [limit, setLimit] = useState<number | string>(initial.limit);
   const update = <K extends keyof PagesByLabelAttributes>(
     key: K,
@@ -61,15 +67,7 @@ export function PagesByLabelSettings({
       setDraft((previous) => ({ ...previous, scope, spaceIds }));
     }
   }
-  const excludedLabels = (
-    <LabelFilter
-      {...labelLimits}
-      label={t("Exclude labels")}
-      value={draft.excludeLabels}
-      onChange={(labels) => update("excludeLabels", labels)}
-    />
-  );
-  const hasSavedExclusions = initial.excludeLabels.length > 0;
+  const showExclusions = initial.excludeLabels.length > 0 || addingExclusions;
   const defaultSortDirection = draft.sortBy === "title" ? "asc" : "desc";
   const savedOrderHint =
     draft.sortDirection === defaultSortDirection
@@ -87,6 +85,7 @@ export function PagesByLabelSettings({
 
   return (
     <form
+      className={classes.form}
       onSubmit={(event) => {
         event.preventDefault();
         if (!valid) return;
@@ -118,25 +117,69 @@ export function PagesByLabelSettings({
         onSave(changes);
       }}
     >
-      <Stack>
-        <LabelFilter
-          {...labelLimits}
-          label={t("Include labels")}
-          required
-          value={draft.labels}
-          onChange={(v) => update("labels", v)}
-        />
-        {draft.labels.length > 1 && (
-          <LabelMatchSelect
-            value={draft.match}
-            onChange={(match) => update("match", match)}
+      <Text size="sm" c="dimmed" mb="lg">
+        {t("Insert a list of pages that share labels.")}
+      </Text>
+
+      <Stack component="section" gap="md" aria-labelledby={id + "-find"}>
+        <h3 id={id + "-find"} className={classes.sectionTitle}>
+          {t("Find pages")}
+        </h3>
+        <Stack gap={6}>
+          <Group justify="space-between" gap="xs">
+            <Input.Label htmlFor={id + "-labels"}>{t("Labels")}</Input.Label>
+            <LabelMatchSelect
+              inline
+              value={draft.match}
+              onChange={(match) => update("match", match)}
+            />
+          </Group>
+          <LabelFilter
+            {...labelLimits}
+            id={id + "-labels"}
+            className={classes.labelFilter}
+            description={
+              <Group component="span" justify="space-between" gap="xs" mt={6}>
+                <Text component="span" aria-live="polite" size="sm" c="dimmed">
+                  {draft.match === "all"
+                    ? t("Pages need all of these labels.")
+                    : t("Pages need at least one of these labels.")}
+                </Text>
+                {!showExclusions && (
+                  <Anchor
+                    component="button"
+                    type="button"
+                    size="sm"
+                    className={classes.addExclusion}
+                    onClick={() => setAddingExclusions(true)}
+                  >
+                    <IconPlus size={14} aria-hidden />
+                    {t("Exclude labels")}
+                  </Anchor>
+                )}
+              </Group>
+            }
+            placeholder={t("Add label…")}
+            required
+            value={draft.labels}
+            onChange={(labels) => update("labels", labels)}
+          />
+        </Stack>
+        {showExclusions && (
+          <LabelFilter
+            {...labelLimits}
+            className={classes.labelFilter}
+            label={t("Exclude labels")}
+            placeholder={t("Add label…")}
+            autoFocus={addingExclusions}
+            value={draft.excludeLabels}
+            onChange={(labels) => update("excludeLabels", labels)}
           />
         )}
-        {hasSavedExclusions && excludedLabels}
         <SpaceSelect
           multiple
-          label={t("Search in")}
-          placeholder={t("Search for spaces")}
+          label={t("Spaces")}
+          placeholder={t("Add space…")}
           scopes={[
             { value: "current", label: t("Current space") },
             { value: "workspace", label: t("All accessible spaces") },
@@ -148,95 +191,97 @@ export function PagesByLabelSettings({
           unavailableLabel={t("Unavailable space")}
           withinPortal={false}
         />
-        <Accordion
-          variant="filled"
-          chevronPosition="left"
-          classNames={{ chevron: classes.optionsChevron }}
-          keepMounted={false}
-        >
-          <Accordion.Item value="options">
-            <Accordion.Control>{t("More options")}</Accordion.Control>
-            <Accordion.Panel>
-              <Stack>
-                {!hasSavedExclusions && excludedLabels}
-                <SimpleGrid cols={{ base: 1, xs: 2 }}>
-                  <Select
-                    label={t("Sort by")}
-                    allowDeselect={false}
-                    value={draft.sortBy}
-                    description={savedOrderHint}
-                    inputWrapperOrder={[
-                      "label",
-                      "input",
-                      "description",
-                      "error",
-                    ]}
-                    data={[
-                      { value: "title", label: t("Title") },
-                      { value: "updatedAt", label: t("Last updated") },
-                      { value: "createdAt", label: t("Date created") },
-                    ]}
-                    onChange={(value) => {
-                      if (!value || value === draft.sortBy) return;
-                      setDraft((previous) => ({
-                        ...previous,
-                        sortBy: value as PagesByLabelAttributes["sortBy"],
-                        sortDirection: value === "title" ? "asc" : "desc",
-                      }));
-                    }}
-                    comboboxProps={{ withinPortal: false }}
-                  />
-                  <NumberInput<number>
-                    label={t("Maximum results")}
-                    min={1}
-                    max={PAGES_BY_LABEL_MAX_LIMIT}
-                    allowDecimal={false}
-                    value={limit}
-                    onChange={setLimit}
-                  />
-                </SimpleGrid>
-                <TextInput
-                  label={t("Heading")}
-                  value={draft.heading}
-                  maxLength={PAGES_BY_LABEL_MAX_HEADING_LENGTH}
-                  onChange={(e) => update("heading", e.currentTarget.value)}
-                />
-                <Group>
-                  <Checkbox
-                    label={t("Show labels")}
-                    checked={draft.showLabels}
-                    onChange={(e) =>
-                      update("showLabels", e.currentTarget.checked)
-                    }
-                  />
-                  <Checkbox
-                    label={t("Show space name")}
-                    checked={draft.showSpace}
-                    onChange={(e) =>
-                      update("showSpace", e.currentTarget.checked)
-                    }
-                  />
-                  <Checkbox
-                    label={t("Exclude this page")}
-                    checked={draft.excludeCurrentPage}
-                    onChange={(e) =>
-                      update("excludeCurrentPage", e.currentTarget.checked)
-                    }
-                  />
-                </Group>
-              </Stack>
-            </Accordion.Panel>
-          </Accordion.Item>
-        </Accordion>
-        <Group justify="flex-end">
-          <Button type="button" variant="default" onClick={onClose}>
-            {t("Cancel")}
-          </Button>
-          <Button type="submit" disabled={!valid}>
-            {t("Save")}
-          </Button>
-        </Group>
+        <Checkbox
+          label={t("Exclude the current page")}
+          checked={draft.excludeCurrentPage}
+          onChange={(e) =>
+            update("excludeCurrentPage", e.currentTarget.checked)
+          }
+        />
       </Stack>
+
+      <Divider my="lg" />
+
+      <Stack component="section" gap="md" aria-labelledby={id + "-display"}>
+        <h3 id={id + "-display"} className={classes.sectionTitle}>
+          {t("Display")}
+        </h3>
+        <TextInput
+          label={
+            <Group component="span" justify="space-between" gap="xs">
+              {t("Heading")}
+              <Text component="span" size="sm" c="dimmed" aria-hidden>
+                {t("Optional")}
+              </Text>
+            </Group>
+          }
+          labelProps={{ w: "100%" }}
+          value={draft.heading}
+          maxLength={PAGES_BY_LABEL_MAX_HEADING_LENGTH}
+          onChange={(e) => update("heading", e.currentTarget.value)}
+        />
+        <SimpleGrid cols={{ base: 1, xs: 2 }}>
+          <Select
+            label={t("Sort by")}
+            allowDeselect={false}
+            value={draft.sortBy}
+            description={savedOrderHint}
+            inputWrapperOrder={["label", "input", "description", "error"]}
+            data={[
+              { value: "title", label: t("Title") },
+              { value: "updatedAt", label: t("Last updated") },
+              { value: "createdAt", label: t("Date created") },
+            ]}
+            onChange={(value) => {
+              if (!value || value === draft.sortBy) return;
+              setDraft((previous) => ({
+                ...previous,
+                sortBy: value as PagesByLabelAttributes["sortBy"],
+                sortDirection: value === "title" ? "asc" : "desc",
+              }));
+            }}
+            comboboxProps={{ withinPortal: false }}
+          />
+          <NumberInput<number>
+            label={t("Show up to")}
+            min={1}
+            max={PAGES_BY_LABEL_MAX_LIMIT}
+            allowDecimal={false}
+            value={limit}
+            onChange={setLimit}
+            description={t("pages")}
+            inputWrapperOrder={["label", "input", "description", "error"]}
+            classNames={{
+              root: classes.limitField,
+              description: classes.limitUnit,
+            }}
+          />
+        </SimpleGrid>
+        <fieldset className={classes.rowOptions}>
+          <legend>{t("Show on each row")}</legend>
+          <Group gap="lg">
+            <Checkbox
+              label={t("Labels")}
+              checked={draft.showLabels}
+              onChange={(e) => update("showLabels", e.currentTarget.checked)}
+            />
+            <Checkbox
+              label={t("Space name")}
+              checked={draft.showSpace}
+              onChange={(e) => update("showSpace", e.currentTarget.checked)}
+            />
+          </Group>
+        </fieldset>
+      </Stack>
+
+      <Group justify="flex-end" gap="xs" className={classes.actions}>
+        <Button type="button" variant="default" onClick={onClose}>
+          {t("Cancel")}
+        </Button>
+        <Button type="submit" disabled={!valid}>
+          {t("Save")}
+        </Button>
+      </Group>
     </form>
   );
 }

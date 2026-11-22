@@ -116,8 +116,11 @@ export function PagesByLabelView({
         <Modal
           opened
           onClose={() => setEditing(null)}
-          title={t("Pages by label settings")}
-          size="md"
+          title={t("Pages by label")}
+          size={576}
+          padding={24}
+          classNames={{ title: styles.modalTitle, header: styles.modalHeader }}
+          closeButtonProps={{ "aria-label": t("Close") }}
         >
           <PagesByLabelSettings
             initial={editing}

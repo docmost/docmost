@@ -1,26 +1,40 @@
-import { MultiSelect, Select } from "@mantine/core";
+import {
+  Group,
+  MultiSelect,
+  SegmentedControl,
+  Select,
+  Text,
+  type MultiSelectProps,
+} from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useWorkspaceLabelsQuery } from "@/features/label/queries/label-query";
 import { normalizeLabelName } from "@/features/label/utils/normalize-label";
 
-interface LabelFilterProps {
-  label: string;
+interface LabelFilterProps extends Pick<
+  MultiSelectProps,
+  | "id"
+  | "label"
+  | "placeholder"
+  | "required"
+  | "description"
+  | "autoFocus"
+  | "className"
+> {
   value: string[];
   onChange: (value: string[]) => void;
-  required?: boolean;
   maxValues: number;
   isWithinLength: (name: string) => boolean;
 }
 
 export function LabelFilter({
-  label,
   value,
   onChange,
-  required,
+  placeholder,
   maxValues,
   isWithinLength,
+  ...inputProps
 }: LabelFilterProps) {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
@@ -34,11 +48,12 @@ export function LabelFilter({
   if (candidate && isWithinLength(candidate)) names.add(candidate);
   return (
     <MultiSelect
-      label={label}
-      required={required}
+      {...inputProps}
+      aria-required={inputProps.required || undefined}
+      inputWrapperOrder={["label", "input", "description", "error"]}
       searchable
       hidePickedOptions
-      placeholder={t("Choose labels")}
+      placeholder={placeholder ?? t("Choose labels")}
       searchValue={search}
       onSearchChange={setSearch}
       data={[...names]}
@@ -61,11 +76,33 @@ type Match = "any" | "all";
 export function LabelMatchSelect({
   value,
   onChange,
+  inline = false,
 }: {
   value: Match;
   onChange: (match: Match) => void;
+  inline?: boolean;
 }) {
   const { t } = useTranslation();
+  if (inline) {
+    return (
+      <Group gap={8} wrap="nowrap">
+        <Text component="span" size="sm" c="dimmed">
+          {t("Match")}
+        </Text>
+        <SegmentedControl<Match>
+          aria-label={t("Label matching")}
+          size="xs"
+          radius="md"
+          value={value}
+          onChange={onChange}
+          data={[
+            { value: "any", label: t("Any") },
+            { value: "all", label: t("All") },
+          ]}
+        />
+      </Group>
+    );
+  }
   return (
     <Select
       label={t("Label matching")}
