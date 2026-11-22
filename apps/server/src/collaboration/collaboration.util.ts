@@ -180,7 +180,12 @@ export function htmlToJson(
 }
 
 export function jsonToText(tiptapJson: JSONContent) {
-  return collapseBlankLines(generateText(tiptapJson, templateExtensions));
+  // Public search snippets use this stored text before the page is rendered.
+  return collapseBlankLines(
+    generateText(tiptapJson, templateExtensions, {
+      textSerializers: { pagesByLabel: () => '' },
+    }),
+  );
 }
 
 export function parseDocumentJson(
