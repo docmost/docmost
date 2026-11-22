@@ -27,13 +27,11 @@ import { IPagination, QueryParams } from "@/lib/types.ts";
 
 export function usePublicSpaceTreeQuery(
   spaceSlug: string,
-  refetchInterval?: number,
 ): UseQueryResult<IPublicSpaceTree, Error> {
   return useQuery({
     queryKey: ["public-space-tree", spaceSlug],
     queryFn: () => getPublicSpaceTree(spaceSlug),
     enabled: !!spaceSlug,
-    refetchInterval,
     placeholderData: keepPreviousData,
     staleTime: 60 * 60 * 1000,
   });

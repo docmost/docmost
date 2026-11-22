@@ -1,5 +1,10 @@
 import { MantineProvider } from "@mantine/core";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  focusManager,
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -17,21 +22,11 @@ import {
 } from "@docmost/editor-ext";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
-import {
-  DocsSurfaceProvider,
-  type DocsSurface,
-} from "@/features/public-space/components/docs/docs-surface-context";
 import api from "@/lib/api-client";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 import { EditorSpaceContext } from "./editor-space-context";
 import RecentlyUpdatedView from "./recently-updated-view";
 
-vi.mock("@/features/public-space/queries/public-space-query", () => ({
-  usePublicSpaceTreeQuery: vi.fn(() => ({})),
-}));
-vi.mock("@/features/share/queries/share-query", () => ({
-  useGetSharedPageTreeQuery: vi.fn(() => ({})),
-}));
 vi.mock("@/lib/api-client", () => ({ default: { post: vi.fn() } }));
 vi.mock("@/features/space/queries/space-query", () => ({
   useGetSpaceBySlugQuery: vi.fn(() => ({})),
@@ -84,39 +79,26 @@ function show(
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  const surface = {
-    treeData: ["Older", "Latest"].map((name, i) => ({
-      name,
-      slugId: name,
-      value: name,
-      spaceId,
-      updatedAt: new Date(2025, 0, 1 + i),
-      children: [],
-    })),
-    getNodeUrl: ({ name }) => path + "/" + name,
-  } as DocsSurface;
   render(
     <MemoryRouter initialEntries={[path]}>
       <MantineProvider env="test">
         <QueryClientProvider client={queryClient}>
           <EditorSpaceContext.Provider value={sourceId}>
-            <DocsSurfaceProvider value={surface}>
-              <Routes>
-                {[
-                  "/docs/:spaceSlug",
-                  "/share/:shareId/p/:pageSlug",
-                  "/share/p/:pageSlug",
-                  "/s/:spaceSlug",
-                  "/templates/:templateId",
-                ].map((path) => (
-                  <Route
-                    key={path}
-                    path={path}
-                    element={<EditorContent editor={editor} />}
-                  />
-                ))}
-              </Routes>
-            </DocsSurfaceProvider>
+            <Routes>
+              {[
+                "/docs/:spaceSlug",
+                "/share/:shareId/p/:pageSlug",
+                "/share/p/:pageSlug",
+                "/s/:spaceSlug",
+                "/templates/:templateId",
+              ].map((path) => (
+                <Route
+                  key={path}
+                  path={path}
+                  element={<EditorContent editor={editor} />}
+                />
+              ))}
+            </Routes>
           </EditorSpaceContext.Provider>
         </QueryClientProvider>
       </MantineProvider>
@@ -146,51 +128,27 @@ beforeAll(() => {
 afterEach(() => {
   cleanup();
   editors.splice(0).forEach((editor) => editor.destroy());
+  vi.useRealTimers();
+  focusManager.setFocused(undefined);
+  onlineManager.setOnline(true);
   vi.clearAllMocks();
 });
 
 it.each(["/docs/team", "/share/abc/p/home", "/share/p/home"])(
-  "uses only the authorized public tree and its URL builder on %s",
+  "renders nothing and makes no block requests on %s even with a signed-in viewer",
   (path) => {
-    const legacyOptions = {
-      limit: 1,
-      spaces: ["+@self", otherId],
-      authors: ["?former-user"],
-    };
-    show(path, legacyOptions, spaceId);
-    const link = screen.getByRole("link", { name: "Latest" });
-    expect(link.getAttribute("href")).toBe(path + "/Latest");
-    expect(screen.queryByText("Older")).toBeNull();
+    show(path, { labels: ["private"], spaces: ["@all"] }, spaceId);
+    expect(document.querySelector('[data-type="recently-updated"]')).toBeNull();
+    expect(screen.queryByText("Recently updated")).toBeNull();
+    expect(screen.queryByText("No matching pages")).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
     expect(useGetSpaceBySlugQuery).not.toHaveBeenCalled();
     expect(api.post).not.toHaveBeenCalled();
   },
 );
 
-it.each([
-  { labels: ["-internal"] },
-  { spaces: ["-?unknown"] },
-  { spaces: ["@favorite"] },
-  { spaces: [otherId] },
-  { spaces: ["-@all"] },
-])(
-  "shows an empty public list for unavailable or mismatching filters %o",
-  (attrs) => {
-    show("/docs/team", attrs);
-    expect(screen.queryByRole("link")).toBeNull();
-    expect(screen.getByText("No matching pages")).toBeTruthy();
-    expect(api.post).not.toHaveBeenCalled();
-  },
-);
-
 it("waits for a source space before requesting authenticated rows", () => {
   show("/templates/sample");
-  expect(api.post).not.toHaveBeenCalled();
-});
-
-it("uses the public tree even when space filters exceed the private feed limit", () => {
-  show("/docs/team", { spaces: Array(101).fill("@self") }, spaceId);
-  expect(screen.getByRole("link", { name: "Latest" })).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
 });
 
@@ -247,7 +205,8 @@ it.each([
   },
 );
 
-it("uses each result's space, refreshes on recent-page invalidation, and follows editor mode", async () => {
+it("loads once across edits, polling intervals, focus, reconnect and recent-page events", async () => {
+  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
   const page = {
     id: "p",
     slugId: "abc",
@@ -276,15 +235,35 @@ it("uses each result's space, refreshes on recent-page invalidation, and follows
     screen.getByRole("button", { name: "Recently updated settings" }),
   ).toBeTruthy();
   await act(async () => {
+    await vi.advanceTimersByTimeAsync(65_000);
     editor.setEditable(false);
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+    onlineManager.setOnline(false);
+    onlineManager.setOnline(true);
     await queryClient.invalidateQueries({
       queryKey: ["recent-changes", spaceId],
     });
+    await vi.advanceTimersByTimeAsync(65_000);
+  });
+  expect(screen.queryByRole("button")).toBeNull();
+  expect(screen.getByRole("link", { name: /First.*Alex Morgan/ })).toBeTruthy();
+  expect(api.post).toHaveBeenCalledTimes(1);
+
+  act(() => {
+    editor.setEditable(true);
+    editor.view.dispatch(editor.state.tr.setNodeAttribute(0, "limit", 4));
   });
   expect(
     await screen.findByRole("link", { name: /Renamed.*Alex Morgan/ }),
   ).toBeTruthy();
-  expect(screen.queryByRole("button")).toBeNull();
+  expect(api.post).toHaveBeenCalledTimes(2);
+  expect(api.post).toHaveBeenLastCalledWith("/pages/recently-updated", {
+    spaceId,
+    labels: [],
+    spaces: [otherId],
+    limit: 4,
+  });
 });
 
 it("edits the limit, heading and signed name choices while preserving unresolved tokens", async () => {

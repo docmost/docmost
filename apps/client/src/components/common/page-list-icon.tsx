@@ -6,13 +6,18 @@ type Props = {
   isBase?: boolean;
 };
 
+export function DefaultPageIcon({ isBase }: Pick<Props, "isBase">) {
+  const Icon = isBase ? IconTable : IconFileDescription;
+  return <Icon size={18} />;
+}
+
 export function PageListIcon({ icon, isBase }: Props) {
   if (icon) {
     return <>{icon}</>;
   }
   return (
     <ThemeIcon variant="transparent" color="gray" size={18}>
-      {isBase ? <IconTable size={18} /> : <IconFileDescription size={18} />}
+      <DefaultPageIcon isBase={isBase} />
     </ThemeIcon>
   );
 }
