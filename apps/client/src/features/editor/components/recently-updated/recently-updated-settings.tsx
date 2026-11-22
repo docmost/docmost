@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Button, Group, NumberInput, Stack, Switch, Text } from "@mantine/core";
+import { useContext, useState } from "react";
+import { Checkbox } from "@mantine/core";
 import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
 import {
   MAX_RECENTLY_UPDATED_LIMIT,
   RECENTLY_UPDATED_FILTER_LIMITS,
@@ -8,91 +9,144 @@ import {
   recentlyUpdatedFilterValueWithinLimit,
   type RecentlyUpdatedAttributes,
 } from "@docmost/editor-ext";
-import {
-  LabelFilter,
-  LabelMatchSelect,
-} from "@/features/label/components/label-filter";
 import { SpaceSelect } from "@/features/space/components/sidebar/space-select";
+import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
+import { EditorSpaceContext } from "./editor-space-context";
+import { PagesByLabelContext } from "../pages-by-label/pages-by-label-context";
+import {
+  PageListFilterGroup,
+  PageListLabelFilters,
+  PageListLimitInput,
+  PageListSettingsModal,
+} from "../common/page-list-settings";
 
 export default function RecentlyUpdatedSettings({
   options,
   onSave,
+  onClose,
 }: {
   options: RecentlyUpdatedAttributes;
   onSave: (options: RecentlyUpdatedAttributes) => void;
+  onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const pageContext = useContext(PagesByLabelContext);
+  const editorSpaceId = useContext(EditorSpaceContext) ?? pageContext?.spaceId;
+  const { spaceSlug } = useParams();
+  const spaceKey = editorSpaceId ?? spaceSlug;
+  const { data: currentSpace, isLoading } = useGetSpaceBySlugQuery(spaceKey);
   const [draft, setDraft] = useState(options);
   const [limit, setLimit] = useState<string | number>(options.limit);
-  const spaceScopes = [
-    { value: "@self", label: t("Current space") },
-    { value: "@all", label: t("All spaces") },
-    { value: "@personal", label: t("Personal spaces") },
-    { value: "@global", label: t("Non-personal spaces") },
-    { value: "@favorite", label: t("Favorite spaces") },
-  ];
+  const validLimit =
+    typeof limit === "number" &&
+    Number.isInteger(limit) &&
+    limit >= 1 &&
+    limit <= MAX_RECENTLY_UPDATED_LIMIT;
+
+  const spacePicker = {
+    multiple: true as const,
+    withinPortal: false,
+    maxValues: RECENTLY_UPDATED_FILTER_LIMITS.maxValues,
+    scopes: [
+      {
+        value: "@self",
+        spaceId: currentSpace?.id ?? editorSpaceId,
+        logo: currentSpace?.logo,
+        label:
+          currentSpace?.name ??
+          (!spaceKey
+            ? t("Space where this block is used")
+            : isLoading
+              ? t("Loading…")
+              : t("Unavailable space")),
+      },
+      { value: "@all", label: t("All spaces") },
+      { value: "@personal", label: t("Personal spaces") },
+      { value: "@global", label: t("Non-personal spaces") },
+      { value: "@favorite", label: t("Favorite spaces") },
+    ],
+  };
   return (
-    <Stack>
-      <NumberInput<number>
-        label={t("Maximum results")}
-        min={1}
-        max={MAX_RECENTLY_UPDATED_LIMIT}
-        allowDecimal={false}
-        value={limit}
-        onChange={setLimit}
-      />
-      <Switch
-        label={t("Show heading")}
-        checked={!draft.hideHeading}
-        onChange={(event) =>
-          setDraft({ ...draft, hideHeading: !event.currentTarget.checked })
-        }
-      />
-      <Text c="dimmed" size="sm">
-        {t(
-          "Tip: Start a space search with + to require a match or - to exclude it.",
-        )}
-      </Text>
-      <SpaceSelect
-        multiple
-        withOperators
-        label={t("Spaces")}
-        placeholder={t("Current space")}
-        value={draft.spaces}
-        onChange={(spaces) => setDraft({ ...draft, spaces })}
-        scopes={spaceScopes}
-        maxValues={RECENTLY_UPDATED_FILTER_LIMITS.maxValues}
-        withinPortal={false}
-      />
-      <LabelFilter
-        label={t("Include labels")}
-        maxValues={RECENTLY_UPDATED_FILTER_LIMITS.maxValues}
-        isWithinLength={recentlyUpdatedFilterValueWithinLimit}
-        value={draft.labels}
-        onChange={(labels) => setDraft({ ...draft, labels })}
-      />
-      {draft.labels.length > 1 && (
-        <LabelMatchSelect
-          value={draft.match}
-          onChange={(match) => setDraft({ ...draft, match })}
-        />
-      )}
-      <LabelFilter
-        label={t("Exclude labels")}
-        maxValues={RECENTLY_UPDATED_FILTER_LIMITS.maxValues}
-        isWithinLength={recentlyUpdatedFilterValueWithinLimit}
-        value={draft.excludeLabels}
-        onChange={(excludeLabels) => setDraft({ ...draft, excludeLabels })}
-      />
-      <Group justify="flex-end">
-        <Button
-          onClick={() =>
-            onSave({ ...draft, limit: normalizeRecentlyUpdatedLimit(limit) })
+    <PageListSettingsModal
+      title={t("Recently updated")}
+      description={t("List pages by most recent edit.")}
+      canSave={validLimit}
+      onClose={onClose}
+      onSave={() =>
+        onSave({ ...draft, limit: normalizeRecentlyUpdatedLimit(limit) })
+      }
+      primaryFilter={
+        <PageListFilterGroup
+          label={t("Spaces")}
+          matchLabel={t("Space matching")}
+          showMatch={draft.spaces.length > 1}
+          match={draft.spaceMatch}
+          onMatchChange={(spaceMatch) => setDraft({ ...draft, spaceMatch })}
+          hint={
+            draft.spaces.length
+              ? draft.spaceMatch === "all"
+                ? t("Pages must match every selected space filter.")
+                : t("Pages can match any selected space filter.")
+              : draft.excludeSpaces.length
+                ? t(
+                    "This list shows pages from all accessible spaces except those you exclude.",
+                  )
+                : t("Leave empty to include all accessible spaces.")
           }
-        >
-          {t("Save")}
-        </Button>
-      </Group>
-    </Stack>
+          excludeLabel={t("Exclude spaces")}
+          hasExclusions={draft.excludeSpaces.length > 0}
+          renderIncluded={(field) => (
+            <SpaceSelect
+              {...spacePicker}
+              {...field}
+              placeholder={t("Add space…")}
+              value={draft.spaces}
+              onChange={(spaces) => setDraft({ ...draft, spaces })}
+            />
+          )}
+          renderExcluded={(field) => (
+            <SpaceSelect
+              {...spacePicker}
+              {...field}
+              placeholder={t("Add space…")}
+              value={draft.excludeSpaces}
+              onChange={(excludeSpaces) =>
+                setDraft({ ...draft, excludeSpaces })
+              }
+            />
+          )}
+        />
+      }
+      filters={
+        <PageListLabelFilters
+          maxValues={RECENTLY_UPDATED_FILTER_LIMITS.maxValues}
+          isWithinLength={recentlyUpdatedFilterValueWithinLimit}
+          labels={draft.labels}
+          excludeLabels={draft.excludeLabels}
+          match={draft.match}
+          onLabelsChange={(labels) => setDraft({ ...draft, labels })}
+          onExcludeLabelsChange={(excludeLabels) =>
+            setDraft({ ...draft, excludeLabels })
+          }
+          onMatchChange={(match) => setDraft({ ...draft, match })}
+        />
+      }
+      display={
+        <>
+          <PageListLimitInput
+            max={MAX_RECENTLY_UPDATED_LIMIT}
+            value={limit}
+            onChange={setLimit}
+          />
+          <Checkbox
+            label={t("Show heading")}
+            checked={!draft.hideHeading}
+            onChange={(event) =>
+              setDraft({ ...draft, hideHeading: !event.currentTarget.checked })
+            }
+          />
+        </>
+      }
+    />
   );
 }

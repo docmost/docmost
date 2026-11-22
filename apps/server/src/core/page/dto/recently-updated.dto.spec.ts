@@ -19,6 +19,8 @@ describe('RecentlyUpdatedDto', () => {
       excludeLabels: [],
       match: 'any',
       spaces: [],
+      excludeSpaces: [],
+      spaceMatch: 'any',
       limit: 15,
     });
   });
@@ -32,6 +34,8 @@ describe('RecentlyUpdatedDto', () => {
       spaceId,
       limit: 2,
       spaces: ['@all'],
+      excludeSpaces: ['@personal'],
+      spaceMatch: 'all',
       labels: ['+review'],
       excludeLabels: ['?retired'],
       match: 'all',
@@ -46,6 +50,9 @@ describe('RecentlyUpdatedDto', () => {
     { limit: 1.5 },
     { limit: '10' },
     { spaces: '@all' },
+    { excludeSpaces: null },
+    { excludeSpaces: Array(101).fill('@self') },
+    { spaceMatch: 'some' },
     { labels: null },
     { excludeLabels: null },
     { excludeLabels: [' '] },

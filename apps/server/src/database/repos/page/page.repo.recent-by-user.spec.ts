@@ -118,7 +118,7 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
   }
 
   it('restricts each destination to the viewer before taking the most recent matches', async () => {
-    const query = await run({ spaces: ['@all'], labels: ['review'], excludeLabels: ['obsolete'] });
+    const query = await run({ labels: ['review'], excludeLabels: ['obsolete'] });
     expect(query.sql).toContain('"spaces"."slug" as "space_slug"');
     expect(query.sql).toContain('"spaces"."name" as "space_name"');
     expect(query.sql).toContain('"users"."name" as "last_editor_name"');
@@ -147,17 +147,22 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
     expect(legacy.parameters).toEqual(ordinary.parameters);
   });
 
-  it('defaults to this space, unions plain spaces and lets a required space take precedence', async () => {
-    expect(boundAfter(await run(), '"pages"."space_id" = ')).toEqual([spaceId]);
+  it('includes all accessible spaces by default and limits the feed to explicitly selected spaces', async () => {
+    const unrestricted = await run();
+    expect(boundAfter(unrestricted, '"pages"."space_id" = ')).toEqual([]);
+    expect(unrestricted.sql).toContain('"pages"."space_id" in (select "spaces"."id" from "space_members"');
+    expect(boundAfter(await run({ spaces: ['@self'] }), '"pages"."space_id" = ')).toEqual([spaceId]);
     const either = await run({ spaces: [otherSpace, '@self'] });
     expect(either.sql).toMatch(/"pages"\."space_id" = \$\d+ or "pages"\."space_id" = /);
     expect(boundAfter(either, '"pages"."space_id" = ')).toEqual([otherSpace, spaceId]);
-    const required = await run({ spaces: ['+' + otherSpace, '@self'] });
-    expect(boundAfter(required, '"pages"."space_id" = ')).toEqual([otherSpace]);
+    const all = await run({ spaces: [otherSpace, '@self'], spaceMatch: 'all' });
+    expect(all.sql).toMatch(/"pages"\."space_id" = \$\d+ and "pages"\."space_id" = /);
+    expect(boundAfter(all, '"pages"."space_id" = ')).toEqual([otherSpace, spaceId]);
   });
 
   it('limits a negative-only filter to accessible spaces, including viewer-relative favorites', async () => {
-    const query = await run({ spaces: ['-@favourite', '-@global'] });
+    const query = await run({ excludeSpaces: ['@favorite', '@global'] });
+    expect(query.sql).toMatch(/not \(exists .* or "spaces"\."is_personal"/);
     expect(query.sql).toContain('"pages"."space_id" in (select "spaces"."id" from "space_members"');
     expect(boundAfter(query, '"favorites"."user_id" = ')).toEqual(['viewer']);
     expect(boundAfter(query, '"spaces"."is_personal" = ')).toEqual([false]);
@@ -186,7 +191,8 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
   });
 
   it.each([
-    { spaces: ['@all', '-?missing'] },
+    { spaces: ['@all'], excludeSpaces: ['?missing'] },
+    { spaces: ['+@self'] },
     { spaces: ['-unmapped-space'] },
   ])('does not broaden an unresolved filter %o', async (filter) => {
     expect((await run(filter)).sql).toMatch(/\bfalse\b/);

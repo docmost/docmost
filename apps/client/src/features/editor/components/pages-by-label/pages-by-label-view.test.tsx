@@ -140,6 +140,11 @@ it("opens settings on local insertion and leaves a previously stored empty block
     editor.commands.insertPagesByLabel();
   });
   await screen.findByRole("dialog", { name: "Pages by label" });
+  expect(screen.getByRole("combobox", { name: "Labels" })).toBeTruthy();
+  expect(screen.queryByRole("combobox", { name: "Spaces" })).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "More options", expanded: false }),
+  ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
@@ -303,6 +308,7 @@ it("saves edited settings without overwriting another collaborator's changes", a
   fireEvent.click(
     screen.getByRole("button", { name: "Pages by label settings" }),
   );
+  fireEvent.click(screen.getByRole("button", { name: "More options" }));
   const field = await screen.findByRole("textbox", { name: "Heading" });
   fireEvent.change(field, { target: { value: "New list" } });
   applyRemoteEdit(editor, { excludeLabels: ["draft"] });
@@ -330,28 +336,34 @@ it("replaces scope choices with named spaces and keeps imported ordering and dis
   fireEvent.click(
     screen.getByRole("button", { name: "Pages by label settings" }),
   );
-  expect(screen.getByRole("heading", { name: "Find pages" })).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Display" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "More options" }));
   expect(screen.getByRole("heading", { name: "Display" })).toBeTruthy();
   expect(screen.getByRole("combobox", { name: "Sort by" })).toBeTruthy();
   expect(screen.getByRole("combobox", { name: "Exclude labels" })).toBeTruthy();
   const spaces = screen.getByRole("combobox", { name: "Spaces" });
+  expect(
+    screen.getByRole("button", { name: "Remove Current space" }),
+  ).toBeTruthy();
   fireEvent.click(spaces);
   fireEvent.click(await screen.findByRole("option", { name: "Design" }));
   expect(
     screen.queryByRole("button", { name: "Remove Current space" }),
   ).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Remove Design" }));
-  expect(
-    (screen.getByRole("button", { name: "Save" }) as HTMLButtonElement)
-      .disabled,
-  ).toBe(true);
-  fireEvent.click(spaces);
-  fireEvent.click(await screen.findByRole("option", { name: "Design" }));
   fireEvent.click(spaces);
   fireEvent.click(
     await screen.findByRole("option", { name: "All accessible spaces" }),
   );
   expect(screen.queryByRole("button", { name: "Remove Design" })).toBeNull();
+  fireEvent.click(spaces);
+  fireEvent.click(await screen.findByRole("option", { name: "Design" }));
+  fireEvent.click(screen.getByRole("button", { name: "Remove Design" }));
+  expect(
+    screen.getByText("Leave empty to include all accessible spaces."),
+  ).toBeTruthy();
+  fireEvent.click(
+    screen.getByRole("button", { name: "More options", expanded: true }),
+  );
   applyRemoteEdit(editor, {
     scope: "spaces",
     spaceIds: ["a1d0dfc0-1000-4000-8000-000000000001"],
@@ -362,6 +374,12 @@ it("replaces scope choices with named spaces and keeps imported ordering and dis
     scope: "workspace",
     spaceIds: [],
   });
+  await waitFor(() =>
+    expect(api.post).toHaveBeenLastCalledWith(
+      "/labels/query-pages",
+      expect.objectContaining({ scope: "workspace" }),
+    ),
+  );
 });
 
 it("offers three sorts and uses newest first when switching from a saved reverse title sort to a date", async () => {
@@ -374,6 +392,7 @@ it("offers three sorts and uses newest first when switching from a saved reverse
   fireEvent.click(
     screen.getByRole("button", { name: "Pages by label settings" }),
   );
+  fireEvent.click(screen.getByRole("button", { name: "More options" }));
   const sort = await screen.findByRole("combobox", { name: "Sort by" });
   fireEvent.click(sort);
   expect(
@@ -405,9 +424,7 @@ it("switches match mode and reveals exclusions without losing the included label
       description: /Pages need at least one of these labels\./,
     }),
   ).toBeTruthy();
-  expect(
-    screen.getByRole("textbox", { name: "Show up to", description: "pages" }),
-  ).toBeTruthy();
+  expect(screen.queryByRole("textbox", { name: "Show up to" })).toBeNull();
   fireEvent.click(screen.getByRole("radio", { name: "All" }));
   expect(screen.getByText("Pages need all of these labels.")).toBeTruthy();
   expect(screen.queryByRole("combobox", { name: "Exclude labels" })).toBeNull();

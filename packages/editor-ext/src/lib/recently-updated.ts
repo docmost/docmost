@@ -22,6 +22,8 @@ export function normalizeRecentlyUpdatedLimit(value: unknown): number {
 
 export interface RecentlyUpdatedFilters {
   spaces: string[];
+  excludeSpaces: string[];
+  spaceMatch: 'any' | 'all';
   labels: string[];
   excludeLabels: string[];
   match: 'any' | 'all';
@@ -38,11 +40,12 @@ export function recentlyUpdatedFilterValueWithinLimit(value: string): boolean {
 
 export function recentlyUpdatedFiltersWithinLimits({
   spaces,
+  excludeSpaces,
   labels,
   excludeLabels,
 }: RecentlyUpdatedFilters): boolean {
   const { maxValues } = RECENTLY_UPDATED_FILTER_LIMITS;
-  return [spaces, labels, excludeLabels].every(
+  return [spaces, excludeSpaces, labels, excludeLabels].every(
     (values) =>
       values.length <= maxValues &&
       values.every(recentlyUpdatedFilterValueWithinLimit),
@@ -60,20 +63,31 @@ type FilterInput = Partial<Record<keyof RecentlyUpdatedFilters, unknown>>;
 
 export function normalizeRecentlyUpdatedFilters({
   spaces = [],
+  excludeSpaces = [],
+  spaceMatch = 'any',
   labels = [],
   excludeLabels = [],
   match = 'any',
 }: FilterInput): RecentlyUpdatedFilters {
   if (
     !isFilterList(spaces) ||
+    !isFilterList(excludeSpaces) ||
+    (spaceMatch !== 'any' && spaceMatch !== 'all') ||
     !isFilterList(labels) ||
     !isFilterList(excludeLabels) ||
     (match !== 'any' && match !== 'all')
   ) {
     // An unresolved space keeps a malformed restriction from exposing other pages.
-    return { spaces: ['?'], labels: [], excludeLabels: [], match: 'any' };
+    return {
+      spaces: ['?'],
+      excludeSpaces: [],
+      spaceMatch: 'any',
+      labels: [],
+      excludeLabels: [],
+      match: 'any',
+    };
   }
-  return { spaces, labels, excludeLabels, match };
+  return { spaces, excludeSpaces, spaceMatch, labels, excludeLabels, match };
 }
 
 function readFilterList(element: HTMLElement, attribute: string): unknown {
@@ -93,6 +107,17 @@ const filterListAttribute = {
   validate: (value: unknown) => {
     if (!isFilterList(value))
       throw new RangeError('Invalid recently updated filter');
+  },
+};
+
+const matchAttribute = {
+  default: 'any',
+  rendered: false,
+  parseHTML: () => null,
+  validate: (value: unknown) => {
+    if (value !== 'any' && value !== 'all') {
+      throw new RangeError('Invalid recently updated match');
+    }
   },
 };
 
@@ -136,17 +161,11 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
         renderHTML: ({ limit }) => ({ 'data-limit': limit }),
       },
       spaces: filterListAttribute,
+      excludeSpaces: filterListAttribute,
+      spaceMatch: matchAttribute,
       labels: filterListAttribute,
       excludeLabels: filterListAttribute,
-      match: {
-        default: 'any',
-        rendered: false,
-        parseHTML: () => null,
-        validate: (value: unknown) => {
-          if (value !== 'any' && value !== 'all')
-            throw new RangeError('Invalid recently updated match');
-        },
-      },
+      match: matchAttribute,
       hideHeading: {
         default: false,
         validate: 'boolean',
@@ -164,6 +183,8 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
         getAttrs: (element: HTMLElement) =>
           normalizeRecentlyUpdatedFilters({
             spaces: readFilterList(element, 'data-spaces'),
+            excludeSpaces: readFilterList(element, 'data-exclude-spaces'),
+            spaceMatch: element.getAttribute('data-space-match') ?? undefined,
             labels: readFilterList(element, 'data-labels'),
             excludeLabels: readFilterList(element, 'data-exclude-labels'),
             match: element.getAttribute('data-match') ?? undefined,
@@ -183,13 +204,17 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    const { spaces, labels, excludeLabels, match } =
+    const { spaces, excludeSpaces, spaceMatch, labels, excludeLabels, match } =
       normalizeRecentlyUpdatedFilters(node.attrs);
     return [
       'div',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-type': 'recently-updated',
         'data-match': match,
+        'data-space-match': spaceMatch,
+        ...(excludeSpaces.length && {
+          'data-exclude-spaces': JSON.stringify(excludeSpaces),
+        }),
         ...(spaces.length && { 'data-spaces': JSON.stringify(spaces) }),
         ...(labels.length && { 'data-labels': JSON.stringify(labels) }),
         ...(excludeLabels.length && {
@@ -207,14 +232,24 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
   addCommands() {
     return {
       insertRecentlyUpdated:
-        (attributes) =>
+        ({
+          excludeSpaces,
+          spaces = excludeSpaces?.length ? [] : ['@self'],
+          ...attributes
+        } = {}) =>
         ({ commands }) =>
           commands.insertContent({
             type: this.name,
             attrs: {
-              limit: normalizeRecentlyUpdatedLimit(attributes?.limit),
-              hideHeading: attributes?.hideHeading === true,
-              ...normalizeRecentlyUpdatedFilters(attributes ?? {}),
+              limit: normalizeRecentlyUpdatedLimit(attributes.limit),
+              hideHeading: attributes.hideHeading === true,
+              ...structuredClone(
+                normalizeRecentlyUpdatedFilters({
+                  ...attributes,
+                  spaces,
+                  excludeSpaces,
+                }),
+              ),
             },
           }),
     };

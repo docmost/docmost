@@ -36,7 +36,7 @@ describe("Pages by label", () => {
       excludeLabels: ["draft"],
       match: "all",
       heading: "Rollout",
-      scope: "current",
+      scope: "workspace",
       limit: 15,
     });
   });

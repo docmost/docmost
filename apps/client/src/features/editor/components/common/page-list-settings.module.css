@@ -1,0 +1,117 @@
+.modalHeader {
+  min-height: 0;
+  padding-top: var(--mantine-spacing-sm);
+  padding-bottom: 0;
+}
+
+.modalTitle {
+  font-size: var(--mantine-font-size-lg);
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.form :global(.mantine-Input-wrapper) {
+  --input-height-sm: rem(40px);
+  --input-radius: var(--mantine-radius-md);
+}
+
+.form :global(.mantine-InputWrapper-label) {
+  display: block;
+  margin-bottom: rem(4px);
+  font-weight: 450;
+}
+
+.form :global(.mantine-SegmentedControl-root) {
+  padding: rem(2px);
+}
+
+.form :global(.mantine-SegmentedControl-label) {
+  padding: rem(2px) rem(10px);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.form :global(.mantine-MultiSelect-section) {
+  display: none;
+}
+
+.form :global(.mantine-MultiSelect-input) {
+  padding-inline: var(--mantine-spacing-xs);
+}
+
+.form :global(.mantine-Pill-root) {
+  --pill-height-sm: rem(27px);
+  --pill-fz-sm: rem(13px);
+  --pill-radius: var(--mantine-radius-md);
+}
+
+.labelFilter :global(.mantine-Pill-root) {
+  background: var(--mantine-primary-color-light);
+  color: var(--mantine-primary-color-light-color);
+}
+
+.addExclusion {
+  display: inline-flex;
+  align-items: center;
+  gap: rem(4px);
+}
+
+.moreOptions {
+  display: inline-flex;
+  align-items: center;
+  gap: rem(6px);
+  margin-top: var(--mantine-spacing-md);
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+}
+
+.moreOptions[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+
+.limitField {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto var(--ni-right-section-width-sm);
+  align-content: start;
+}
+
+.limitField > label {
+  grid-column: 1 / -1;
+}
+
+.limitField :global(.mantine-NumberInput-wrapper) {
+  grid-area: 2 / 1 / 3 / -1;
+  margin: 0;
+}
+
+.limitField input {
+  padding-inline-end: calc(var(--ni-right-section-width-sm) + 6ch);
+}
+
+.limitUnit {
+  grid-area: 2 / 2;
+  align-self: center;
+  z-index: 1;
+  padding-inline-end: var(--mantine-spacing-xs);
+  margin: 0;
+  font-size: var(--mantine-font-size-sm);
+  pointer-events: none;
+}
+
+.actions {
+  margin-top: var(--mantine-spacing-xl);
+  margin-inline: calc(-1 * var(--mb-padding));
+  padding: var(--mantine-spacing-md) var(--mb-padding) 0;
+  border-top: 1px solid var(--mantine-color-default-border);
+}

@@ -36,6 +36,12 @@ export class RecentlyUpdatedDto extends SpaceIdDto {
   spaces: string[] = [];
 
   @FilterList()
+  excludeSpaces: string[] = [];
+
+  @IsIn(['any', 'all'])
+  spaceMatch: 'any' | 'all' = 'any';
+
+  @FilterList()
   labels: string[] = [];
 
   @FilterList()

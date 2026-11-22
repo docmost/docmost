@@ -188,7 +188,10 @@ export const PagesByLabel = Node.create<PagesByLabelOptions>({
         (attributes) =>
         ({ commands, dispatch, tr }) => {
           const node = this.type.create(
-            normalizePagesByLabelAttributes(attributes),
+            normalizePagesByLabelAttributes({
+              ...attributes,
+              scope: attributes?.scope ?? 'workspace',
+            }),
           );
           const before = tr.steps.length;
           const inserted = commands.insertContent(node);

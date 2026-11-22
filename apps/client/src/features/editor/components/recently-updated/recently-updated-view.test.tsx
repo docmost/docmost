@@ -30,9 +30,11 @@ import RecentlyUpdatedView from "./recently-updated-view";
 
 vi.mock("@/lib/api-client", () => ({ default: { post: vi.fn() } }));
 vi.mock("@/features/space/queries/space-query", () => ({
-  useGetSpaceBySlugQuery: vi.fn(() => ({})),
+  useGetSpaceBySlugQuery: vi.fn((key?: string) => ({
+    data: key === spaceId || key === "team" ? teamSpace : undefined,
+  })),
   useGetSpacesQuery: () => ({
-    data: { items: [{ id: otherId, name: "Engineering" }] },
+    data: { items: [teamSpace, { id: otherId, name: "Engineering" }] },
   }),
 }));
 vi.mock("@/features/label/queries/label-query", () => ({
@@ -59,6 +61,7 @@ vi.mock("@/lib/time", () => ({
 }));
 
 const spaceId = "de44053e-d614-453b-9706-1737faf19b87";
+const teamSpace = { id: spaceId, name: "Product design", slug: "team" };
 const otherId = "dcb7b4d5-a068-448d-9f18-e8b0684ee57e";
 const editors: Editor[] = [];
 
@@ -154,6 +157,43 @@ it("waits for a source space before requesting authenticated rows", () => {
   expect(api.post).not.toHaveBeenCalled();
 });
 
+it.each(["@self", spaceId])(
+  "shows the containing space by name for %s and clears it to include all spaces",
+  async (value) => {
+    vi.mocked(api.post).mockResolvedValue({ data: [] });
+    const { editor } = show("/s/team", { spaces: [value] }, spaceId);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Recently updated settings" }),
+    );
+    const dialog = within(screen.getByRole("dialog"));
+    const spaces = dialog.getByRole("combobox", { name: "Spaces" });
+    const remove = dialog.getByRole("button", {
+      name: "Remove Product design",
+    });
+    fireEvent.click(spaces);
+    expect(dialog.queryByRole("option", { name: "Product design" })).toBeNull();
+    expect(dialog.queryByRole("option", { name: "Current space" })).toBeNull();
+    fireEvent.click(remove);
+    act(() => spaces.focus());
+    const namedSpace = await dialog.findByRole("option", {
+      name: "Product design",
+    });
+    fireEvent.click(namedSpace);
+    fireEvent.click(
+      dialog.getByRole("button", { name: "Remove Product design" }),
+    );
+    fireEvent.click(dialog.getByRole("button", { name: "Save" }));
+
+    expect(editor.getJSON().content[0].attrs.spaces).toEqual([]);
+    await waitFor(() =>
+      expect(api.post).toHaveBeenLastCalledWith(
+        "/pages/recently-updated",
+        expect.objectContaining({ spaceId, spaces: [] }),
+      ),
+    );
+  },
+);
+
 it.each([
   {
     field: "spaces",
@@ -162,8 +202,14 @@ it.each([
     extra: "?another-space",
   },
   {
+    field: "excludeSpaces",
+    label: "Exclude spaces",
+    kept: ["@personal"],
+    extra: "?" + "x".repeat(256),
+  },
+  {
     field: "labels",
-    label: "Include labels",
+    label: "Labels",
     kept: ["a".repeat(254) + "📌☀️"],
     extra: "x".repeat(257),
   },
@@ -198,6 +244,7 @@ it.each([
     fireEvent.click(
       screen.getByRole("button", { name: "Recently updated settings" }),
     );
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
     expect(screen.getByText(extra)).toBeTruthy();
     fireEvent.keyDown(screen.getByRole("combobox", { name: label }), {
       key: "Backspace",
@@ -237,6 +284,8 @@ it("loads once across edits, polling intervals, focus, reconnect and recent-page
     spaceId,
     limit: 15,
     spaces: [otherId],
+    excludeSpaces: [],
+    spaceMatch: "any",
     labels: [],
     excludeLabels: [],
     match: "any",
@@ -279,6 +328,8 @@ it("loads once across edits, polling intervals, focus, reconnect and recent-page
     excludeLabels: [],
     match: "any",
     spaces: [otherId],
+    excludeSpaces: [],
+    spaceMatch: "any",
     limit: 4,
   });
 });
@@ -330,7 +381,7 @@ it("refreshes on demand in read mode and shows space names only when results spa
   expect(api.post).toHaveBeenCalledTimes(2);
 });
 
-it("edits the limit, heading and signed space choices while preserving literal labels", async () => {
+it("edits the limit, heading and space choices while preserving literal labels", async () => {
   vi.mocked(api.post).mockResolvedValue({ data: [] });
   const { editor } = show(
     "/s/team",
@@ -349,13 +400,14 @@ it("edits the limit, heading and signed space choices while preserving literal l
   act(() => space.focus());
   fireEvent.input(space, {
     inputType: "insertText",
-    data: "-Eng",
-    target: { value: "-Eng" },
+    data: "Eng",
+    target: { value: "Eng" },
   });
-  fireEvent.click(await screen.findByRole("option", { name: "-Engineering" }));
-  expect(screen.getByText("-Engineering")).toBeTruthy();
+  fireEvent.click(await screen.findByRole("option", { name: "Engineering" }));
+  expect(screen.getByText("Engineering")).toBeTruthy();
   expect(screen.queryByRole("combobox", { name: "Last edited by" })).toBeNull();
-  fireEvent.change(screen.getByLabelText("Maximum results"), {
+  fireEvent.click(screen.getByRole("button", { name: "More options" }));
+  fireEvent.change(screen.getByLabelText("Show up to"), {
     target: { value: "3" },
   });
   fireEvent.click(screen.getByLabelText("Show heading"));
@@ -363,7 +415,9 @@ it("edits the limit, heading and signed space choices while preserving literal l
   expect(editor.getJSON().content[0].attrs).toEqual({
     limit: 3,
     hideHeading: true,
-    spaces: ["-" + otherId],
+    spaces: [otherId],
+    excludeSpaces: [],
+    spaceMatch: "any",
     labels: ["?missing", "+review"],
     excludeLabels: [],
     match: "any",
@@ -394,8 +448,11 @@ it("saves literal names, exclusions and the match mode, then requests the new fi
       true,
     ),
   );
-  expect(screen.queryByRole("combobox", { name: "Label matching" })).toBeNull();
-  const labels = screen.getByRole("combobox", { name: "Include labels" });
+  fireEvent.click(screen.getByRole("button", { name: "More options" }));
+  expect(
+    screen.queryByRole("radiogroup", { name: "Label matching" }),
+  ).toBeNull();
+  const labels = screen.getByRole("combobox", { name: "Labels" });
   act(() => labels.focus());
   fireEvent.input(labels, {
     inputType: "insertText",
@@ -403,12 +460,22 @@ it("saves literal names, exclusions and the match mode, then requests the new fi
     target: { value: "draft" },
   });
   fireEvent.click(await screen.findByRole("option", { name: "-draft" }));
-  const mode = screen.getByRole("combobox", { name: "Label matching" });
-  fireEvent.click(mode);
+  expect(
+    within(
+      screen.getByRole("radiogroup", { name: "Label matching" }),
+    ).getByRole("radio", { name: "Any", checked: true }),
+  ).toBeTruthy();
   fireEvent.click(
-    await screen.findByRole("option", { name: "Match all labels" }),
+    within(
+      screen.getByRole("radiogroup", { name: "Label matching" }),
+    ).getByRole("radio", { name: "All" }),
   );
-  fireEvent.click(screen.getByRole("combobox", { name: "Exclude labels" }));
+  expect(screen.getByText("Pages need all of these labels.")).toBeTruthy();
+  expect(screen.queryByRole("combobox", { name: "Exclude labels" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Exclude labels" }));
+  const excluded = screen.getByRole("combobox", { name: "Exclude labels" });
+  expect(document.activeElement).toBe(excluded);
+  fireEvent.change(excluded, { target: { value: "draft" } });
   fireEvent.click(
     within(screen.getByRole("listbox", { name: "Exclude labels" })).getByRole(
       "option",
@@ -431,7 +498,109 @@ it("saves literal names, exclusions and the match mode, then requests the new fi
   fireEvent.click(
     screen.getByRole("button", { name: "Recently updated settings" }),
   );
-  expect(screen.getByDisplayValue("Match all labels")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "More options" }));
+  expect(
+    within(
+      screen.getByRole("radiogroup", { name: "Label matching" }),
+    ).getByRole("radio", { name: "All", checked: true }),
+  ).toBeTruthy();
+  expect(screen.getByRole("combobox", { name: "Exclude labels" })).toBeTruthy();
+});
+
+it("allows empty label filters and discards display changes on cancel", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: [] });
+  const { editor } = show("/s/team", {}, spaceId);
+  await screen.findByText("No matching pages");
+  const open = screen.getByRole("button", {
+    name: "Recently updated settings",
+  });
+  fireEvent.click(open);
+  const dialog = within(
+    screen.getByRole("dialog", { name: "Recently updated" }),
+  );
+  expect(dialog.getAllByRole("combobox")).toEqual([
+    dialog.getByRole("combobox", { name: "Spaces" }),
+  ]);
+  expect(dialog.queryByRole("region", { name: "Display" })).toBeNull();
+  expect(
+    dialog.getByText("Leave empty to include all accessible spaces."),
+  ).toBeTruthy();
+  fireEvent.click(
+    dialog.getByRole("button", { name: "More options", expanded: false }),
+  );
+  expect(dialog.getByRole("region", { name: "Display" })).toBeTruthy();
+  expect(dialog.getByRole("combobox", { name: "Labels" })).toBeTruthy();
+  expect(dialog.getByText("Add labels to narrow the list.")).toBeTruthy();
+  const save = dialog.getByRole<HTMLButtonElement>("button", { name: "Save" });
+  expect(save.disabled).toBe(false);
+  fireEvent.change(dialog.getByLabelText("Show up to"), {
+    target: { value: "" },
+  });
+  expect(save.disabled).toBe(true);
+  fireEvent.click(dialog.getByRole("checkbox", { name: "Show heading" }));
+  fireEvent.click(
+    dialog.getByRole("button", { name: "More options", expanded: true }),
+  );
+  fireEvent.click(
+    dialog.getByRole("button", { name: "More options", expanded: false }),
+  );
+  expect(
+    dialog.getByRole("checkbox", { name: "Show heading", checked: false }),
+  ).toBeTruthy();
+  expect(save.disabled).toBe(true);
+  fireEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(editor.state.doc.firstChild.attrs).toMatchObject({
+    limit: 15,
+    hideHeading: false,
+    labels: [],
+  });
+  expect(api.post).toHaveBeenCalledTimes(1);
+});
+
+it("saves the space match and exclusions independently of label matching", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: [] });
+  const { editor } = show(
+    "/s/team",
+    { spaces: ["@favorite", "@global"], labels: ["review"] },
+    spaceId,
+  );
+  const open = screen.getByRole("button", {
+    name: "Recently updated settings",
+  });
+  fireEvent.click(open);
+  const dialog = within(
+    screen.getByRole("dialog", { name: "Recently updated" }),
+  );
+  fireEvent.click(
+    within(
+      dialog.getByRole("radiogroup", { name: "Space matching" }),
+    ).getByRole("radio", { name: "All" }),
+  );
+  fireEvent.click(dialog.getByRole("button", { name: "Exclude spaces" }));
+  const excluded = dialog.getByRole("combobox", { name: "Exclude spaces" });
+  fireEvent.change(excluded, { target: { value: "Eng" } });
+  fireEvent.click(await dialog.findByRole("option", { name: "Engineering" }));
+  fireEvent.click(dialog.getByRole("button", { name: "Save" }));
+  const filters = {
+    spaces: ["@favorite", "@global"],
+    excludeSpaces: [otherId],
+    spaceMatch: "all",
+    labels: ["review"],
+    match: "any",
+  };
+  expect(editor.state.doc.firstChild.attrs).toMatchObject(filters);
+  await waitFor(() =>
+    expect(api.post).toHaveBeenLastCalledWith(
+      "/pages/recently-updated",
+      expect.objectContaining(filters),
+    ),
+  );
+  fireEvent.click(open);
+  expect(screen.getByRole("combobox", { name: "Exclude spaces" })).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "Remove Engineering" }),
+  ).toBeTruthy();
 });
 
 it("refetches for changes to just the mode or just the exclusions and supports exclude-only settings", async () => {
@@ -454,6 +623,8 @@ it("refetches for changes to just the mode or just the exclusions and supports e
   expect(api.post).toHaveBeenLastCalledWith("/pages/recently-updated", {
     spaceId,
     spaces: [],
+    excludeSpaces: [],
+    spaceMatch: "any",
     limit: 15,
     labels: [],
     excludeLabels: ["?"],

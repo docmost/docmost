@@ -79,7 +79,7 @@ describe("inserting a recently updated block", () => {
         attrs: {
           limit: 15,
           hideHeading: false,
-          spaces: [],
+          spaces: ["@self"],
           labels: [],
         },
       },
@@ -90,8 +90,11 @@ describe("inserting a recently updated block", () => {
   it("copies the chosen filters and bounds the number of results", () => {
     editor = new Editor({ extensions: [StarterKit, RecentlyUpdated] });
     const filters = {
-      spaces: ["@self", "-OLD"],
+      spaces: ["@favorite", "@global"],
+      excludeSpaces: ["@self"],
+      spaceMatch: "all" as const,
       labels: ["+release"],
+      excludeLabels: ["old"],
     };
     editor.commands.insertRecentlyUpdated({
       limit: 350,
@@ -99,15 +102,34 @@ describe("inserting a recently updated block", () => {
       ...filters,
     });
     filters.spaces.pop();
+    filters.excludeSpaces.pop();
+    filters.excludeLabels.pop();
     filters.labels.pop();
     expect(editor.getJSON().content?.[0]).toMatchObject({
       type: "recentlyUpdated",
       attrs: {
         limit: 200,
         hideHeading: true,
-        spaces: ["@self", "-OLD"],
+        spaces: ["@favorite", "@global"],
+        excludeSpaces: ["@self"],
+        spaceMatch: "all",
         labels: ["+release"],
+        excludeLabels: ["old"],
       },
     });
   });
+
+  it.each([
+    { options: { limit: 3 }, expected: ["@self"] },
+    { options: { spaces: [] }, expected: [] },
+    { options: { excludeSpaces: ["@personal"] }, expected: [] },
+    { options: { spaces: ["@all"] }, expected: ["@all"] },
+  ])(
+    "keeps the requested scope when inserting with $options",
+    ({ options, expected }) => {
+      editor = new Editor({ extensions: [StarterKit, RecentlyUpdated] });
+      editor.commands.insertRecentlyUpdated(options);
+      expect(editor.getJSON().content[0].attrs.spaces).toEqual(expected);
+    },
+  );
 });

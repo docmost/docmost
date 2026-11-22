@@ -116,7 +116,6 @@ function Filter({
   return (
     <SpaceSelect
       multiple
-      withOperators
       label="Spaces"
       scopes={[{ value: "@self", label: "Current space" }]}
       value={value}
@@ -143,12 +142,12 @@ function pill(label: string) {
   return screen.getByRole("button", { name: `Remove ${label}` }).parentElement;
 }
 
-it("restores a saved space beyond the first page and keeps signed selections and their icons while searching", async () => {
-  const saved = ["-" + research.id, "-" + team.id, "+@self", "?legacy"];
+it("restores a saved space beyond the first page and keeps selections and their icons while searching", async () => {
+  const saved = [research.id, "@self", "?legacy"];
   const onChange = vi.fn();
   const view = show(<Filter saved={saved} onChange={onChange} />);
-  await screen.findByRole("button", { name: "Remove -Research" });
-  expect(pill("-Research").querySelector("img")?.src).toContain(
+  await screen.findByRole("button", { name: "Remove Research" });
+  expect(pill("Research").querySelector("img")?.src).toContain(
     "/space-icon/research.png",
   );
   expect(getSpaceById).toHaveBeenCalledExactlyOnceWith(research.id);
@@ -157,37 +156,46 @@ it("restores a saved space beyond the first page and keeps signed selections and
   act(() => input.focus());
   const teamOption = await screen.findByRole("option", { name: team.name });
   expect(teamOption.textContent).toContain("TS");
-  expect(pill("-Team Space").textContent).toContain("TS");
+  const teamIconStyle = teamOption
+    .querySelector("[aria-hidden]")
+    ?.getAttribute("style");
+  fireEvent.click(teamOption);
+  expect(pill("Team Space").textContent).toContain("TS");
   expect(
-    pill("-Team Space").querySelector("[aria-hidden]")?.getAttribute("style"),
-  ).toBe(teamOption.querySelector("[aria-hidden]")?.getAttribute("style"));
-  search(input, "+Design");
-  const option = await screen.findByRole("option", { name: "+Design" });
+    pill("Team Space").querySelector("[aria-hidden]")?.getAttribute("style"),
+  ).toBe(teamIconStyle);
+  search(input, "Design");
+  const option = await screen.findByRole("option", { name: "Design" });
   expect(option.querySelector("img")?.src).toContain("/space-icon/design.png");
   fireEvent.keyDown(input, { key: "ArrowDown", code: "ArrowDown" });
   fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
-  expect(onChange).toHaveBeenLastCalledWith([...saved, "+" + design.id]);
+  expect(onChange).toHaveBeenLastCalledWith([...saved, team.id, design.id]);
 
   search(input, "Team");
-  await screen.findByRole("option", { name: "Team Space" });
-  expect(pill("+Design").querySelector("img")?.src).toContain(
+  await waitFor(() =>
+    expect(getSpaces).toHaveBeenCalledWith(
+      expect.objectContaining({ query: "Team" }),
+    ),
+  );
+  expect(screen.queryByRole("option", { name: "Team Space" })).toBeNull();
+  expect(pill("Design").querySelector("img")?.src).toContain(
     "/space-icon/design.png",
   );
-  expect(pill("-Research").querySelector("img")?.src).toContain(
+  expect(pill("Research").querySelector("img")?.src).toContain(
     "/space-icon/research.png",
   );
   expect(getSpaceById).toHaveBeenCalledExactlyOnceWith(research.id);
   fireEvent.click(screen.getByRole("button", { name: "Remove ?legacy" }));
-  const updated = ["-" + research.id, "-" + team.id, "+@self", "+" + design.id];
+  const updated = [research.id, "@self", team.id, design.id];
   expect(onChange).toHaveBeenLastCalledWith(updated);
 
   view.unmount();
   show(<Filter saved={updated} />);
-  await screen.findByRole("button", { name: "Remove +Design" });
-  expect(pill("+Design").querySelector("img")?.src).toContain(
+  await screen.findByRole("button", { name: "Remove Design" });
+  expect(pill("Design").querySelector("img")?.src).toContain(
     "/space-icon/design.png",
   );
-  expect(pill("-Research").querySelector("img")?.src).toContain(
+  expect(pill("Research").querySelector("img")?.src).toContain(
     "/space-icon/research.png",
   );
 });
@@ -197,7 +205,7 @@ it("waits for an oversized filter to be repaired and keeps inaccessible spaces r
   const onChange = vi.fn();
   show(
     <Filter
-      saved={["+" + research.id, "?legacy"]}
+      saved={[research.id, "?legacy"]}
       maxValues={1}
       onChange={onChange}
     />,
@@ -211,7 +219,7 @@ it("waits for an oversized filter to be repaired and keeps inaccessible spaces r
     expect(getSpaceById).toHaveBeenCalledExactlyOnceWith(research.id),
   );
   fireEvent.click(
-    screen.getByRole("button", { name: "Remove +" + research.id }),
+    screen.getByRole("button", { name: "Remove " + research.id }),
   );
   expect(onChange).toHaveBeenLastCalledWith([]);
 });

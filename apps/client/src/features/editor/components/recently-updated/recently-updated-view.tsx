@@ -1,5 +1,5 @@
 import { useContext, useState, type ReactNode } from "react";
-import { ActionIcon, Modal, Skeleton } from "@mantine/core";
+import { ActionIcon, Skeleton } from "@mantine/core";
 import { IconSettings } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -214,19 +214,14 @@ export default function RecentlyUpdatedView({
         </PageListLayout>
       )}
       {editable && settingsOpen && (
-        <Modal
-          opened
+        <RecentlyUpdatedSettings
+          options={options}
           onClose={() => setSettingsOpen(false)}
-          title={t("Recently updated settings")}
-        >
-          <RecentlyUpdatedSettings
-            options={options}
-            onSave={(attributes) => {
-              if (editor.isEditable) updateAttributes(attributes);
-              setSettingsOpen(false);
-            }}
-          />
-        </Modal>
+          onSave={(attributes) => {
+            if (editor.isEditable) updateAttributes(attributes);
+            setSettingsOpen(false);
+          }}
+        />
       )}
     </NodeViewWrapper>
   );

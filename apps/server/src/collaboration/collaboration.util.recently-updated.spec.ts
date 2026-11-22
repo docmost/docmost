@@ -34,6 +34,8 @@ describe('recently updated block', () => {
           limit,
           hideHeading: false,
           spaces: [],
+          excludeSpaces: [],
+          spaceMatch: 'any',
           labels: [],
           excludeLabels: [],
           match: 'any',
@@ -44,13 +46,15 @@ describe('recently updated block', () => {
 
   it('preserves the settings in synced blocks and both kinds of table cell after a collaborative save', () => {
     const filters = {
-      spaces: ['@self', '+OPS', '-ARCHIVE'],
+      spaces: ['@favorite', '@global'],
+      excludeSpaces: ['@self'],
+      spaceMatch: 'all',
       labels: ['+release', '-old', '?', 'r&d,review'],
       excludeLabels: ['?draft', '+review'],
       match: 'all',
     };
     const custom = block(
-      `data-limit="6" data-hide-heading="true" data-spaces='${JSON.stringify(filters.spaces)}' data-labels='${JSON.stringify(filters.labels)}' data-exclude-labels='${JSON.stringify(filters.excludeLabels)}' data-match="all"`,
+      `data-limit="6" data-hide-heading="true" data-spaces='${JSON.stringify(filters.spaces)}' data-exclude-spaces='${JSON.stringify(filters.excludeSpaces)}' data-space-match="all" data-labels='${JSON.stringify(filters.labels)}' data-exclude-labels='${JSON.stringify(filters.excludeLabels)}' data-match="all"`,
     );
     const doc = htmlToJson(
       `<div data-type="transclusionSource">${custom}<table><tr><th>${custom}</th><td>${custom}</td></tr></table></div>`,
@@ -95,6 +99,8 @@ describe('recently updated block', () => {
     ['data-spaces', 'bad JSON'],
     ['data-labels', '{"invalid":"shape"}'],
     ['data-labels', '["release",false]'],
+    ['data-exclude-spaces', 'null'],
+    ['data-space-match', 'some'],
     ['data-exclude-labels', 'null'],
     ['data-exclude-labels', '[""]'],
     ['data-match', 'some'],
@@ -159,6 +165,8 @@ describe('recently updated block', () => {
       labels: [],
       excludeLabels: [],
       match: 'any' as const,
+      excludeSpaces: [],
+      spaceMatch: 'any' as const,
       authors: Array(101).fill('x'.repeat(257)),
     };
     expect(recentlyUpdatedFiltersWithinLimits(legacy)).toBe(true);
@@ -170,7 +178,7 @@ describe('recently updated block', () => {
   it('omits empty filter lists from exported HTML', () => {
     const doc = htmlToJson(block(`data-spaces='[]' data-labels='[]'`));
     expect(jsonToHtml(doc)).not.toMatch(
-      /data-(spaces|labels|exclude-labels|authors)=/,
+      /data-(spaces|exclude-spaces|labels|exclude-labels|authors)=/,
     );
   });
 

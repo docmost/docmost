@@ -15,8 +15,23 @@ export function confluenceFilterValues(value: string): string[] {
   return value.split(/[,\s]+/).filter(Boolean);
 }
 
-function splitConfluenceFilter(token: string): [string, string] {
-  return /^[+-]/.test(token) ? [token[0], token.slice(1).trim()] : ['', token];
+function readConfluenceFilter(tokens: string[] = []) {
+  const required: string[] = [];
+  const included: string[] = [];
+  const excluded: string[] = [];
+  for (const token of tokens) {
+    const sign = token[0];
+    const name = sign === '+' || sign === '-' ? token.slice(1).trim() : token;
+    if (!name) return undefined;
+    if (sign === '+') required.push(name);
+    else if (sign === '-') excluded.push(name);
+    else included.push(name);
+  }
+  return {
+    included: required.length ? required : included,
+    excluded,
+    match: required.length > 1 ? 'all' : 'any',
+  };
 }
 
 const scopeNames = new Map([
@@ -61,44 +76,37 @@ export function replaceConfluenceRecentUpdates(
     'data-limit': String(normalizeRecentlyUpdatedLimit(params.limit)),
     'data-hide-heading': String(params.hideHeading === true),
   });
-  if (params.spaces?.length) {
-    const tokens = params.spaces.map((token) => {
-      const [sign, value] = splitConfluenceFilter(token);
-      if (!value) return sign + '?';
-      const scope = scopeNames.get(value.toLowerCase());
-      if (scope) return sign + scope;
-      const key = value.toUpperCase();
-      if (renderedSpaceKey?.toUpperCase() === key) return sign + '@self';
-      const id =
-        spaces && Object.prototype.hasOwnProperty.call(spaces, key)
-          ? spaces[key]
-          : undefined;
-      return sign + (id ?? '?' + value);
-    });
-    block.attr('data-spaces', JSON.stringify(tokens));
+  // Confluence defaults an unspecified space filter to the containing space.
+  const spaceFilter = readConfluenceFilter(
+    params.spaces?.length ? params.spaces : ['@self'],
+  );
+  const labelFilter = readConfluenceFilter(params.labels);
+  if (!spaceFilter || !labelFilter) {
+    macro.replaceWith($('<em>').text('[Confluence macro: recently-updated]'));
+    return;
   }
-  if (params.labels?.length) {
-    const required: string[] = [];
-    const included: string[] = [];
-    const excluded: string[] = [];
-    for (const token of params.labels) {
-      const [sign, name] = splitConfluenceFilter(token);
-      if (!name) {
-        macro.replaceWith(
-          $('<em>').text('[Confluence macro: recently-updated]'),
-        );
-        return;
-      }
-      if (sign === '+') required.push(name);
-      else if (sign === '-') excluded.push(name);
-      else included.push(name);
-    }
-    const labels = required.length ? required : included;
-    if (labels.length) block.attr('data-labels', JSON.stringify(labels));
-    if (excluded.length)
-      block.attr('data-exclude-labels', JSON.stringify(excluded));
-    if (required.length > 1) block.attr('data-match', 'all');
+  const resolveSpace = (value: string) => {
+    const scope = scopeNames.get(value.toLowerCase());
+    if (scope) return scope;
+    const key = value.toUpperCase();
+    if (renderedSpaceKey?.toUpperCase() === key) return '@self';
+    const id =
+      spaces && Object.prototype.hasOwnProperty.call(spaces, key)
+        ? spaces[key]
+        : undefined;
+    return id ?? '?' + value;
+  };
+  const lists = {
+    'data-spaces': spaceFilter.included.map(resolveSpace),
+    'data-exclude-spaces': spaceFilter.excluded.map(resolveSpace),
+    'data-labels': labelFilter.included,
+    'data-exclude-labels': labelFilter.excluded,
+  };
+  for (const [attribute, values] of Object.entries(lists)) {
+    if (values.length) block.attr(attribute, JSON.stringify(values));
   }
+  if (spaceFilter.match === 'all') block.attr('data-space-match', 'all');
+  if (labelFilter.match === 'all') block.attr('data-match', 'all');
   macro.replaceWith(block);
 }
 
