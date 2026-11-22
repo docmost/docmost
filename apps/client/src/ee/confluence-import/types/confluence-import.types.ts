@@ -19,11 +19,20 @@ export type ConfluenceSpaceSummary = {
   status?: string;
 };
 
+export type ConfluenceSpacePosition = {
+  status: "current" | "archived";
+  start?: number;
+  cursor?: string;
+};
+
+export type ConfluenceSpaceBatch = {
+  spaces: ConfluenceSpaceSummary[];
+  next: ConfluenceSpacePosition | null;
+};
+
 export type TestConnectionResponse = {
   success: boolean;
   edition?: ConfluenceEdition;
-  spaceCount?: number;
-  spaces?: ConfluenceSpaceSummary[];
   pageHistoryAvailable?: boolean;
   error?: string;
 };

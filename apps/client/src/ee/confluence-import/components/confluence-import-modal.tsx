@@ -6,7 +6,6 @@ import {
   Group,
   Modal,
   PasswordInput,
-  ScrollArea,
   SegmentedControl,
   Stack,
   Stepper,
@@ -31,9 +30,9 @@ import {
   ConfluenceAuthType,
   ConfluenceCredentials,
   ConfluenceEdition,
-  ConfluenceSpaceSummary,
 } from "@/ee/confluence-import/types/confluence-import.types";
 import { confluenceImportsQueryKey } from "@/ee/confluence-import/queries/confluence-import-queries";
+import ConfluenceSpacePicker from "./confluence-space-picker";
 
 type CredentialsFormValues = {
   edition: ConfluenceEdition;
@@ -57,7 +56,6 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
   const [active, setActive] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [spaces, setSpaces] = useState<ConfluenceSpaceSummary[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [importAll, setImportAll] = useState(true);
   const [pageHistoryAvailable, setPageHistoryAvailable] = useState(false);
@@ -106,7 +104,6 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
     if (!opened) {
       setActive(0);
       setError(null);
-      setSpaces([]);
       setSelectedKeys([]);
       setImportAll(true);
       setLoading(false);
@@ -150,12 +147,11 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
     try {
       const test = await testConfluenceConnection(credentials, check.signal);
       if (check.signal.aborted) return;
-      if (!test.success || !test.spaces) {
+      if (!test.success) {
         setError(test.error || t("Connection failed"));
         return;
       }
-      setSpaces(test.spaces);
-      setSelectedKeys(test.spaces.map((s) => s.key));
+      setSelectedKeys([]);
       setImportAll(true);
       setPageHistoryAvailable(test.pageHistoryAvailable === true);
       setIncludePageHistory(false);
@@ -189,11 +185,6 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
         ? Array.from(new Set([...prev, key]))
         : prev.filter((k) => k !== key),
     );
-  };
-
-  const toggleAll = (checked: boolean) => {
-    setImportAll(checked);
-    setSelectedKeys(checked ? spaces.map((s) => s.key) : []);
   };
 
   const handleStartImport = async () => {
@@ -269,8 +260,6 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
       fullWidth
     />
   );
-
-  const selectedCount = importAll ? spaces.length : selectedKeys.length;
 
   return (
     <Modal
@@ -401,40 +390,18 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
           </Text>
 
           <Checkbox
-            label={t("Import all spaces ({{count}})", {
-              count: spaces.length,
-            })}
+            label={t("Import all spaces")}
             checked={importAll}
-            onChange={(e) => toggleAll(e.currentTarget.checked)}
+            onChange={(e) => setImportAll(e.currentTarget.checked)}
           />
 
-          <ScrollArea h={320} type="auto" offsetScrollbars>
-            <Stack gap="xs">
-              {spaces.map((space) => (
-                <Checkbox
-                  key={space.id}
-                  label={
-                    <Group gap={6} wrap="nowrap">
-                      <Text fw={500}>{space.name}</Text>
-                      <Text size="xs" c="dimmed">
-                        ({space.key})
-                      </Text>
-                    </Group>
-                  }
-                  checked={importAll || selectedKeys.includes(space.key)}
-                  disabled={importAll}
-                  onChange={(e) =>
-                    toggleSpace(space.key, e.currentTarget.checked)
-                  }
-                />
-              ))}
-              {spaces.length === 0 && (
-                <Text c="dimmed" ta="center" py="lg">
-                  {t("No spaces found for this account.")}
-                </Text>
-              )}
-            </Stack>
-          </ScrollArea>
+          {!importAll && opened && (
+            <ConfluenceSpacePicker
+              credentials={credentials}
+              selectedKeys={selectedKeys}
+              onToggle={toggleSpace}
+            />
+          )}
 
           <Checkbox
             label={t("Import blog posts as pages")}
@@ -475,10 +442,12 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
           )}
 
           <Group justify="space-between">
-            <Text size="sm" c="dimmed">
-              {t("{{count}} selected", { count: selectedCount })}
-            </Text>
-            <Group>
+            {!importAll && (
+              <Text size="sm" c="dimmed">
+                {t("{{count}} selected", { count: selectedKeys.length })}
+              </Text>
+            )}
+            <Group ml="auto">
               <Button
                 variant="default"
                 onClick={() => setActive(0)}

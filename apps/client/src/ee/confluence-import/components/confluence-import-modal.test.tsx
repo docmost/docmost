@@ -91,7 +91,6 @@ async function selectSpaces(
     data: {
       success: true,
       edition,
-      spaces: [{ id: "1", key: "ENG", name: "Engineering" }],
       ...capabilities,
     },
   });
@@ -131,8 +130,84 @@ it.each([
   expect(post).toHaveBeenLastCalledWith(
     "/confluence-import/test-connection",
     expect.anything(),
-    expect.objectContaining({ timeout: 30_000, params: { includeSpaces: true } }),
+    expect.objectContaining({ timeout: 30_000, params: { includeSpaces: false } }),
   );
+});
+
+it("can start an all-spaces import immediately after the credentials pass", async () => {
+  renderImport();
+  await selectSpaces("server");
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(
+    screen.getByRole<HTMLInputElement>("checkbox", {
+      name: "Import all spaces",
+    }).checked,
+  ).toBe(true);
+  expect(await startImport()).toHaveProperty("spaceKeys", []);
+  expect(post).toHaveBeenCalledTimes(2);
+});
+
+it("loads individual spaces on demand and keeps selections across pages and retries", async () => {
+  renderImport();
+  await selectSpaces("server");
+  post.mockResolvedValueOnce({
+    data: {
+      success: true,
+      spaces: [{ id: "1", key: "ENG", name: "Engineering" }],
+      next: { status: "archived" },
+    },
+  });
+  fireEvent.click(screen.getByRole("checkbox", { name: "Import all spaces" }));
+  const first = await screen.findByRole("checkbox", { name: /Engineering/ });
+  expect(post).toHaveBeenCalledTimes(2);
+  expect(
+    screen.getByRole<HTMLButtonElement>("button", { name: "Start import" })
+      .disabled,
+  ).toBe(true);
+  fireEvent.click(first);
+  post.mockResolvedValueOnce({
+    data: { success: false, error: "Page temporarily unavailable" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  await screen.findByText("Page temporarily unavailable");
+  post.mockResolvedValueOnce({
+    data: {
+      success: true,
+      spaces: [{ id: "7000", key: "OLD", name: "Archive" }],
+      next: null,
+    },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  fireEvent.click(await screen.findByRole("checkbox", { name: /Archive/ }));
+  expect(post).toHaveBeenLastCalledWith(
+    "/confluence-import/spaces",
+    expect.objectContaining({ status: "archived" }),
+    expect.anything(),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+  expect(
+    screen.getByRole<HTMLInputElement>("checkbox", { name: /Engineering/ })
+      .checked,
+  ).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  expect(
+    screen.getByRole<HTMLInputElement>("checkbox", { name: /Archive/ }).checked,
+  ).toBe(true);
+  expect(post).toHaveBeenCalledTimes(4);
+  expect(await startImport()).toHaveProperty("spaceKeys", ["ENG", "OLD"]);
+});
+
+it("can switch back to all spaces while an individual batch is pending", async () => {
+  renderImport();
+  await selectSpaces("server");
+  post.mockImplementationOnce(() => new Promise(() => {}));
+  const all = screen.getByRole("checkbox", { name: "Import all spaces" });
+  fireEvent.click(all);
+  await screen.findByRole("status");
+  const signal = post.mock.lastCall[2].signal;
+  fireEvent.click(all);
+  expect(signal.aborted).toBe(true);
+  expect(await startImport()).toHaveProperty("spaceKeys", []);
 });
 
 it.each(["server", "cloud"] as const)(

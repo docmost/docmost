@@ -2,6 +2,8 @@ import api from "@/lib/api-client";
 import {
   ConfluenceCredentials,
   ConfluencePageHistoryMode,
+  ConfluenceSpaceBatch,
+  ConfluenceSpacePosition,
   ImportStatusResponse,
   ListImportsResponse,
   StartImportResponse,
@@ -15,9 +17,22 @@ export async function testConfluenceConnection(
   const req = await api.post<TestConnectionResponse>(
     "/confluence-import/test-connection",
     data,
-    { params: { includeSpaces: true }, timeout: 30_000, signal },
+    { params: { includeSpaces: false }, timeout: 30_000, signal },
   );
   return req.data;
+}
+
+export async function getConfluenceSpaceBatch(
+  credentials: ConfluenceCredentials,
+  position: ConfluenceSpacePosition,
+  signal: AbortSignal,
+): Promise<ConfluenceSpaceBatch> {
+  const { data } = await api.post<
+    | ({ success: true } & ConfluenceSpaceBatch)
+    | { success: false; error: string }
+  >("/confluence-import/spaces", { ...credentials, ...position }, { signal });
+  if (data.success === false) throw new Error(data.error);
+  return data;
 }
 
 export async function startConfluenceImport(
