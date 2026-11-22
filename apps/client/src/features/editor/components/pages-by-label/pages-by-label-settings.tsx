@@ -1,16 +1,14 @@
 import {
+  Accordion,
   Button,
   Checkbox,
   Group,
-  MultiSelect,
   NumberInput,
   Select,
   SimpleGrid,
   Stack,
   TextInput,
 } from "@mantine/core";
-import { useDebouncedValue } from "@mantine/hooks";
-import { useQueries } from "@tanstack/react-query";
 import {
   normalizePagesByLabelAttributes,
   PAGES_BY_LABEL_MAX_FILTERS,
@@ -25,60 +23,14 @@ import {
   LabelFilter,
   LabelMatchSelect,
 } from "@/features/label/components/label-filter";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query";
-import { getSpaceById } from "@/features/space/services/space-service";
-
-type FilterProps = { value: string[]; onChange: (value: string[]) => void };
+import { SpaceSelect } from "@/features/space/components/sidebar/space-select";
+import classes from "./pages-by-label.module.css";
 
 const labelLimits = {
   maxValues: PAGES_BY_LABEL_MAX_FILTERS,
   isWithinLength: (name: string) =>
     [...name].length <= PAGES_BY_LABEL_MAX_LABEL_LENGTH,
 };
-
-function SpaceFilter({ value, onChange }: FilterProps) {
-  const { t } = useTranslation();
-  const [search, setSearch] = useState("");
-  const [query] = useDebouncedValue(search, 200);
-  const { data: spaces } = useGetSpacesQuery({ query, limit: 50 });
-  const options = (spaces?.items ?? []).map((space) => ({
-    value: space.id,
-    label: space.name,
-  }));
-  const listed = new Set(options.map((item) => item.value));
-  const missingIds = value.filter((id) => !listed.has(id));
-  const missing = useQueries({
-    queries: missingIds.map((id) => ({
-      queryKey: ["space", id],
-      queryFn: () => getSpaceById(id),
-      enabled: !!spaces,
-      retry: false,
-    })),
-  });
-  return (
-    <MultiSelect
-      label={t("Spaces")}
-      required
-      searchable
-      hidePickedOptions
-      placeholder={t("Search for spaces")}
-      searchValue={search}
-      onSearchChange={setSearch}
-      data={[
-        ...options,
-        ...missingIds.map((id, i) => ({
-          value: id,
-          label: missing[i].data?.name ?? t("Unavailable space"),
-        })),
-      ]}
-      value={value}
-      onChange={onChange}
-      maxValues={PAGES_BY_LABEL_MAX_FILTERS}
-      nothingFoundMessage={t("No space found")}
-      comboboxProps={{ withinPortal: false }}
-    />
-  );
-}
 
 export function PagesByLabelSettings({
   initial,
@@ -96,6 +48,35 @@ export function PagesByLabelSettings({
     key: K,
     value: PagesByLabelAttributes[K],
   ) => setDraft((previous) => ({ ...previous, [key]: value }));
+  const selectedSpaces =
+    draft.scope === "spaces" ? draft.spaceIds : [draft.scope];
+  function changeSpaces(values: string[]) {
+    const last = values.at(-1);
+    const scope = last === "current" || last === "workspace" ? last : "spaces";
+    const spaceIds =
+      scope === "spaces"
+        ? values.filter((id) => id !== "current" && id !== "workspace")
+        : [];
+    if (spaceIds.length <= PAGES_BY_LABEL_MAX_FILTERS) {
+      setDraft((previous) => ({ ...previous, scope, spaceIds }));
+    }
+  }
+  const excludedLabels = (
+    <LabelFilter
+      {...labelLimits}
+      label={t("Exclude labels")}
+      value={draft.excludeLabels}
+      onChange={(labels) => update("excludeLabels", labels)}
+    />
+  );
+  const hasSavedExclusions = initial.excludeLabels.length > 0;
+  const defaultSortDirection = draft.sortBy === "title" ? "asc" : "desc";
+  const savedOrderHint =
+    draft.sortDirection === defaultSortDirection
+      ? undefined
+      : draft.sortBy === "title"
+        ? t("Reverse alphabetical order")
+        : t("Oldest first");
   const valid =
     draft.labels.length > 0 &&
     (draft.scope !== "spaces" || draft.spaceIds.length > 0) &&
@@ -115,11 +96,26 @@ export function PagesByLabelSettings({
           spaceIds: draft.scope === "spaces" ? draft.spaceIds : [],
         });
         // Preserve settings another editor changed while this dialog was open.
-        const changed = Object.entries(options).filter(
-          ([key, value]) =>
-            JSON.stringify(value) !== JSON.stringify(initial[key]),
+        const changes = Object.fromEntries(
+          Object.entries(options).filter(
+            ([key, value]) =>
+              JSON.stringify(value) !== JSON.stringify(initial[key]),
+          ),
         );
-        onSave(Object.fromEntries(changed));
+        // Each picker edits a pair of stored attributes together.
+        if ("scope" in changes || "spaceIds" in changes) {
+          Object.assign(changes, {
+            scope: options.scope,
+            spaceIds: options.spaceIds,
+          });
+        }
+        if ("sortBy" in changes || "sortDirection" in changes) {
+          Object.assign(changes, {
+            sortBy: options.sortBy,
+            sortDirection: options.sortDirection,
+          });
+        }
+        onSave(changes);
       }}
     >
       <Stack>
@@ -136,94 +132,102 @@ export function PagesByLabelSettings({
             onChange={(match) => update("match", match)}
           />
         )}
-        <LabelFilter
-          {...labelLimits}
-          label={t("Exclude labels")}
-          value={draft.excludeLabels}
-          onChange={(v) => update("excludeLabels", v)}
-        />
-        <Select
+        {hasSavedExclusions && excludedLabels}
+        <SpaceSelect
+          multiple
           label={t("Search in")}
-          allowDeselect={false}
-          value={draft.scope}
-          data={[
+          placeholder={t("Search for spaces")}
+          scopes={[
             { value: "current", label: t("Current space") },
-            { value: "spaces", label: t("Selected spaces") },
             { value: "workspace", label: t("All accessible spaces") },
           ]}
-          onChange={(v) =>
-            update("scope", v as PagesByLabelAttributes["scope"])
-          }
-          comboboxProps={{ withinPortal: false }}
+          value={selectedSpaces}
+          onChange={changeSpaces}
+          // A scope can still replace a full list of named spaces.
+          maxValues={PAGES_BY_LABEL_MAX_FILTERS + 1}
+          unavailableLabel={t("Unavailable space")}
+          withinPortal={false}
         />
-        {draft.scope === "spaces" && (
-          <SpaceFilter
-            value={draft.spaceIds}
-            onChange={(v) => update("spaceIds", v)}
-          />
-        )}
-        <SimpleGrid cols={{ base: 1, xs: 2 }}>
-          <Select
-            label={t("Sort by")}
-            allowDeselect={false}
-            value={draft.sortBy + "-" + draft.sortDirection}
-            data={[
-              { value: "title-asc", label: t("Title (A–Z)") },
-              { value: "title-desc", label: t("Title (Z–A)") },
-              {
-                value: "updatedAt-desc",
-                label: t("Last updated (newest first)"),
-              },
-              {
-                value: "updatedAt-asc",
-                label: t("Last updated (oldest first)"),
-              },
-              { value: "createdAt-desc", label: t("Created (newest first)") },
-              { value: "createdAt-asc", label: t("Created (oldest first)") },
-            ]}
-            onChange={(value) => {
-              const [sortBy, sortDirection] = value.split("-") as [
-                PagesByLabelAttributes["sortBy"],
-                PagesByLabelAttributes["sortDirection"],
-              ];
-              setDraft((previous) => ({ ...previous, sortBy, sortDirection }));
-            }}
-            comboboxProps={{ withinPortal: false }}
-          />
-          <NumberInput<number>
-            label={t("Maximum results")}
-            min={1}
-            max={PAGES_BY_LABEL_MAX_LIMIT}
-            allowDecimal={false}
-            value={limit}
-            onChange={setLimit}
-          />
-        </SimpleGrid>
-        <TextInput
-          label={t("Heading")}
-          value={draft.heading}
-          maxLength={PAGES_BY_LABEL_MAX_HEADING_LENGTH}
-          onChange={(e) => update("heading", e.currentTarget.value)}
-        />
-        <Group>
-          <Checkbox
-            label={t("Show labels")}
-            checked={draft.showLabels}
-            onChange={(e) => update("showLabels", e.currentTarget.checked)}
-          />
-          <Checkbox
-            label={t("Show space name")}
-            checked={draft.showSpace}
-            onChange={(e) => update("showSpace", e.currentTarget.checked)}
-          />
-          <Checkbox
-            label={t("Exclude this page")}
-            checked={draft.excludeCurrentPage}
-            onChange={(e) =>
-              update("excludeCurrentPage", e.currentTarget.checked)
-            }
-          />
-        </Group>
+        <Accordion
+          variant="filled"
+          chevronPosition="left"
+          classNames={{ chevron: classes.optionsChevron }}
+          keepMounted={false}
+        >
+          <Accordion.Item value="options">
+            <Accordion.Control>{t("More options")}</Accordion.Control>
+            <Accordion.Panel>
+              <Stack>
+                {!hasSavedExclusions && excludedLabels}
+                <SimpleGrid cols={{ base: 1, xs: 2 }}>
+                  <Select
+                    label={t("Sort by")}
+                    allowDeselect={false}
+                    value={draft.sortBy}
+                    description={savedOrderHint}
+                    inputWrapperOrder={[
+                      "label",
+                      "input",
+                      "description",
+                      "error",
+                    ]}
+                    data={[
+                      { value: "title", label: t("Title") },
+                      { value: "updatedAt", label: t("Last updated") },
+                      { value: "createdAt", label: t("Date created") },
+                    ]}
+                    onChange={(value) => {
+                      if (!value || value === draft.sortBy) return;
+                      setDraft((previous) => ({
+                        ...previous,
+                        sortBy: value as PagesByLabelAttributes["sortBy"],
+                        sortDirection: value === "title" ? "asc" : "desc",
+                      }));
+                    }}
+                    comboboxProps={{ withinPortal: false }}
+                  />
+                  <NumberInput<number>
+                    label={t("Maximum results")}
+                    min={1}
+                    max={PAGES_BY_LABEL_MAX_LIMIT}
+                    allowDecimal={false}
+                    value={limit}
+                    onChange={setLimit}
+                  />
+                </SimpleGrid>
+                <TextInput
+                  label={t("Heading")}
+                  value={draft.heading}
+                  maxLength={PAGES_BY_LABEL_MAX_HEADING_LENGTH}
+                  onChange={(e) => update("heading", e.currentTarget.value)}
+                />
+                <Group>
+                  <Checkbox
+                    label={t("Show labels")}
+                    checked={draft.showLabels}
+                    onChange={(e) =>
+                      update("showLabels", e.currentTarget.checked)
+                    }
+                  />
+                  <Checkbox
+                    label={t("Show space name")}
+                    checked={draft.showSpace}
+                    onChange={(e) =>
+                      update("showSpace", e.currentTarget.checked)
+                    }
+                  />
+                  <Checkbox
+                    label={t("Exclude this page")}
+                    checked={draft.excludeCurrentPage}
+                    onChange={(e) =>
+                      update("excludeCurrentPage", e.currentTarget.checked)
+                    }
+                  />
+                </Group>
+              </Stack>
+            </Accordion.Panel>
+          </Accordion.Item>
+        </Accordion>
         <Group justify="flex-end">
           <Button type="button" variant="default" onClick={onClose}>
             {t("Cancel")}

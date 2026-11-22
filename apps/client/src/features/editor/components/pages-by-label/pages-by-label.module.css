@@ -51,3 +51,11 @@
 .metadata {
   line-height: 1.25;
 }
+
+.optionsChevron:not([data-rotate]) {
+  transform: rotate(-90deg);
+}
+
+.optionsChevron[data-rotate] {
+  transform: rotate(0deg);
+}

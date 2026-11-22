@@ -37,6 +37,7 @@ interface MultipleSpaceSelectProps {
   onChange: (values: string[]) => void;
   label: string;
   placeholder?: string;
+  unavailableLabel?: string;
   scopes?: ComboboxItem[];
   withOperators?: boolean;
   maxValues: number;
@@ -66,12 +67,19 @@ interface SpacePillProps {
   token: string;
   prefix: string;
   space?: SpaceIcon;
+  unavailableLabel?: string;
   onRemove: () => void;
 }
 
-function SpacePill({ token, prefix, space, onRemove }: SpacePillProps) {
+function SpacePill({
+  token,
+  prefix,
+  space,
+  unavailableLabel,
+  onRemove,
+}: SpacePillProps) {
   const { t } = useTranslation();
-  const label = space ? prefix + space.name : token;
+  const label = space ? prefix + space.name : (unavailableLabel ?? token);
   return (
     <Pill
       withRemoveButton
@@ -191,7 +199,12 @@ export function SpaceSelect(
           const id = value.slice(prefix.length);
           const space =
             knownSpaces.get(id) ?? scopes.find((scope) => scope.id === id);
-          const pill = { token: value, prefix, onRemove };
+          const pill = {
+            token: value,
+            prefix,
+            onRemove,
+            unavailableLabel: props.unavailableLabel,
+          };
           if (
             !space &&
             spaces &&
