@@ -275,6 +275,10 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
       state.closeBlock(node);
     }
   },
+  pagesByLabel(state, node) {
+    state.text(node.attrs.heading || 'Pages by label');
+    state.closeBlock(node);
+  },
   pageBreak(state, node) {
     state.closeBlock(node, { pageBreakBefore: true });
   },

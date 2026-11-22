@@ -7,7 +7,7 @@ import { getLabelColor } from "@/features/label/utils/label-colors.ts";
 import classes from "@/features/label/label.module.css";
 
 type LabelChipProps = {
-  label: Pick<ILabel, "id" | "name">;
+  label: Pick<ILabel, "name">;
   onRemove?: () => void;
   asLink?: boolean;
   spaceId?: string;

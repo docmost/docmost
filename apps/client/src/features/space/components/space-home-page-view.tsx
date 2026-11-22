@@ -1,5 +1,6 @@
 import { EditorSpaceContext } from "@/features/editor/components/recently-updated/editor-space-context";
 import React from "react";
+import { PagesByLabelContext } from "@/features/editor/components/pages-by-label/pages-by-label-context";
 import { Button, Container, Group } from "@mantine/core";
 import { IconPencil } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
@@ -94,13 +95,15 @@ export default function SpaceHomePageView({
           <BaseView pageId={page.id} embedded editable={false} />
         ) : (
           <EditorSpaceContext.Provider value={space.id}>
-            <ReadonlyPageEditor
-              key={`${page.id}:${page.updatedAt}`}
-              title={page.title}
-              content={page.content}
-              pageId={page.id}
-              withLightbox
-            />
+            <PagesByLabelContext.Provider value={{ pageId: page.id, spaceId: space.id }}>
+              <ReadonlyPageEditor
+                key={`${page.id}:${page.updatedAt}`}
+                title={page.title}
+                content={page.content}
+                pageId={page.id}
+                withLightbox
+              />
+            </PagesByLabelContext.Provider>
           </EditorSpaceContext.Provider>
         )}
       </Container>

@@ -4,7 +4,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { jsonToHtml, jsonToNode } from '../../collaboration/collaboration.util';
+import { jsonToNode, templateExtensions } from '../../collaboration/collaboration.util';
+import { generateHTML } from '../../common/helpers/prosemirror/html';
 import { ExportFormat } from './dto/export-dto';
 import { Page } from '@docmost/db/types/entity.types';
 import { InjectKysely } from 'nestjs-kysely';
@@ -41,10 +42,20 @@ import {
   getProsemirrorContent,
   updateUserMentionLabels,
 } from '../../common/helpers/prosemirror/utils';
-import { htmlToMarkdown } from '@docmost/editor-ext';
+import { htmlToMarkdown, PagesByLabel } from '@docmost/editor-ext';
 import { validate as isValidUUID } from 'uuid';
 
 type AllowedAttachment = { id: string; fileName: string; filePath: string };
+
+const exportExtensions = templateExtensions.map((extension) =>
+  extension.name === PagesByLabel.name
+    ? PagesByLabel.extend({
+        renderHTML({ node }) {
+          return ['p', node.attrs.heading || 'Pages by label'];
+        },
+      })
+    : extension,
+);
 
 @Injectable()
 export class ExportService {
@@ -74,7 +85,7 @@ export class ExportService {
       prosemirrorJson.content.unshift(titleNode);
     }
 
-    const pageHtml = jsonToHtml(prosemirrorJson);
+    const pageHtml = generateHTML(prosemirrorJson, exportExtensions);
 
     if (format === ExportFormat.HTML) {
       return `<!DOCTYPE html>

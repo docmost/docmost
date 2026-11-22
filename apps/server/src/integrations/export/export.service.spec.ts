@@ -122,6 +122,30 @@ function buildService(opts: { accessiblePageIds: string[]; content?: object }) {
   return { service, queries, pagePermissionRepo };
 }
 
+it.each([ExportFormat.HTML, ExportFormat.Markdown])(
+  'exports label blocks as headings in %s',
+  async (format) => {
+    const { service } = buildService({ accessiblePageIds: [] });
+    const page = {
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'pagesByLabel',
+            attrs: { labels: ['private-tag'], heading: 'Field guides' },
+          },
+          { type: 'pagesByLabel', attrs: { labels: ['private-tag'] } },
+        ],
+      },
+    };
+
+    const exported = await service.exportPage(format, page as any);
+    expect(exported).toContain('Field guides');
+    expect(exported).toContain('Pages by label');
+    expect(exported).not.toMatch(/private-tag|data-config/);
+  },
+);
+
 async function exportSinglePage(service: ExportService) {
   const result = await service.exportPages(
     SOURCE_PAGE_ID,

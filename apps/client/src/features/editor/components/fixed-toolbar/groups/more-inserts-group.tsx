@@ -20,6 +20,7 @@ import {
   IconSuperscript,
   IconTable,
   IconTag,
+  IconTags,
   IconVariable,
 } from "@tabler/icons-react";
 import IconExcalidraw from "@/components/icons/icon-excalidraw";
@@ -123,6 +124,12 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
           onClick={() => editor.chain().focus().insertRecentlyUpdated().run()}
         >
           {t("Recently updated")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconTags size={16} />}
+          onClick={() => editor.chain().focus().insertPagesByLabel().run()}
+        >
+          {t("Pages by label")}
         </Menu.Item>
         {!templateMode && (
           <Menu.Item
