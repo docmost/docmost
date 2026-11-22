@@ -9,6 +9,7 @@ import { useContext, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { DefaultPageIcon } from "@/components/common/page-list-icon";
+import { PageListTime } from "@/components/common/page-list-time";
 import { LabelChip } from "@/features/label/components/label-chip";
 import { buildPageUrl, getPageTitle } from "@/features/page/page.utils";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
@@ -27,14 +28,18 @@ type PageResult = {
   title: string | null;
   icon: string | null;
   isBase: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   space: { id: string; slug: string; name: string; archivedAt: string | null };
   labels?: string[];
 };
 
 export function PagesByLabelResults({
+  heading,
   options,
   settings,
 }: {
+  heading: ReactNode;
   options: PagesByLabelAttributes;
   settings: ReactNode;
 }) {
@@ -126,7 +131,7 @@ export function PagesByLabelResults({
   }
   return (
     <PageListLayout
-      heading={options.heading}
+      heading={heading}
       actions={
         (enabled || settings) && (
           <>
@@ -155,6 +160,7 @@ function ResultRows({
   options: PagesByLabelAttributes;
 }) {
   const { t } = useTranslation();
+  const dateField = options.sortBy === "createdAt" ? "createdAt" : "updatedAt";
   return (
     <div role="list" aria-label={options.heading || t("Pages by label")}>
       {pages.map((page) => (
@@ -179,6 +185,11 @@ function ResultRows({
               <span className={classes.title}>
                 {getPageTitle(page.title, page.isBase, t)}
               </span>
+              <PageListTime
+                field={dateField}
+                value={page[dateField]}
+                className={styles.time}
+              />
             </Link>
             {(options.showSpace ||
               (options.showLabels && !!page.labels?.length)) && (

@@ -13,6 +13,7 @@ import SubpageItem from "./subpage-item";
 import { SubpagesSettings } from "./subpages-settings";
 import { useSubpages } from "./use-subpages";
 import {
+  PageListHeading,
   PageListLayout,
   PageListRefreshButton,
 } from "../common/page-list-layout";
@@ -20,7 +21,7 @@ import listStyles from "../common/page-list.module.css";
 import classes from "./subpages.module.css";
 
 export default function SubpagesView(props: NodeViewProps) {
-  const { editor, node, extension, updateAttributes } = props;
+  const { editor, node, extension, getPos, updateAttributes } = props;
   const rootSpaceId: string | undefined = extension.options.rootSpaceId;
   const { spaceSlug, shareId, pageSlug } = useParams();
   const { t } = useTranslation();
@@ -117,8 +118,13 @@ export default function SubpagesView(props: NodeViewProps) {
       className={listStyles.block + " " + classes.block}
     >
       <PageListLayout
-        headingId={headingId}
-        heading={hideHeading ? undefined : listName}
+        heading={
+          !hideHeading && (
+            <PageListHeading editor={editor} getPos={getPos} id={headingId}>
+              {listName}
+            </PageListHeading>
+          )
+        }
         actions={
           (refetch || editable) && (
             <>

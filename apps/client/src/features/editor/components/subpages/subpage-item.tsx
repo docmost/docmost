@@ -1,5 +1,5 @@
 import { ActionIcon, Collapse } from "@mantine/core";
-import { IconChevronRight } from "@tabler/icons-react";
+import { IconChevronRight, IconPointFilled } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -10,8 +10,8 @@ import {
   buildPublicSpaceUrl,
   buildSharedPageUrl,
 } from "@/features/page/page.utils";
-import { formattedDate, shortTimeAgo } from "@/lib/time";
 import { DefaultPageIcon } from "@/components/common/page-list-icon";
+import { PageListTime } from "@/components/common/page-list-time";
 import listStyles from "../common/page-list.module.css";
 import { useSubpages } from "./use-subpages";
 import type { SubpageListItem } from "./subpages.utils";
@@ -63,8 +63,6 @@ export default function SubpageItem({
   }, [expandedBranches, refetch]);
 
   const title = page.title || t("untitled");
-  const updatedAt =
-    showUpdatedAt && page.updatedAt ? new Date(page.updatedAt) : null;
 
   const pageUrl = shareId
     ? buildSharedPageUrl({
@@ -106,7 +104,9 @@ export default function SubpageItem({
             />
           </ActionIcon>
         ) : (
-          <span className={classes.spacer} aria-hidden />
+          <span className={classes.leaf} aria-hidden>
+            <IconPointFilled size={8} />
+          </span>
         )}
 
         <Link
@@ -119,14 +119,11 @@ export default function SubpageItem({
           </span>
           <span className={classes.details}>
             <span className={listStyles.title}>{title}</span>
-            {updatedAt && (
-              <time
+            {showUpdatedAt && (
+              <PageListTime
+                value={page.updatedAt}
                 className={classes.updatedAt}
-                dateTime={updatedAt.toISOString()}
-                title={formattedDate(updatedAt)}
-              >
-                {shortTimeAgo(updatedAt)}
-              </time>
+              />
             )}
           </span>
         </Link>

@@ -19,13 +19,14 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import api from "@/lib/api-client";
 import { DefaultPageIcon } from "@/components/common/page-list-icon";
+import { PageListTime } from "@/components/common/page-list-time";
 import { buildPageUrl, getPageTitle } from "@/features/page/page.utils";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
-import { formattedDate, shortTimeAgo } from "@/lib/time";
 import RecentlyUpdatedSettings from "./recently-updated-settings";
 import { EditorSpaceContext } from "./editor-space-context";
 import {
+  PageListHeading,
   PageListLayout,
   PageListRefreshButton,
 } from "../common/page-list-layout";
@@ -53,7 +54,6 @@ function FeedRows({ rows }: { rows: RecentPage[] }) {
   return (
     <div role="list" aria-label={t("Recently updated")}>
       {rows.map((row) => {
-        const date = row.updatedAt && new Date(row.updatedAt);
         const byline = [
           row.lastEditorName &&
             t("Updated by {{name}}", { name: row.lastEditorName }),
@@ -81,15 +81,7 @@ function FeedRows({ rows }: { rows: RecentPage[] }) {
                       {byline}
                     </span>
                   )}
-                  {date && (
-                    <time
-                      className={styles.time}
-                      dateTime={row.updatedAt}
-                      title={formattedDate(date)}
-                    >
-                      {shortTimeAgo(date)}
-                    </time>
-                  )}
+                  <PageListTime value={row.updatedAt} className={styles.time} />
                 </span>
               </span>
             </Link>
@@ -106,7 +98,7 @@ function Feed({
   settings,
 }: {
   filters: Omit<RecentlyUpdatedAttributes, "hideHeading">;
-  heading: string;
+  heading: ReactNode;
   settings: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -164,6 +156,7 @@ function Feed({
 export default function RecentlyUpdatedView({
   node,
   editor,
+  getPos,
   updateAttributes,
 }: NodeViewProps) {
   const { t } = useTranslation();
@@ -193,7 +186,11 @@ export default function RecentlyUpdatedView({
       <IconSettings size={16} />
     </ActionIcon>
   );
-  const heading = options.hideHeading ? "" : t("Recently updated");
+  const heading = !options.hideHeading && (
+    <PageListHeading editor={editor} getPos={getPos}>
+      {t("Recently updated")}
+    </PageListHeading>
+  );
   return (
     <NodeViewWrapper
       data-type="recently-updated"

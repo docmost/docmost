@@ -16,8 +16,12 @@
   gap: rem(4px) var(--mantine-spacing-xs);
 }
 
-.header .heading {
+:global(.ProseMirror) .heading {
   margin: 0;
+  font-size: rem(20px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 

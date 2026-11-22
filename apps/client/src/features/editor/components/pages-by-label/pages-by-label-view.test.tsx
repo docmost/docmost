@@ -44,10 +44,11 @@ vi.mock("@/features/user/atoms/current-user-atom", async () => ({
     workspaceId: "workspace",
   }),
 }));
-vi.mock("react-i18next", () => ({
+vi.mock("react-i18next", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-i18next")>()),
   useTranslation: () => ({
-    t: (key: string, values?: { name: string }) =>
-      key.replace("{{name}}", values?.name ?? ""),
+    t: (key: string, values?: Record<string, string>) =>
+      key.replace(/\{\{(\w+)\}\}/g, (match, name) => values?.[name] ?? match),
   }),
 }));
 
@@ -240,7 +241,15 @@ it.each([true, false])(
 );
 
 it("sends non-default filters and the selected space IDs for a page", async () => {
-  vi.mocked(api.post).mockResolvedValue({ data: { items: [] } });
+  const page = {
+    id: "p1",
+    slugId: "p1",
+    title: "Guide",
+    space: { id: "team", slug: "team", name: "Team" },
+    createdAt: "2026-03-02T10:15:00Z",
+    updatedAt: "2026-10-12T09:00:00Z",
+  };
+  vi.mocked(api.post).mockResolvedValue({ data: { items: [page] } });
   const filters = {
     labels: ["guide", "handbook"],
     match: "all",
@@ -260,6 +269,8 @@ it("sends non-default filters and the selected space IDs for a page", async () =
       ...filters,
     }),
   );
+  const time = await screen.findByTitle(/^Created at /);
+  expect(time.getAttribute("datetime")).toBe(page.createdAt);
 });
 
 it.each([

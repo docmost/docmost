@@ -45,7 +45,27 @@
 }
 
 .pageLink {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: var(--mantine-spacing-sm);
+}
+
+.time {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--page-list-secondary);
+  font-size: rem(13px);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@container (max-width: 380px) {
+  .pageLink {
+    display: block;
+  }
 }
 
 .pageLink::after {

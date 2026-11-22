@@ -18,7 +18,7 @@ import { PagesByLabelContext } from "./pages-by-label-context";
 import { pageEditorBindingAtom } from "@/features/editor/atoms/editor-atoms";
 import { PagesByLabelResults } from "./pages-by-label-results";
 import { PagesByLabelSettings } from "./pages-by-label-settings";
-import { PageListLayout } from "../common/page-list-layout";
+import { PageListHeading, PageListLayout } from "../common/page-list-layout";
 import classes from "../common/page-list.module.css";
 import styles from "./pages-by-label.module.css";
 
@@ -56,12 +56,13 @@ export function PagesByLabelView({
     }
   }, [node, editable, openOnInsert, editor]);
   if (/^\/(share|docs)(\/|$)/i.test(pathname)) return null;
-  if (!host)
-    return (
-      <NodeViewWrapper>
-        <h3>{options.heading || t("Pages by label")}</h3>
-      </NodeViewWrapper>
-    );
+  const name = host ? options.heading : options.heading || t("Pages by label");
+  const heading = name && (
+    <PageListHeading editor={editor} getPos={getPos}>
+      {name}
+    </PageListHeading>
+  );
+  if (!host) return <NodeViewWrapper>{heading}</NodeViewWrapper>;
 
   const settingsButton = editable && options.labels.length > 0 && (
     <ActionIcon
@@ -83,9 +84,13 @@ export function PagesByLabelView({
       data-print-heading={options.heading || t("Pages by label")}
     >
       {options.labels.length ? (
-        <PagesByLabelResults options={options} settings={settingsButton} />
+        <PagesByLabelResults
+          heading={heading}
+          options={options}
+          settings={settingsButton}
+        />
       ) : (
-        <PageListLayout heading={options.heading}>
+        <PageListLayout heading={heading}>
           {editable ? (
             <Paper
               component="button"

@@ -395,6 +395,8 @@ export class LabelRepo {
         .having((eb) => eb.fn.count('labels.id'), '=', labels.length);
     }
 
+    const dateColumn =
+      options.sortBy === 'createdAt' ? 'pages.createdAt' : 'pages.updatedAt';
     let query = this.db
       .selectFrom('pages')
       .innerJoin('spaces', 'spaces.id', 'pages.spaceId')
@@ -404,6 +406,7 @@ export class LabelRepo {
         'pages.title',
         'pages.icon',
         'pages.isBase',
+        dateColumn,
         'spaces.id as spaceId',
         'spaces.slug as spaceSlug',
         'spaces.name as spaceName',
@@ -455,11 +458,7 @@ export class LabelRepo {
         (eb) =>
           options.sortBy === 'title'
             ? eb.fn<string>('lower', ['pages.title'])
-            : eb.ref(
-                options.sortBy === 'createdAt'
-                  ? 'pages.createdAt'
-                  : 'pages.updatedAt',
-              ),
+            : eb.ref(dateColumn),
         options.sortDirection,
       )
       .orderBy('pages.id', 'asc')

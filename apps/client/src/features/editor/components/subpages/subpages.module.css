@@ -25,8 +25,14 @@
 }
 
 .toggle,
-.spacer {
+.leaf {
   flex: 0 0 rem(24px);
+}
+
+.leaf {
+  display: grid;
+  place-items: center;
+  color: light-dark(var(--mantine-color-dark-3), var(--mantine-color-gray-4));
 }
 
 .chevron {

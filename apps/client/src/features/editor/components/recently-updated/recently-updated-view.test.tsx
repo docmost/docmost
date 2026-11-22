@@ -54,7 +54,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 vi.mock("@/lib/time", () => ({
-  formattedDate: () => "",
+  formatFullDateTime: () => "Aug 01, 2026, 8:30AM",
   shortTimeAgo: () => "",
 }));
 
@@ -314,6 +314,9 @@ it("refreshes on demand in read mode and shows space names only when results spa
     name: /Decision record.*Updated by Alex Morgan.*Engineering/,
   });
   expect(first.querySelector("time")?.dateTime).toBe(page.updatedAt);
+  expect(first.querySelector("time")?.title).toBe(
+    "Updated at Aug 01, 2026, 8:30AM",
+  );
   const second = screen.getByRole("link", {
     name: /Release notes.*Documentation/,
   });

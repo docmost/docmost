@@ -1270,6 +1270,8 @@
   "Pages tagged with this label will appear here.": "Pages tagged with this label will appear here.",
   "No pages match your search.": "No pages match your search.",
   "Updated {{date}}": "Updated {{date}}",
+  "Updated at {{timestamp}}": "Updated at {{timestamp}}",
+  "Created at {{timestamp}}": "Created at {{timestamp}}",
   "Cell actions": "Cell actions",
   "Column actions": "Column actions",
   "Row actions": "Row actions",

@@ -76,6 +76,27 @@ afterEach(() => {
   editors.splice(0).forEach((editor) => editor.destroy());
 });
 
+it("nests report headings under the current section and follows heading edits", async () => {
+  const { editor } = show(
+    legacyBlock +
+      "<h2>Section</h2><blockquote><h4>Aside</h4>" +
+      '<div data-type="subpages" data-heading="Inside"></div></blockquote>' +
+      '<div data-type="subpages" data-heading="Following"></div>',
+  );
+  expect(
+    screen.getByRole("heading", { name: "Subpages", level: 2 }),
+  ).toBeTruthy();
+  await screen.findByRole("heading", { name: "Inside", level: 5 });
+  await screen.findByRole("heading", { name: "Following", level: 3 });
+  await act(async () => {
+    const pos = editor.state.doc.firstChild.nodeSize;
+    editor.view.dispatch(
+      editor.state.tr.setNodeMarkup(pos, undefined, { level: 3 }),
+    );
+  });
+  await screen.findByRole("heading", { name: "Following", level: 4 });
+});
+
 it("persists the block's name and heading visibility independently across editor and space home", async () => {
   const { editor, unmount } = show(legacyBlock);
   expect(screen.getByRole("heading", { name: "Subpages" })).toBeTruthy();
