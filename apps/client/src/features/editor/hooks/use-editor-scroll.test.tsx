@@ -47,12 +47,17 @@ it("scrolls to the route's heading when the visible editor is ready", () => {
   expect(scrollIntoView).toHaveBeenCalledOnce();
 });
 
-it("finds a named anchor that appears after the editor mounts", () => {
+it.each([
+  ["paragraph", '<p data-id="rollback">⚓</p>'],
+  [
+    "inline",
+    '<p>Before <span data-type="section-anchor" data-id="rollback" id="rollback"></span>after</p>',
+  ],
+])("finds a %s bookmark that appears after the editor mounts", (_, html) => {
   mount();
-  const anchor = document.createElement("p");
-  anchor.dataset.id = "rollback";
+  root.innerHTML = html;
+  const anchor = root.querySelector<HTMLElement>('[data-id="rollback"]')!;
   anchor.scrollIntoView = scrollIntoView;
-  root.append(anchor);
 
   vi.advanceTimersByTime(1000);
   expect(scrollIntoView).toHaveBeenCalledOnce();
