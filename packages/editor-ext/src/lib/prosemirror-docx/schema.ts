@@ -269,6 +269,12 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
   date(state, node) {
     state.text(node.textContent);
   },
+  recentlyUpdated(state, node) {
+    if (node.textContent) {
+      state.text(node.textContent);
+      state.closeBlock(node);
+    }
+  },
   pageBreak(state, node) {
     state.closeBlock(node, { pageBreakBefore: true });
   },

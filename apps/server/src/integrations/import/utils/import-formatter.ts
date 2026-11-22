@@ -4,6 +4,7 @@ import * as path from 'path';
 import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
 import { Cheerio, CheerioAPI } from 'cheerio';
+import { formatConfluenceRecentUpdates } from './confluence-recently-updated';
 import { loadImportHtml, normalizeImportDates } from './import-dates';
 import slugify from '@sindresorhus/slugify';
 import { normalizeTableColumnWidths } from './table-utils';
@@ -85,6 +86,7 @@ export function normalizeImportHtml(
   $: CheerioAPI,
   $root: Cheerio<any>,
 ): void {
+  formatConfluenceRecentUpdates($, $root);
   normalizeImportDates($, $root);
   notionFormatter($, $root);
   xwikiFormatter($, $root);

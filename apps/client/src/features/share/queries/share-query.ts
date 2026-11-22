@@ -169,11 +169,13 @@ export function useDeleteShareMutation() {
 
 export function useGetSharedPageTreeQuery(
   shareId: string,
+  refetchInterval?: number,
 ): UseQueryResult<ISharedPageTree, Error> {
   return useQuery({
     queryKey: ["shared-page-tree", shareId],
     queryFn: () => getSharedPageTree(shareId),
     enabled: !!shareId,
+    refetchInterval,
     placeholderData: keepPreviousData,
     staleTime: 60 * 60 * 1000,
   });

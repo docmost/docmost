@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import type { Editor } from "@tiptap/core";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { Editor } from "@tiptap/core";
+import { StarterKit } from "@tiptap/starter-kit";
+import { RecentlyUpdated } from "@docmost/editor-ext";
 import { getSuggestionItems } from "./menu-items";
 
 vi.mock("@/main.tsx", async () => {
@@ -53,4 +55,59 @@ describe("slash menu", () => {
     "finds Date by the keyword %s in a French interface",
     (query) => expect(titles(query)).toContain("Date"),
   );
+});
+
+describe("inserting a recently updated block", () => {
+  let editor: Editor;
+  afterEach(() => editor?.destroy());
+
+  it("keeps the paragraphs on either side when replacing a slash command", () => {
+    editor = new Editor({
+      extensions: [StarterKit, RecentlyUpdated],
+      content: "<p>Before</p><p>/recent</p><p>After</p>",
+    });
+    editor.commands.setTextSelection(16);
+    const item = Object.values(getSuggestionItems({ query: "recent" }))
+      .flat()
+      .find(({ title }) => title === "Recently updated");
+    expect(item).toBeDefined();
+    item!.command({ editor, range: { from: 9, to: 16 } });
+    expect(editor.getJSON().content).toMatchObject([
+      { type: "paragraph", content: [{ text: "Before" }] },
+      {
+        type: "recentlyUpdated",
+        attrs: {
+          limit: 15,
+          hideHeading: false,
+          spaces: [],
+          labels: [],
+        },
+      },
+      { type: "paragraph", content: [{ text: "After" }] },
+    ]);
+  });
+
+  it("copies the chosen filters and bounds the number of results", () => {
+    editor = new Editor({ extensions: [StarterKit, RecentlyUpdated] });
+    const filters = {
+      spaces: ["@self", "-OLD"],
+      labels: ["+release"],
+    };
+    editor.commands.insertRecentlyUpdated({
+      limit: 350,
+      hideHeading: true,
+      ...filters,
+    });
+    filters.spaces.pop();
+    filters.labels.pop();
+    expect(editor.getJSON().content?.[0]).toMatchObject({
+      type: "recentlyUpdated",
+      attrs: {
+        limit: 200,
+        hideHeading: true,
+        spaces: ["@self", "-OLD"],
+        labels: ["+release"],
+      },
+    });
+  });
 });

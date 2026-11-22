@@ -711,6 +711,7 @@
   "No subpages": "No subpages",
   "Subpages (Child pages)": "Subpages (Child pages)",
   "List all subpages of the current page": "List all subpages of the current page",
+  "List recently updated pages": "List recently updated pages",
   "Attachments": "Attachments",
   "All spaces": "All spaces",
   "Unknown": "Unknown",
@@ -2361,5 +2362,14 @@
   "This email is linked to a different account at your identity provider. Contact your workspace admin.": "This email is linked to a different account at your identity provider. Contact your workspace admin.",
   "Your identity provider didn't share an email address. Contact your workspace admin.": "Your identity provider didn't share an email address. Contact your workspace admin.",
   "Single sign-on isn't available on this workspace's plan. Contact your workspace admin.": "Single sign-on isn't available on this workspace's plan. Contact your workspace admin.",
-  "Something went wrong while signing you in. Try again, or contact your workspace admin if it keeps happening.": "Something went wrong while signing you in. Try again, or contact your workspace admin if it keeps happening."
+  "Something went wrong while signing you in. Try again, or contact your workspace admin if it keeps happening.": "Something went wrong while signing you in. Try again, or contact your workspace admin if it keeps happening.",
+  "Current space": "Current space",
+  "Personal spaces": "Personal spaces",
+  "Non-personal spaces": "Non-personal spaces",
+  "Maximum results": "Maximum results",
+  "Show heading": "Show heading",
+  "Start a search with + to require a match or - to exclude it.": "Start a search with + to require a match or - to exclude it.",
+  "No matching pages": "No matching pages",
+  "Recently updated settings": "Recently updated settings",
+  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value."
 }

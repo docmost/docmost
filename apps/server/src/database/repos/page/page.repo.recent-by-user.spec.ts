@@ -8,6 +8,7 @@ import {
   PostgresQueryCompiler,
 } from 'kysely';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { RecentlyUpdatedDto } from '../../../core/page/dto/recently-updated.dto';
 import { PageRepo } from './page.repo';
 import { PagePermissionRepo } from './page-permission.repo';
 import { SpaceMemberRepo } from '../space/space-member.repo';
@@ -100,5 +101,86 @@ describe('PageRepo getRecentPagesByUser', () => {
     ];
     expect(userBindings).toHaveLength(4);
     expect(new Set(userBindings)).toEqual(new Set(['viewer-1']));
+  });
+});
+
+describe('PageRepo getRecentlyUpdatedPages', () => {
+  const spaceId = '60bbbe22-a503-4935-816f-4ca8a355a9c5';
+  const authorId = '2a1fc994-2e47-41d1-9bf7-228ac911fe40';
+  const otherSpace = 'c37719be-b772-46a9-835b-3cc0855f2f88';
+  const filters = Object.assign(new RecentlyUpdatedDto(), { spaceId, limit: 2 });
+
+  async function run(filter: Partial<RecentlyUpdatedDto> = {}) {
+    const { repo, queries } = buildRepo();
+    await repo.getRecentlyUpdatedPages('viewer', 'workspace', { ...filters, ...filter });
+    expect(queries).toHaveLength(1);
+    return queries[0];
+  }
+
+  it('restricts each destination to the viewer before taking the most recent matches', async () => {
+    const query = await run({ spaces: ['@all'], labels: ['+review', '-obsolete'] });
+    expect(query.sql).toContain('"spaces"."slug" as "space_slug"');
+    expect(query.sql).toContain('"users"."name" as "last_editor_name"');
+    expect(query.sql).toContain('"users"."avatar_url" as "last_editor_avatar_url"');
+    expect(query.sql).not.toContain('"content"');
+    expect(query.sql).toContain('"pages"."deleted_at" is null');
+    expect(query.sql).toContain('"spaces"."deleted_at" is null');
+    expect(boundAfter(query, '"pages"."workspace_id" = ')).toEqual(['workspace']);
+    expect(boundAfter(query, '"user_id" = ')).toEqual(['viewer', 'viewer']);
+    expect(boundAfter(query, 'pp.user_id = ')).toEqual(['viewer']);
+    expect(boundAfter(query, 'gu.user_id = ')).toEqual(['viewer']);
+    expect(query.sql).toContain('p.id = pages.id');
+    expect(query.sql).toMatch(/not exists \(select "page_labels"\."id"/);
+    expect(boundAfter(query, '"labels"."name" = ')).toEqual(['review', 'obsolete']);
+    expect(countOf(query.sql, ' limit ')).toBe(1);
+    expect(query.sql).toMatch(/order by "pages"\."updated_at" desc, "pages"\."id" desc limit \$\d+$/);
+    expect(query.parameters[query.parameters.length - 1]).toBe(2);
+  });
+
+  it('uses the same feed query for legacy author filters', async () => {
+    const options = { spaces: ['@all'], labels: ['+review'] };
+    const legacyOptions = { ...options, authors: [authorId, '-?missing'] };
+    const ordinary = await run(options);
+    const legacy = await run(legacyOptions);
+    expect(legacy.sql).toBe(ordinary.sql);
+    expect(legacy.parameters).toEqual(ordinary.parameters);
+  });
+
+  it('defaults to this space, unions plain spaces and lets a required space take precedence', async () => {
+    expect(boundAfter(await run(), '"pages"."space_id" = ')).toEqual([spaceId]);
+    const either = await run({ spaces: [otherSpace, '@self'] });
+    expect(either.sql).toMatch(/"pages"\."space_id" = \$\d+ or "pages"\."space_id" = /);
+    expect(boundAfter(either, '"pages"."space_id" = ')).toEqual([otherSpace, spaceId]);
+    const required = await run({ spaces: ['+' + otherSpace, '@self'] });
+    expect(boundAfter(required, '"pages"."space_id" = ')).toEqual([otherSpace]);
+  });
+
+  it('limits a negative-only filter to accessible spaces, including viewer-relative favorites', async () => {
+    const query = await run({ spaces: ['-@favourite', '-@global'] });
+    expect(query.sql).toContain('"pages"."space_id" in (select "spaces"."id" from "space_members"');
+    expect(boundAfter(query, '"favorites"."user_id" = ')).toEqual(['viewer']);
+    expect(boundAfter(query, '"spaces"."is_personal" = ')).toEqual([false]);
+    expect(boundAfter(query, '"pages"."space_id" = ')).toEqual([]);
+  });
+
+  it('requires every signed label, retains exclusions and matches normalized imported label names', async () => {
+    const query = await run({ labels: ['+Übersicht', '+release', 'optional', '-old'] });
+    expect(boundAfter(query, '"labels"."name" = ')).toEqual(['übersicht', 'release', 'old']);
+    expect(query.sql).toContain('"labels"."workspace_id" = "pages"."workspace_id"');
+  });
+
+  it('includes literal leading signs in the optional label union and retains ordinary exclusions', async () => {
+    const query = await run({ labels: ['\\-draft', '\\+pending', 'review', '-old'] });
+    expect(boundAfter(query, '"labels"."name" = ')).toEqual(['-draft', '+pending', 'review', 'old']);
+    expect(query.sql.match(/ or exists \(select "page_labels"/g)).toHaveLength(2);
+    expect(query.sql.match(/not exists \(select "page_labels"/g)).toHaveLength(1);
+  });
+
+  it.each([
+    { spaces: ['@all', '-?missing'] },
+    { labels: ['+release', '-?old'] },
+    { spaces: ['-unmapped-space'] },
+  ])('does not broaden an unresolved filter %o', async (filter) => {
+    expect((await run(filter)).sql).toMatch(/\bfalse\b/);
   });
 });
