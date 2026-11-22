@@ -33,6 +33,7 @@ import {
   IconColumns3,
   IconColumns2,
   IconTag,
+  IconTags,
   IconVariable,
   IconMoodSmile,
   IconRotate2,
@@ -609,6 +610,15 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       icon: IconSitemap,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).insertSubpages().run();
+      },
+    },
+    {
+      title: "Pages by label",
+      description: "List pages that match selected labels.",
+      searchTerms: ["tags", "labels", "pages", "content by label"],
+      icon: IconTags,
+      command: ({ editor, range }) => {
+        editor.chain().focus().deleteRange(range).insertPagesByLabel().run();
       },
     },
     {

@@ -33,6 +33,7 @@ import { notifications } from "@mantine/notifications";
 import { Link, useParams } from "react-router-dom";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import { getTemplateExtensions } from "@/features/editor/extensions/extensions";
+import { PagesByLabelContext } from "@/features/editor/components/pages-by-label/pages-by-label-context";
 import { TemplatePlaceholderPopover } from "@/ee/template/components/template-placeholder-popover";
 import {
   useUpdateTemplateMutation,
@@ -496,10 +497,12 @@ export default function TemplateEditor() {
             <TemplateMeta template={existingTemplate} />
           )}
         </div>
-        <EditorContent
-          editor={editor}
-          data-editing-placeholder={placeholderOpened || undefined}
-        />
+        <PagesByLabelContext.Provider value={{ spaceId }}>
+          <EditorContent
+            editor={editor}
+            data-editing-placeholder={placeholderOpened || undefined}
+          />
+        </PagesByLabelContext.Provider>
         {editor && (
           <>
             {placeholderOpened ? (
