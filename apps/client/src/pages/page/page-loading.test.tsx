@@ -9,7 +9,14 @@ import {
   screen,
 } from "@testing-library/react";
 import { createStore, Provider } from "jotai";
-import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
+import {
+  createMemoryRouter,
+  Link,
+  MemoryRouter,
+  Route,
+  RouterProvider,
+  Routes,
+} from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { getPageById } from "@/features/page/services/page-service";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
@@ -22,6 +29,7 @@ import {
   PageEditMode,
 } from "@/features/user/types/user.types";
 import { PageRouteFallback, usePageLayout } from "./page-loading";
+import { PageRoute } from "./page-route";
 
 vi.mock("@/main.tsx", async () => {
   const { QueryClient } = await import("@tanstack/react-query");
@@ -97,6 +105,48 @@ afterEach(() => {
   queryClient.clear();
   vi.resetAllMocks();
   vi.unstubAllGlobals();
+});
+
+function renderPageRoute() {
+  const scrollTo = vi.fn();
+  vi.stubGlobal("scrollTo", scrollTo);
+  queryClient.setQueryData(["editor-page-module"], { default: () => null });
+  const router = createMemoryRouter(
+    [{ path: "/s/:spaceSlug/p/:pageSlug", element: <PageRoute /> }],
+    { initialEntries: ["/s/team/p/first-one"] },
+  );
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+  return { router, scrollTo };
+}
+
+it("positions a new page at the top immediately and lets the browser restore Back and Forward", async () => {
+  const { router, scrollTo } = renderPageRoute();
+  expect(scrollTo).not.toHaveBeenCalled();
+
+  await act(() => router.navigate("/s/team/p/second-two"));
+  expect(scrollTo).toHaveBeenCalledExactlyOnceWith({
+    top: 0,
+    left: 0,
+    behavior: "instant",
+  });
+
+  scrollTo.mockClear();
+  await act(() => router.navigate(-1));
+  await act(() => router.navigate(1));
+  expect(scrollTo).not.toHaveBeenCalled();
+});
+
+it("preserves heading targets and the reading position on same-page navigation", async () => {
+  const { router, scrollTo } = renderPageRoute();
+  await act(() => router.navigate("/s/team/p/second-two#details"));
+  await act(() => router.navigate("/s/team/p/second-two?commentId=thread"));
+  await act(() => router.navigate("/s/team/p/old-title-two"));
+  await act(() => router.navigate("/s/team/p/renamed-two", { replace: true }));
+  expect(scrollTo).not.toHaveBeenCalled();
 });
 
 it("shows the matching sidebar title and drops it when the next page has no known title", () => {
