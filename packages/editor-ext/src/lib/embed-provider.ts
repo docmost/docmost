@@ -3,6 +3,7 @@ export interface IEmbedProvider {
   name: string;
   regex: RegExp;
   getEmbedUrl: (match: RegExpMatchArray, url?: string) => string;
+  getLinkUrl?: (match: RegExpMatchArray, url: string) => string;
   getLabel?: (match: RegExpMatchArray) => string;
 }
 
@@ -36,6 +37,38 @@ const googleDrive: Pick<IEmbedProvider, "regex" | "getEmbedUrl" | "getLabel"> = 
   },
   getLabel: (match) => GOOGLE_EDITOR_LABELS[match[1]] ?? "Google Drive",
 };
+
+function getYoutubeLinkUrl(
+  [, playerPath, videoId]: RegExpMatchArray,
+  url: string,
+): string {
+  if (!playerPath) return url;
+
+  const { searchParams, hash } = new URL(url, "https://www.youtube.com");
+  const list = searchParams.get("list");
+  if (videoId === "videoseries") {
+    return list
+      ? `https://www.youtube.com/playlist?${new URLSearchParams({ list })}`
+      : url;
+  }
+  if (videoId === "live_stream") {
+    const channel = searchParams.get("channel");
+    return channel
+      ? `https://www.youtube.com/channel/${encodeURIComponent(channel)}/live`
+      : url;
+  }
+
+  const params = new URLSearchParams({ v: videoId });
+  if (list) params.set("list", list);
+  const index = searchParams.get("index");
+  if (index) params.set("index", index);
+  const start =
+    searchParams.get("start") ||
+    searchParams.get("t") ||
+    new URLSearchParams(hash.slice(1)).get("t");
+  if (start) params.set("t", start);
+  return `https://www.youtube.com/watch?${params}`;
+}
 
 export const embedProviders: IEmbedProvider[] = [
   {
@@ -93,13 +126,10 @@ export const embedProviders: IEmbedProvider[] = [
     id: "youtube",
     name: "YouTube",
     regex:
-      /^((?:https?:)?\/\/)?((?:www|m|music)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/,
-    getEmbedUrl: (match, url) => {
-      if (url.includes("/embed/")) {
-        return url;
-      }
-      return `https://www.youtube-nocookie.com/embed/${match[5]}`;
-    },
+      /^(?:(?:https?:)?\/\/)?(?:(?:www|m|music)\.)?(?:youtube(?:-nocookie)?\.com\/(embed)\/|(?:youtube\.com|youtu\.be)\/(?:[\w-]+\?v=|v\/)?)([\w-]+)\S*$/i,
+    getEmbedUrl: ([, playerPath, videoId], url) =>
+      playerPath ? url : `https://www.youtube-nocookie.com/embed/${videoId}`,
+    getLinkUrl: getYoutubeLinkUrl,
   },
   {
     id: "vimeo",
@@ -143,6 +173,7 @@ export function getEmbedProviderById(id: string) {
 
 export interface IEmbedResult {
   embedUrl: string;
+  linkUrl: string;
   provider: string;
   providerId: string;
   label: string;
@@ -154,6 +185,7 @@ export function getEmbedUrlAndProvider(url: string): IEmbedResult {
     if (match) {
       return {
         embedUrl: provider.getEmbedUrl(match, url),
+        linkUrl: provider.getLinkUrl?.(match, url) ?? url,
         provider: provider.name.toLowerCase(),
         providerId: provider.id,
         label: provider.getLabel?.(match) ?? provider.name,
@@ -162,6 +194,7 @@ export function getEmbedUrlAndProvider(url: string): IEmbedResult {
   }
   return {
     embedUrl: url,
+    linkUrl: url,
     provider: "iframe",
     providerId: "iframe",
     label: getIframeLabel(url),
