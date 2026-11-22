@@ -11,9 +11,11 @@ import {
   type NodeViewProps,
 } from "@tiptap/react";
 import { useContext, useEffect, useState } from "react";
+import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import { PagesByLabelContext } from "./pages-by-label-context";
+import { pageEditorBindingAtom } from "@/features/editor/atoms/editor-atoms";
 import { PagesByLabelResults } from "./pages-by-label-results";
 import { PagesByLabelSettings } from "./pages-by-label-settings";
 import classes from "../subpages/subpages.module.css";
@@ -28,7 +30,8 @@ export function PagesByLabelView({
   const { t } = useTranslation();
   const host = useContext(PagesByLabelContext);
   const { pathname } = useLocation();
-  const { editable, openOnInsert } = useEditorState({
+  const binding = useAtomValue(pageEditorBindingAtom);
+  const { editable: editorEditable, openOnInsert } = useEditorState({
     editor,
     selector: ({ editor }) => {
       const requested = pagesByLabelSettingsKey.getState(editor.state);
@@ -38,6 +41,8 @@ export function PagesByLabelView({
       };
     },
   });
+  const editable =
+    binding?.editor === editor ? binding.editable : editorEditable;
   const options = normalizePagesByLabelAttributes(node.attrs);
   const [editing, setEditing] = useState<PagesByLabelAttributes | null>(null);
   useEffect(() => {

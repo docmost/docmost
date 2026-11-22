@@ -12,6 +12,8 @@ import {
 import { Editor, EditorContent } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { MemoryRouter } from "react-router-dom";
+import { createStore, Provider } from "jotai";
+import { pageEditorBindingAtom } from "@/features/editor/atoms/editor-atoms";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import api from "@/lib/api-client";
 import { PagesByLabelContext } from "./pages-by-label-context";
@@ -59,20 +61,23 @@ function show(
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  const store = createStore();
   render(
-    <MemoryRouter initialEntries={[path]}>
-      <MantineProvider env="test">
-        <QueryClientProvider client={client}>
-          <PagesByLabelContext.Provider
-            value={{ pageId: "host", spaceId: "team" }}
-          >
-            <EditorContent editor={editor} />
-          </PagesByLabelContext.Provider>
-        </QueryClientProvider>
-      </MantineProvider>
-    </MemoryRouter>,
+    <Provider store={store}>
+      <MemoryRouter initialEntries={[path]}>
+        <MantineProvider env="test">
+          <QueryClientProvider client={client}>
+            <PagesByLabelContext.Provider
+              value={{ pageId: "host", spaceId: "team" }}
+            >
+              <EditorContent editor={editor} />
+            </PagesByLabelContext.Provider>
+          </QueryClientProvider>
+        </MantineProvider>
+      </MemoryRouter>
+    </Provider>,
   );
-  return { editor, client };
+  return { editor, client, store };
 }
 
 beforeAll(() => {
@@ -196,4 +201,28 @@ it("saves edited settings without overwriting another collaborator's changes", a
     expect(editor.state.doc.firstChild.attrs.heading).toBe("New list"),
   );
   expect(editor.state.doc.firstChild.attrs.excludeLabels).toEqual(["draft"]);
+});
+
+it("closes settings immediately on switching to read mode and restores controls on edit", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: { items: [] } });
+  const { editor, store } = show({ labels: ["guide"] });
+  const updateBinding = (editable: boolean) => {
+    editor.setEditable(editable, false);
+    store.set(pageEditorBindingAtom, { editor, pageId: "host", editable });
+  };
+  act(() => updateBinding(true));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Pages by label settings" }),
+  );
+  expect(await screen.findByRole("dialog")).toBeTruthy();
+  act(() => updateBinding(false));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Pages by label settings" }),
+  ).toBeNull();
+  act(() => updateBinding(true));
+  expect(
+    screen.getByRole("button", { name: "Pages by label settings" }),
+  ).toBeTruthy();
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
