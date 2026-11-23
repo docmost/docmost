@@ -59,11 +59,6 @@
   --pill-radius: var(--mantine-radius-md);
 }
 
-.labelFilter :global(.mantine-Pill-root) {
-  background: var(--mantine-primary-color-light);
-  color: var(--mantine-primary-color-light-color);
-}
-
 .addExclusion {
   display: inline-flex;
   align-items: center;

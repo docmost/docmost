@@ -7,7 +7,7 @@ import { getLabelColor } from "@/features/label/utils/label-colors.ts";
 import classes from "@/features/label/label.module.css";
 
 type LabelChipProps = {
-  label: Pick<ILabel, "id" | "name">;
+  label: Pick<ILabel, "name">;
   onRemove?: () => void;
   asLink?: boolean;
   spaceId?: string;
@@ -38,6 +38,7 @@ export function LabelChip({ label, onRemove, asLink, spaceId }: LabelChipProps) 
         <button
           type="button"
           className={classes.chipX}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();

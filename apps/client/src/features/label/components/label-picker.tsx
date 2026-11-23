@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useComputedColorScheme } from "@mantine/core";
 import { ILabel } from "@/features/label/types/label.types.ts";
 import { useWorkspaceLabelsQuery } from "@/features/label/queries/label-query.ts";
-import { getLabelColor } from "@/features/label/utils/label-colors.ts";
+import { LabelOption } from "./label-option";
 import { normalizeLabelName } from "@/features/label/utils/normalize-label.ts";
 import classes from "@/features/label/label.module.css";
 
@@ -115,27 +115,20 @@ export function LabelPicker({
                   : t("No matches")}
           </div>
         )}
-        {suggestions.map((s, i) => {
-          const c = getLabelColor(s.name, scheme);
-          return (
-            <button
-              key={s.id}
-              type="button"
-              className={clsx(
-                classes.popoverItem,
-                hover === i && classes.popoverItemHover,
-              )}
-              onMouseEnter={() => setHover(i)}
-              onClick={() => select(i)}
-            >
-              <span
-                className={classes.popoverItemDot}
-                style={{ background: c.dot }}
-              />
-              <span className={classes.popoverItemName}>{s.name}</span>
-            </button>
-          );
-        })}
+        {suggestions.map((label, i) => (
+          <button
+            key={label.id}
+            type="button"
+            className={clsx(
+              classes.popoverItem,
+              hover === i && classes.popoverItemHover,
+            )}
+            onMouseEnter={() => setHover(i)}
+            onClick={() => select(i)}
+          >
+            <LabelOption name={label.name} scheme={scheme} />
+          </button>
+        ))}
         {canCreate && (
           <button
             type="button"
