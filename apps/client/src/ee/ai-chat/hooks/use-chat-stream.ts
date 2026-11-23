@@ -27,7 +27,7 @@ export function useChatStream(
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [isRetryable, setIsRetryable] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
+  const stopRef = useRef<(() => void) | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const currentChatIdRef = useRef(chatId);
@@ -94,6 +94,32 @@ export function useChatStream(
       setMessages((prev) => [...prev, userMessage]);
 
       const attachmentIds = attachments.map((a) => a.id);
+      let reply = "";
+      let toolCalls: AiChatToolCall[] = [];
+      let finished = false;
+      const finishResponse = (
+        messageId?: string,
+        usage?: Record<string, number>,
+      ) => {
+        if (finished) return;
+        finished = true;
+        stopRef.current = null;
+        if (reply || toolCalls.length || messageId) {
+          const assistantMessage: AiChatMessage = {
+            id: messageId ?? `partial-${Date.now()}`,
+            chatId: currentChatIdRef.current || "",
+            role: "assistant",
+            content: reply || null,
+            toolCalls: toolCalls.length ? toolCalls : null,
+            metadata: usage ? { tokenUsage: usage } : null,
+            createdAt: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, assistantMessage]);
+        }
+        setStreamingContent("");
+        setStreamingToolCalls([]);
+        setIsStreaming(false);
+      };
 
       const abortController = sendChatMessage(
         {
@@ -104,6 +130,7 @@ export function useChatStream(
           ...(attachmentIds.length && { attachmentIds }),
         },
         (event: AiChatStreamEvent) => {
+          if (finished) return;
           switch (event.type) {
             case "chat_created":
               currentChatIdRef.current = event.chatId;
@@ -119,46 +146,28 @@ export function useChatStream(
               queryClient.invalidateQueries({ queryKey: ["ai-chats"] });
               break;
             case "content":
-              setStreamingContent((prev) => prev + event.text);
+              reply += event.text;
+              setStreamingContent(reply);
               break;
             case "tool_call":
-              setStreamingToolCalls((prev) => [
-                ...prev,
+              toolCalls = [
+                ...toolCalls,
                 {
                   id: event.id,
                   name: event.name,
                   args: event.args,
                 },
-              ]);
+              ];
+              setStreamingToolCalls(toolCalls);
               break;
             case "tool_result":
-              setStreamingToolCalls((prev) =>
-                prev.map((tc) =>
-                  tc.id === event.id ? { ...tc, result: event.result } : tc,
-                ),
+              toolCalls = toolCalls.map((tc) =>
+                tc.id === event.id ? { ...tc, result: event.result } : tc,
               );
+              setStreamingToolCalls(toolCalls);
               break;
             case "done": {
-              setStreamingContent((currentContent) => {
-                setStreamingToolCalls((currentToolCalls) => {
-                  const assistantMessage: AiChatMessage = {
-                    id: event.messageId,
-                    chatId: currentChatIdRef.current || "",
-                    role: "assistant",
-                    content: currentContent || null,
-                    toolCalls: currentToolCalls.length
-                      ? currentToolCalls
-                      : null,
-                    metadata: event.usage ? { tokenUsage: event.usage } : null,
-                    createdAt: new Date().toISOString(),
-                  };
-
-                  setMessages((prev) => [...prev, assistantMessage]);
-                  return [];
-                });
-                return "";
-              });
-              setIsStreaming(false);
+              finishResponse(event.messageId, event.usage);
               queryClient.invalidateQueries({
                 queryKey: ["ai-chat", currentChatIdRef.current],
               });
@@ -168,48 +177,30 @@ export function useChatStream(
               setError(event.message);
               setErrorCode(event.code || null);
               setIsRetryable(event.retryable || false);
-              setIsStreaming(false);
+              finishResponse();
               break;
           }
         },
         (errorMsg) => {
+          if (finished) return;
           setError(errorMsg);
-          setIsStreaming(false);
+          finishResponse();
         },
-        () => {
-          setIsStreaming(false);
-        },
+        () => finishResponse(),
       );
 
-      abortRef.current = abortController;
+      if (!finished) {
+        stopRef.current = () => {
+          abortController.abort();
+          finishResponse();
+        };
+      }
     },
     [isStreaming, navigate, queryClient],
   );
 
   const stopGeneration = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-
-    setStreamingContent((currentContent) => {
-      setStreamingToolCalls((currentToolCalls) => {
-        if (currentContent || currentToolCalls.length > 0) {
-          const partialMessage: AiChatMessage = {
-            id: `stopped-${Date.now()}`,
-            chatId: currentChatIdRef.current || "",
-            role: "assistant",
-            content: currentContent || null,
-            toolCalls: currentToolCalls.length ? currentToolCalls : null,
-            metadata: null,
-            createdAt: new Date().toISOString(),
-          };
-          setMessages((prev) => [...prev, partialMessage]);
-        }
-        return [];
-      });
-      return "";
-    });
-
-    setIsStreaming(false);
+    stopRef.current?.();
   }, []);
 
   return {

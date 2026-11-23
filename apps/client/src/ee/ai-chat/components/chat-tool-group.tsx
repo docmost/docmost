@@ -1,11 +1,12 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   IconChevronRight,
   IconChevronDown,
   IconLoader2,
 } from "@tabler/icons-react";
 import type { AiChatToolCall } from "../types/ai-chat.types";
-import ChatToolResult, { TOOL_LABELS } from "./chat-tool-result";
+import ChatToolResult, { getToolLabel } from "./chat-tool-result";
 import classes from "../styles/chat-message.module.css";
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
 
 export default function ChatToolGroup({ toolCalls, isStreaming }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useTranslation();
 
   if (!toolCalls || toolCalls.length === 0) return null;
 
@@ -23,9 +25,7 @@ export default function ChatToolGroup({ toolCalls, isStreaming }: Props) {
       ? [...toolCalls].reverse().find((tc) => tc.result === undefined)
       : undefined;
 
-  const activeLabel = activeCall
-    ? TOOL_LABELS[activeCall.name] || activeCall.name
-    : null;
+  const activeLabel = activeCall ? getToolLabel(activeCall, t) : null;
 
   return (
     <div className={classes.toolGroup}>
