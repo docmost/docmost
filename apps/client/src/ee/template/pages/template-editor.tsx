@@ -32,6 +32,7 @@ import { useDisclosure, useWindowEvent } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { Link, useParams } from "react-router-dom";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
+import { EditorSpaceContext } from "@/features/editor/components/recently-updated/editor-space-context";
 import { getTemplateExtensions } from "@/features/editor/extensions/extensions";
 import { TemplatePlaceholderPopover } from "@/ee/template/components/template-placeholder-popover";
 import {
@@ -496,10 +497,12 @@ export default function TemplateEditor() {
             <TemplateMeta template={existingTemplate} />
           )}
         </div>
-        <EditorContent
-          editor={editor}
-          data-editing-placeholder={placeholderOpened || undefined}
-        />
+        <EditorSpaceContext.Provider value={spaceId ?? undefined}>
+          <EditorContent
+            editor={editor}
+            data-editing-placeholder={placeholderOpened || undefined}
+          />
+        </EditorSpaceContext.Provider>
         {editor && (
           <>
             {placeholderOpened ? (

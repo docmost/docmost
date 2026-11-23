@@ -18,6 +18,7 @@ import {
 } from "@/features/space/queries/space-query";
 import { includeSpace } from "@/features/space/space.utils";
 import { RadioMenuItem } from "@/components/ui/radio-menu-item";
+import { SpaceAvatar } from "./space-avatar";
 
 type SpaceFilterMenuProps = {
   value: string | null;
@@ -126,12 +127,7 @@ export function SpaceFilterMenu({
               onClick={() => onChange(space.id)}
             >
               <Group flex="1" gap="xs">
-                <Avatar
-                  color="initials"
-                  variant="filled"
-                  name={space.name}
-                  size={20}
-                />
+                <SpaceAvatar name={space.name} logo={space.logo} />
                 <Text size="sm" fw={500} style={{ flex: 1 }} truncate>
                   {space.name}
                 </Text>

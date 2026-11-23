@@ -4,6 +4,7 @@ import * as path from 'path';
 import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
 import { Cheerio, CheerioAPI, load } from 'cheerio';
+import { formatConfluenceRecentUpdates } from './confluence-recently-updated';
 import slugify from '@sindresorhus/slugify';
 import { normalizeTableColumnWidths } from './table-utils';
 
@@ -25,6 +26,7 @@ export async function formatImportHtml(opts: {
   pageDir?: string;
   attachmentCandidates?: string[];
   spaceSlug?: string;
+  spaceId?: string;
 }): Promise<{
   html: string;
   backlinks: InsertableBacklink[];
@@ -52,7 +54,7 @@ export async function formatImportHtml(opts: {
     }
   }
 
-  normalizeImportHtml($, $root);
+  normalizeImportHtml($, $root, opts.spaceId);
 
   const backlinks = await rewriteInternalLinksToMentionHtml(
     $,
@@ -83,7 +85,9 @@ export async function formatImportHtml(opts: {
 export function normalizeImportHtml(
   $: CheerioAPI,
   $root: Cheerio<any>,
+  spaceId?: string,
 ): void {
+  formatConfluenceRecentUpdates($, $root, spaceId);
   notionFormatter($, $root);
   xwikiFormatter($, $root);
   defaultHtmlFormatter($, $root);

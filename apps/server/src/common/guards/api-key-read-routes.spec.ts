@@ -28,6 +28,7 @@ const READ_ROUTES = [
   'POST /pages/info',
   'POST /pages/labels',
   'POST /pages/recent',
+  'POST /pages/recently-updated',
   'POST /pages/sidebar-pages',
   'POST /pages/transclusion/lookup',
   'POST /pages/transclusion/references',

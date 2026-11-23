@@ -34,17 +34,20 @@ export function shortTimeAgo(date: Date) {
   }).format(-Math.floor(seconds / unitSeconds), name);
 }
 
+export function formatFullDateTime(date: Date) {
+  return formatLocalized(date, "MMM dd, yyyy, h:mma", "PPp");
+}
+
 export function formattedDate(date: Date) {
-  const locale = getDateFnsLocale();
   if (isToday(date)) {
     return i18n.t("Today, {{time}}", {
-      time: formatLocalized(date, "h:mma", "p", locale),
+      time: formatLocalized(date, "h:mma", "p"),
     });
   } else if (isYesterday(date)) {
     return i18n.t("Yesterday, {{time}}", {
-      time: formatLocalized(date, "h:mma", "p", locale),
+      time: formatLocalized(date, "h:mma", "p"),
     });
   } else {
-    return formatLocalized(date, "MMM dd, yyyy, h:mma", "PPp", locale);
+    return formatFullDateTime(date);
   }
 }

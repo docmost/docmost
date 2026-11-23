@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Title } from "@mantine/core";
 import { EditorProvider } from "@tiptap/react";
+import { EditorSpaceContext } from "@/features/editor/components/recently-updated/editor-space-context";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { UniqueID } from "@docmost/editor-ext";
 import { TemplateVariableWithChip } from "./template-variable-node";
@@ -55,14 +56,16 @@ export default function ReadonlyTemplateEditor({
         <TemplateMeta template={template} />
       </div>
 
-      <EditorProvider
-        editable={false}
-        immediatelyRender={true}
-        textDirection="auto"
-        editorProps={editorProps}
-        extensions={extensions}
-        content={template.content}
-      />
+      <EditorSpaceContext.Provider value={template.spaceId ?? undefined}>
+        <EditorProvider
+          editable={false}
+          immediatelyRender={true}
+          textDirection="auto"
+          editorProps={editorProps}
+          extensions={extensions}
+          content={template.content}
+        />
+      </EditorSpaceContext.Provider>
     </>
   );
 }

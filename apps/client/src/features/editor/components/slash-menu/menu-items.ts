@@ -28,6 +28,7 @@ import {
   IconCalendar,
   IconCalendarMonth,
   IconClock,
+  IconClockHour3,
   IconAppWindow,
   IconSitemap,
   IconColumns3,
@@ -609,6 +610,15 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       icon: IconSitemap,
       command: ({ editor, range }: CommandProps) => {
         editor.chain().focus().deleteRange(range).insertSubpages().run();
+      },
+    },
+    {
+      title: "Recently updated",
+      description: "List recently updated pages",
+      searchTerms: ["recent pages", "updates", "activity", "recently-updated"],
+      icon: IconClockHour3,
+      command: ({ editor, range }: CommandProps) => {
+        editor.chain().focus().deleteRange(range).insertRecentlyUpdated().run();
       },
     },
     {

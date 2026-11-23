@@ -54,6 +54,7 @@ import {
   TableHeaderPin,
   TableReadonlySort,
   Subpages,
+  RecentlyUpdated,
   Heading,
   Highlight,
   Indent,
@@ -109,6 +110,7 @@ import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-v
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
+import RecentlyUpdatedView from "@/features/editor/components/recently-updated/recently-updated-view.tsx";
 import IntegrationCardView from "@/features/editor/components/integration-link/integration-card-view.tsx";
 import IntegrationMentionView from "@/features/editor/components/integration-link/integration-mention-view.tsx";
 import { IntegrationPasteMenuExtension } from "@/features/editor/extensions/integration-paste-menu";
@@ -414,6 +416,9 @@ export const mainExtensions = [
   PageBreak,
   Subpages.configure({
     view: SubpagesView,
+  }),
+  RecentlyUpdated.configure({
+    view: RecentlyUpdatedView,
   }),
   IntegrationCard.configure({
     view: IntegrationCardView,

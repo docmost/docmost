@@ -36,6 +36,7 @@ import {
 } from '../casl/interfaces/space-ability.type';
 import SpaceAbilityFactory from '../casl/abilities/space-ability.factory';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { RecentlyUpdatedDto } from './dto/recently-updated.dto';
 import { RecentPageDto } from './dto/recent-page.dto';
 import { CreatedByUserDto } from './dto/created-by-user.dto';
 import { DuplicatePageDto } from './dto/duplicate-page.dto';
@@ -417,6 +418,14 @@ export class PageController {
     return this.pageRepo.findById(pageIdDto.pageId, {
       includeHasChildren: true,
     });
+  }
+
+  @ApiKeyScope('read')
+  @OAuthScope('read')
+  @HttpCode(HttpStatus.OK)
+  @Post('recently-updated')
+  async getRecentlyUpdatedPages(@Body() options: RecentlyUpdatedDto, @AuthUser() user: User) {
+    return this.pageRepo.getRecentlyUpdatedPages(user.id, user.workspaceId, options);
   }
 
   @HttpCode(HttpStatus.OK)

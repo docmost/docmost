@@ -36,6 +36,7 @@ it('removes unfilled prompts and comments from public pages and synced blocks', 
   const page = {
     id: 'page',
     workspaceId: 'workspace',
+    spaceId: 'space',
     content: jsonToNode(content).toJSON(),
   } as Page;
   const original = structuredClone(page.content);
@@ -55,4 +56,65 @@ it('removes unfilled prompts and comments from public pages and synced blocks', 
   );
   expect(block).toHaveProperty('content', expected);
   expect(page.content).toEqual(original);
+});
+
+it('omits recently updated blocks from public pages and synced blocks', async () => {
+  const feed = {
+    type: 'recentlyUpdated',
+    attrs: { spaces: ['@self'], labels: ['private'], limit: 7 },
+  };
+  const paragraph = (text: string) => ({
+    type: 'paragraph',
+    content: [{ type: 'text', text }],
+  });
+  const before = paragraph('Before');
+  const after = paragraph('After');
+  const table = (blocks: JSONContent[]) => ({
+    type: 'table',
+    content: [
+      {
+        type: 'tableRow',
+        content: [{ type: 'tableCell', content: blocks }],
+      },
+    ],
+  });
+  const doc = (...content: JSONContent[]) => ({ type: 'doc', content });
+  const original = doc(
+    feed,
+    before,
+    { type: 'recentlyUpdated' },
+    table([feed, feed]),
+    after,
+    feed,
+  );
+  const page = {
+    id: 'page',
+    workspaceId: 'workspace',
+    content: jsonToNode(original).toJSON(),
+  } as Page;
+  const saved = structuredClone(page.content);
+  const expected = jsonToNode(
+    doc(before, table([{ type: 'paragraph' }]), after),
+  ).toJSON();
+  const service = new ShareService(null, null, null, null, null, null);
+
+  expect(await service.updatePublicAttachments(page)).toEqual(expected);
+  const [synced] = await service.sanitizeTransclusionItemsForPublic(
+    [
+      {
+        sourcePageId: page.id,
+        transclusionId: 'block',
+        content: page.content,
+        sourceUpdatedAt: new Date(),
+      },
+    ],
+    page.workspaceId,
+  );
+  expect(synced).toHaveProperty('content', expected);
+  const empty = await service.updatePublicAttachments({
+    ...page,
+    content: jsonToNode(doc(feed)).toJSON(),
+  });
+  expect(empty).toEqual(jsonToNode(doc({ type: 'paragraph' })).toJSON());
+  expect(page.content).toEqual(saved);
 });
