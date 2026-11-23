@@ -3,7 +3,6 @@ import { Hocuspocus, Document } from '@hocuspocus/server';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import type { JSONContent } from '@tiptap/core';
 import {
-  jsonToNode,
   prosemirrorNodeToYElement,
   tiptapExtensions,
 } from './collaboration.util';
@@ -11,6 +10,7 @@ import { setYjsMark, updateYjsMarkAttribute, YjsSelection } from './yjs.util';
 import * as Y from 'yjs';
 import { User } from '@docmost/db/types/entity.types';
 import { applyBlockSplices, planBlockEdits } from './block-edit/block-edits';
+import { editableDocument } from './block-edit/block-refs';
 import {
   BlockEdit,
   BlockEditPlan,
@@ -145,9 +145,15 @@ export class CollaborationHandler {
       },
       applyBlockEdits: async (
         documentName: string,
-        payload: { edits: BlockEdit[]; user: User },
+        payload: { edits: BlockEdit[]; user: User; expectedRevision?: string },
       ): Promise<BlockEditResult> => {
-        const { edits, user } = payload;
+        const { edits, user, expectedRevision } = payload;
+        if (!expectedRevision) {
+          return {
+            ok: false,
+            error: 'Read the page to get its revision before editing it.',
+          };
+        }
         let result: BlockEditResult;
         await this.withYdocConnection(
           hocuspocus,
@@ -157,7 +163,11 @@ export class CollaborationHandler {
             let plan: BlockEditPlan;
             try {
               const content = TiptapTransformer.fromYdoc(doc, 'default');
-              plan = planBlockEdits(jsonToNode(content), edits);
+              plan = planBlockEdits(
+                editableDocument(content),
+                edits,
+                expectedRevision,
+              );
             } catch (error) {
               const message =
                 error instanceof Error ? error.message : String(error);
@@ -178,7 +188,7 @@ export class CollaborationHandler {
               : {
                   ok: false,
                   error:
-                    'This part of the page contains content that cannot be edited safely. Read the page again, or add content with update_page append or prepend.',
+                    'This part of the page contains content that cannot be edited safely. Read the page again.',
                 };
           },
         );

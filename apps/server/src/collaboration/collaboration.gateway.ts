@@ -32,6 +32,7 @@ import {
 export class CollaborationGateway {
   private readonly logger = new Logger(CollaborationGateway.name);
   private readonly hocuspocus: Hocuspocus;
+  private readonly eventHandlers: CollabEventHandlers;
   private redisConfig: RedisConfig;
   // @ts-ignore
   private readonly redisSync: RedisSyncExtension<CollabEventHandlers> | null =
@@ -58,6 +59,7 @@ export class CollaborationGateway {
         this.loggerExtension,
       ],
     });
+    this.eventHandlers = this.collabEventsService.getHandlers(this.hocuspocus);
 
     if (this.withRedis) {
       // @ts-ignore
@@ -79,7 +81,7 @@ export class CollaborationGateway {
         pack,
         unpack,
         // @ts-ignore
-        customEvents: this.collabEventsService.getHandlers(this.hocuspocus),
+        customEvents: this.eventHandlers,
       });
       this.hocuspocus.configuration.extensions.push(this.redisSync);
       // @ts-ignore
@@ -112,9 +114,13 @@ export class CollaborationGateway {
       };
     }
 
-    const connection = this.hocuspocus.handleConnection(socket, toWebRequest(request));
+    const connection = this.hocuspocus.handleConnection(
+      socket,
+      toWebRequest(request),
+    );
     return {
-      onMessage: (data: Buffer) => connection.handleMessage(new Uint8Array(data)),
+      onMessage: (data: Buffer) =>
+        connection.handleMessage(new Uint8Array(data)),
       onClose: (code: number, reason: Buffer) =>
         connection.handleClose({ code, reason: reason.toString() }),
     };
@@ -163,12 +169,22 @@ export class CollaborationGateway {
     payload: Parameters<CollabEventHandlers[TName]>[1],
     onlyIfOpen = false,
   ) {
-    return this.redisSync?.handleEvent(
-      eventName,
-      documentName,
-      payload,
-      onlyIfOpen,
-    );
+    if (this.redisSync) {
+      return this.redisSync.handleEvent(
+        eventName,
+        documentName,
+        payload,
+        onlyIfOpen,
+      );
+    }
+    if (eventName !== 'getPageContent' && eventName !== 'applyBlockEdits')
+      return;
+    if (onlyIfOpen && !this.hocuspocus.documents.has(documentName)) return;
+    const handler = this.eventHandlers[eventName] as (
+      name: string,
+      data: typeof payload,
+    ) => ReturnType<CollabEventHandlers[TName]>;
+    return handler(documentName, payload);
   }
 
   openDirectConnection(documentName: string, context?: any) {

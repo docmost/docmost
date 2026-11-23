@@ -3,7 +3,7 @@ import type { Node } from '@tiptap/pm/model';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
 import { jsonToNode, tiptapExtensions } from '../collaboration.util';
-import { computeBlockRefs } from './block-refs';
+import { computeBlockRefs, pageRevision } from './block-refs';
 import { applyBlockSplices, planBlockEdits } from './block-edits';
 import type { BlockEdit, BlockEditPlan } from './block-edits.types';
 
@@ -48,11 +48,14 @@ function livePage(json: JSONContent) {
     )?.ref;
   const state = () => Y.encodeStateAsUpdate(ydoc);
 
-  const edit = (edits: BlockEdit[]) => {
+  const edit = (
+    edits: BlockEdit[],
+    expectedRevision = pageRevision(read()),
+  ) => {
     let plan: BlockEditPlan;
     let applied = false;
     ydoc.transact(() => {
-      plan = planBlockEdits(read(), edits);
+      plan = planBlockEdits(read(), edits, expectedRevision);
       if (plan.ok) applied = applyBlockSplices(fragment, plan.splices);
     });
     if (plan.ok) {
@@ -62,7 +65,7 @@ function livePage(json: JSONContent) {
     return plan;
   };
 
-  return { fragment, read, refAt, state, edit };
+  return { ydoc, fragment, read, refAt, state, edit };
 }
 
 describe('block edits', () => {
@@ -83,7 +86,7 @@ describe('block edits', () => {
     expect(after.child(2).toJSON()).toEqual(before.child(2).toJSON());
   });
 
-  it('replaces a range of sibling blocks', () => {
+  it('refuses an implicit deletion in a range replacement', () => {
     const page = livePage(
       doc(paragraph('a'), paragraph('b'), paragraph('c'), paragraph('d')),
     );
@@ -97,8 +100,11 @@ describe('block edits', () => {
       },
     ]);
 
-    expect(plan.ok).toBe(true);
-    expect(textsOf(page.read())).toEqual(['a', 'b and c', 'd']);
+    expect(plan).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/detach/),
+    });
+    expect(textsOf(page.read())).toEqual(['a', 'b', 'c', 'd']);
   });
 
   it('inserts before and after a block', () => {
@@ -152,55 +158,47 @@ describe('block edits', () => {
     expect(textsOf(page.read())).toEqual(['a', 'd']);
   });
 
-  it('moves a block after another and keeps its comment mark', () => {
+  it('preserves the original block, comment and range when a nonadjacent move is refused', () => {
     const comment = {
       type: 'comment',
       attrs: { commentId: 'comment-1', resolved: false },
     };
     const page = livePage(
       doc(
-        {
-          type: 'paragraph',
-          content: [text('plain '), text('noted', [comment])],
-        },
+        { type: 'paragraph', content: [text('noted', [comment])] },
         paragraph('two'),
         paragraph('three'),
       ),
     );
-    const moved = page.read().child(0).toJSON();
-
+    const before = page.state();
     const plan = page.edit([
-      { type: 'move_after', ref: page.refAt(0), targetRef: page.refAt(2) },
+      { type: 'move_after', ref: 'b1', targetRef: 'b3' },
     ]);
-
-    expect(plan.ok).toBe(true);
-    const after = page.read();
-    expect(textsOf(after)).toEqual(['two', 'three', 'plain noted']);
-    expect(after.child(2).toJSON()).toEqual(moved);
-    expect(after.child(2).child(1).marks.map((mark) => mark.toJSON())).toEqual(
-      [comment],
-    );
+    expect(plan).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/detach/),
+    });
+    expect(page.state()).toEqual(before);
+    expect(page.read().child(0).child(0).marks[0].toJSON()).toEqual(comment);
   });
 
-  it('moves blocks across parents', () => {
+  it('refuses moves across parents before applying any other edit', () => {
     const page = livePage(
       doc(
-        { type: 'callout', content: [paragraph('c1'), paragraph('c2')] },
-        paragraph('p1'),
-        paragraph('p2'),
+        { type: 'callout', content: [paragraph('inside')] },
+        paragraph('outside'),
       ),
     );
-
+    const before = page.state();
     const plan = page.edit([
-      { type: 'move_after', ref: page.refAt(0, 1), targetRef: page.refAt(1) },
-      { type: 'move_after', ref: page.refAt(2), targetRef: page.refAt(0, 0) },
+      { type: 'insert_after', ref: 'b3', content: [paragraph('unused')] },
+      { type: 'move_after', ref: 'b2', targetRef: 'b3' },
     ]);
-
-    expect(plan.ok).toBe(true);
-    const after = page.read();
-    expect(after.child(0).type.name).toBe('callout');
-    expect(textsOf(after.child(0))).toEqual(['c1', 'p2']);
-    expect(textsOf(after)).toEqual(['c1p2', 'p1', 'c2']);
+    expect(plan).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/move/),
+    });
+    expect(page.state()).toEqual(before);
   });
 
   it('edits a list item inside a list', () => {
@@ -223,20 +221,22 @@ describe('block edits', () => {
     expect(textsOf(list)).toEqual(['one', 'TWO', 'three', 'four']);
   });
 
-  it('refuses an edit whose ref no longer resolves', () => {
+  it('refuses a stale revision even when the positional ref still resolves', () => {
     const page = livePage(doc(paragraph('one'), paragraph('two')));
     const readRef = page.refAt(1);
+    const revision = pageRevision(page.read());
     const second = page.fragment.get(1) as Y.XmlElement;
     (second.get(0) as Y.XmlText).insert(3, ', edited by someone else');
     const before = page.state();
 
-    const plan = page.edit([
-      { type: 'replace', ref: readRef, content: [paragraph('mine')] },
-    ]);
+    const plan = page.edit(
+      [{ type: 'replace', ref: readRef, content: [paragraph('mine')] }],
+      revision,
+    );
 
     expect(plan).toEqual({
       ok: false,
-      error: `Edit 1: block ref "${readRef}" was not found. The page changed since you read it; read it again to get fresh refs.`,
+      error: expect.stringMatching(/page changed.*read.*again/i),
     });
     expect(page.state()).toEqual(before);
   });
@@ -408,13 +408,549 @@ describe('block edits', () => {
 
     page.edit([
       { type: 'replace', ref: page.refAt(1), content: [paragraph('B')] },
-      { type: 'move_before', ref: page.refAt(3), targetRef: page.refAt(0) },
+      {
+        type: 'insert_before',
+        ref: page.refAt(0),
+        content: [paragraph('start')],
+      },
     ]);
 
-    expect(textsOf(page.read())).toEqual(['d', 'a', 'B', 'c']);
+    expect(textsOf(page.read())).toEqual(['start', 'a', 'B', 'c', 'd']);
     const after = page.fragment.toArray();
     expect(after[1]).toBe(a);
     expect(after[3]).toBe(c);
-    expect(after).not.toContain(b);
+    expect(after[2]).toBe(b);
   });
+});
+
+describe('exact text edits', () => {
+  const change = (
+    ref: string,
+    oldText: string,
+    newText: string,
+  ): BlockEdit => ({ type: 'replace_text', ref, oldText, newText });
+  const cell = (label: string) => ({
+    type: 'tableCell',
+    content: [paragraph(label)],
+  });
+
+  it('edits only the changed text across formatted context and preserves relative positions', () => {
+    const comment = {
+      type: 'comment',
+      attrs: { commentId: 'c1', resolved: false },
+    };
+    const page = livePage(
+      doc(
+        {
+          type: 'paragraph',
+          content: [
+            text('State: '),
+            text('Cat', [{ type: 'bold' }, comment]),
+            text(' due', [{ type: 'italic' }]),
+          ],
+        },
+        paragraph('next'),
+      ),
+    );
+    const block = page.fragment.get(0) as Y.XmlElement;
+    const ytext = block.get(0) as Y.XmlText;
+    const beforeRef = Y.createRelativePositionFromTypeIndex(ytext, 2);
+    const afterRef = Y.createRelativePositionFromTypeIndex(ytext, 12);
+    const next = page.fragment.get(1);
+    const oldMarks = page
+      .read()
+      .child(0)
+      .child(1)
+      .marks.map((m) => m.toJSON());
+    expect(
+      page.edit([change(page.refAt(0), 'State: Cat due', 'State: Cougar due')])
+        .ok,
+    ).toBe(true);
+    expect(page.read().child(0).textContent).toBe('State: Cougar due');
+    expect(
+      page
+        .read()
+        .child(0)
+        .child(1)
+        .marks.map((m) => m.toJSON()),
+    ).toEqual(oldMarks);
+    expect(page.fragment.get(0)).toBe(block);
+    expect(block.get(0)).toBe(ytext);
+    expect(page.fragment.get(1)).toBe(next);
+    expect(
+      Y.createAbsolutePositionFromRelativePosition(beforeRef, page.ydoc)?.index,
+    ).toBe(2);
+    expect(
+      Y.createAbsolutePositionFromRelativePosition(afterRef, page.ydoc)?.index,
+    ).toBe(15);
+  });
+
+  it('keeps Unicode characters whole inside code and leaves adjacent atoms in place', () => {
+    const page = livePage(
+      doc({
+        type: 'paragraph',
+        content: [
+          text('go😃', [{ type: 'code' }]),
+          { type: 'hardBreak' },
+          text('end'),
+        ],
+      }),
+    );
+    const block = page.fragment.get(0) as Y.XmlElement;
+    const atom = block.get(1);
+    expect(page.edit([change('b1', 'go😃', 'go😄!')]).ok).toBe(true);
+    expect(page.read().child(0).child(0).text).toBe('go😄!');
+    expect(page.read().child(0).child(0).marks[0].type.name).toBe('code');
+    expect(block.get(1)).toBe(atom);
+    const before = page.state();
+    expect(page.edit([change('b1', '😄!end', 'bad')])).toMatchObject({
+      ok: false,
+    });
+    expect(page.edit([change('b1', '\uD83D', 'bad')])).toMatchObject({
+      ok: false,
+    });
+    expect(page.state()).toEqual(before);
+  });
+
+  it('uses a unique match within an addressed table row and keeps its cells', () => {
+    const page = livePage(
+      doc({
+        type: 'table',
+        content: [
+          { type: 'tableRow', content: [cell('Draft'), cell('May 1')] },
+        ],
+      }),
+    );
+    const row = (page.fragment.get(0) as Y.XmlElement).get(0) as Y.XmlElement;
+    const cells = row.toArray();
+    expect(page.edit([change(page.refAt(0, 0), 'May 1', 'June 1')]).ok).toBe(
+      true,
+    );
+    expect(row.get(0)).toBe(cells[0]);
+    expect(row.get(1)).toBe(cells[1]);
+    expect(page.read().child(0).textContent).toBe('DraftJune 1');
+    const before = page.state();
+    expect(
+      page.edit([change(page.refAt(0, 0), 'ftJune', 'bad')]),
+    ).toMatchObject({ ok: false });
+    expect(page.state()).toEqual(before);
+  });
+
+  it('rejects ambiguous occurrence, formatting and overlap before any mutation', () => {
+    const page = livePage(
+      doc(
+        {
+          type: 'paragraph',
+          content: [text('a', [{ type: 'bold' }]), text('b twice twice')],
+        },
+        paragraph('other'),
+      ),
+    );
+    const before = page.state();
+    for (const edit of [
+      change('b1', 'twice', 'x'),
+      change('b1', 'ab', 'X'),
+      change('b1', 'ab', 'aXb'),
+      change('b1', '', 'x'),
+    ]) {
+      expect(page.edit([change('b2', 'other', 'changed'), edit])).toMatchObject(
+        { ok: false },
+      );
+      expect(page.state()).toEqual(before);
+    }
+    expect(
+      page.edit([change('b1', 'ab', ''), change('b1', 'a', 'x')]),
+    ).toMatchObject({ ok: false, error: expect.stringMatching(/overlap/) });
+    expect(
+      page.edit([change('b1', 'a', 'x'), { type: 'delete', ref: 'b1' }]),
+    ).toMatchObject({ ok: false });
+    expect(page.state()).toEqual(before);
+    expect(page.edit([change('b1', 'ab', '')]).ok).toBe(true);
+    expect(page.read().child(0).textContent).toBe(' twice twice');
+  });
+
+  it('applies disjoint text edits against one snapshot alongside structural inserts', () => {
+    const page = livePage(doc(paragraph('one two three four')));
+    expect(
+      page.edit([
+        change('b1', 'one', 'ONE plus'),
+        change('b1', 'four', '4'),
+        { type: 'insert_before', ref: 'b1', content: [paragraph('start')] },
+      ]).ok,
+    ).toBe(true);
+    expect(textsOf(page.read())).toEqual(['start', 'ONE plus two three 4']);
+  });
+
+  it('keeps adjacent legacy Y.XmlText objects when a phrase spans them', () => {
+    const page = livePage(doc(paragraph('left middle')));
+    const block = page.fragment.get(0) as Y.XmlElement;
+    const first = block.get(0);
+    const second = new Y.XmlText(' right');
+    block.insert(1, [second]);
+    expect(page.edit([change('b1', 'middle right', 'replacement')]).ok).toBe(
+      true,
+    );
+    expect(page.read().textContent).toBe('left replacement');
+    expect(block.get(0)).toBe(first);
+    expect(block.get(1)).toBe(second);
+  });
+});
+
+describe('document edits', () => {
+  const source = (id: string): JSONContent => ({
+    type: 'transclusionSource',
+    attrs: { id },
+    content: [paragraph('synced')],
+  });
+  it('preserves unchanged nested Yjs elements and blocks inside a whole-page replacement', () => {
+    const list = bulletList('one', 'two');
+    const page = livePage(
+      doc(paragraph('first'), list, paragraph('middle'), paragraph('end')),
+    );
+    const [first, nativeList, middle] = page.fragment.toArray();
+    const firstItem = (nativeList as Y.XmlElement).get(0);
+    expect(
+      page.edit([
+        {
+          type: 'replace_document',
+          ref: '',
+          content: [
+            paragraph('first'),
+            bulletList('one', 'TWO'),
+            paragraph('middle'),
+            paragraph('last'),
+          ],
+        },
+      ]).ok,
+    ).toBe(true);
+    expect(page.fragment.get(0)).toBe(first);
+    expect(page.fragment.get(1)).toBe(nativeList);
+    expect((nativeList as Y.XmlElement).get(0)).toBe(firstItem);
+    expect(page.fragment.get(2)).toBe(middle);
+  });
+
+  it.each(['append_document', 'prepend_document', 'replace_document'] as const)(
+    'initializes a genuinely empty page with %s',
+    (type) => {
+      const page = livePage(doc());
+      expect(
+        page.edit([{ type, ref: '', content: [paragraph('new')] }]).ok,
+      ).toBe(true);
+      expect(textsOf(page.read())).toEqual(['new']);
+    },
+  );
+
+  it('refuses duplicate synced sources in the final state and permits existing duplicates to stay or improve', () => {
+    const page = livePage(
+      doc(source('shared'), source('shared'), paragraph('last')),
+    );
+    const state = page.state();
+    const bad: BlockEdit[][] = [
+      [{ type: 'append_document', ref: '', content: [source('shared')] }],
+      [{ type: 'prepend_document', ref: '', content: [source('shared')] }],
+      [
+        {
+          type: 'replace_document',
+          ref: '',
+          content: [source('new'), source('new')],
+        },
+      ],
+      [
+        {
+          type: 'insert_after',
+          ref: page.refAt(2),
+          content: [source('shared')],
+        },
+      ],
+    ];
+    for (const edits of bad) {
+      expect(page.edit(edits)).toMatchObject({
+        ok: false,
+        error: expect.stringMatching(/synced block/),
+      });
+      expect(page.state()).toEqual(state);
+    }
+    expect(
+      page.edit([
+        {
+          type: 'replace_document',
+          ref: '',
+          content: [source('shared'), source('shared'), paragraph('changed')],
+        },
+      ]).ok,
+    ).toBe(true);
+    expect(page.edit([{ type: 'delete', ref: page.refAt(0) }]).ok).toBe(true);
+    expect(
+      page.edit([
+        {
+          type: 'insert_before',
+          ref: page.refAt(0),
+          content: [source('fresh')],
+        },
+        { type: 'replace', ref: page.refAt(1), content: [source('fresh')] },
+      ]),
+    ).toMatchObject({ ok: false });
+  });
+});
+
+it('applies adjoining text edits from right to left when their minimal changes start at the same offset', () => {
+  const left: BlockEdit = {
+    type: 'replace_text',
+    ref: 'b1',
+    oldText: 'a',
+    newText: 'aX',
+  };
+  const right: BlockEdit = {
+    type: 'replace_text',
+    ref: 'b1',
+    oldText: 'b',
+    newText: 'Y',
+  };
+  for (const edits of [
+    [left, right],
+    [right, left],
+  ]) {
+    const page = livePage(doc(paragraph('ab')));
+    expect(page.edit(edits).ok).toBe(true);
+    expect(page.read().textContent).toBe('aXY');
+  }
+});
+
+it('checks the shared anchor ID namespace for retained, appended and replaced blocks', () => {
+  const anchor = (id: string): JSONContent => ({
+    type: 'paragraph',
+    content: [{ type: 'sectionAnchor', attrs: { id } }],
+  });
+  const heading: JSONContent = {
+    type: 'heading',
+    attrs: { id: 'title', level: 2 },
+    content: [text('Title')],
+  };
+  const page = livePage(doc(heading, anchor('topic'), paragraph('body')));
+  const original = page.state();
+  for (const edit of [
+    { type: 'append_document', ref: '', content: [anchor('topic')] },
+    { type: 'replace', ref: 'b3', content: [anchor('title')] },
+    {
+      type: 'replace_document',
+      ref: '',
+      content: [heading, { ...paragraph('copy'), attrs: { id: 'title' } }],
+    },
+  ] as BlockEdit[]) {
+    expect(page.edit([edit])).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/ID .*already used/),
+    });
+    expect(page.state()).toEqual(original);
+  }
+  const move: BlockEdit[] = [
+    { type: 'delete', ref: 'b2' },
+    { type: 'insert_after', ref: 'b3', content: [anchor('topic')] },
+  ];
+  expect(page.edit(move)).toMatchObject({
+    ok: false,
+    error: expect.stringMatching(/recreate a deleted block/),
+  });
+  const source = {
+    type: 'transclusionSource',
+    attrs: { id: 'title' },
+    content: [paragraph('source')],
+  };
+  const legacy = livePage(doc(heading, source));
+  expect(
+    legacy.edit([{ type: 'replace', ref: 'b1', content: [source] }]),
+  ).toMatchObject({ ok: false, error: expect.stringMatching(/synced block/) });
+});
+
+describe('document additions around footnotes', () => {
+  const reference = (id: string): JSONContent => ({
+    type: 'paragraph',
+    content: [
+      text('Source'),
+      {
+        type: 'footnoteReference',
+        attrs: { 'data-id': id, referenceNumber: '1' },
+        content: [text('1')],
+      },
+    ],
+  });
+  const footnotes = (id: string): JSONContent => ({
+    type: 'footnotes',
+    content: [
+      {
+        type: 'footnote',
+        attrs: { id: 'fn:1', 'data-id': id },
+        content: [paragraph('Definition')],
+      },
+    ],
+  });
+
+  it('appends ordinary content before the terminal footnotes without replacing native elements', () => {
+    const page = livePage(doc(reference('note'), footnotes('note')));
+    const [body, notes] = page.fragment.toArray();
+    expect(
+      page.edit([
+        { type: 'append_document', ref: '', content: [paragraph('last body')] },
+      ]).ok,
+    ).toBe(true);
+    expect(page.fragment.get(0)).toBe(body);
+    expect(page.fragment.get(2)).toBe(notes);
+    expect(page.read().child(1).textContent).toBe('last body');
+  });
+
+  it.each(['append_document', 'prepend_document'] as const)(
+    'keeps a first matching footnotes list last on %s',
+    (type) => {
+      const page = livePage(doc(paragraph('existing')));
+      const body = page.fragment.get(0);
+      const incoming = [reference('note'), footnotes('note')];
+      expect(page.edit([{ type, ref: '', content: incoming }]).ok).toBe(true);
+      expect(page.read().lastChild.type.name).toBe('footnotes');
+      expect(page.fragment.get(type === 'prepend_document' ? 1 : 0)).toBe(body);
+    },
+  );
+
+  it('rejects duplicate lists, copied references and orphan definitions atomically', () => {
+    const page = livePage(doc(reference('note'), footnotes('note')));
+    const before = page.state();
+    for (const content of [
+      [footnotes('extra')],
+      [reference('note')],
+      [reference('unknown')],
+    ]) {
+      expect(
+        page.edit([{ type: 'append_document', ref: '', content }]),
+      ).toMatchObject({ ok: false, error: expect.stringMatching(/footnote/) });
+      expect(page.state()).toEqual(before);
+    }
+    expect(
+      livePage(doc(paragraph('base'))).edit([
+        { type: 'prepend_document', ref: '', content: [footnotes('orphan')] },
+      ]),
+    ).toMatchObject({ ok: false });
+  });
+});
+
+it('keeps the original Yjs text and comment mark for a rich block replacement with one literal change', () => {
+  const comment = {
+    type: 'comment',
+    attrs: { commentId: 'commented', resolved: true },
+  };
+  const block = (word: string) => ({
+    type: 'paragraph',
+    content: [text('First '), text(word, [comment]), text(' tail')],
+  });
+  const page = livePage(doc(block('cat')));
+  const element = page.fragment.get(0) as Y.XmlElement;
+  const ytext = element.get(0) as Y.XmlText;
+  const end = Y.createRelativePositionFromTypeIndex(ytext, 11);
+  expect(
+    page.edit([{ type: 'replace', ref: 'b1', content: [block('kitten')] }]).ok,
+  ).toBe(true);
+  expect(page.fragment.get(0)).toBe(element);
+  expect(element.get(0)).toBe(ytext);
+  expect(
+    Y.createAbsolutePositionFromRelativePosition(end, page.ydoc)?.index,
+  ).toBe(14);
+  expect(page.read().child(0).child(1).marks[0].toJSON()).toEqual(comment);
+});
+
+it('fills an empty native paragraph in place, including a previously emptied XmlText', () => {
+  const page = livePage(doc(paragraph('sample')));
+  const element = page.fragment.get(0) as Y.XmlElement;
+  const ytext = element.get(0) as Y.XmlText;
+  expect(
+    page.edit([
+      { type: 'replace_text', ref: 'b1', oldText: 'sample', newText: '' },
+    ]).ok,
+  ).toBe(true);
+  expect(
+    page.edit([
+      {
+        type: 'replace',
+        ref: 'b1',
+        content: [
+          { type: 'paragraph', content: [text('filled', [{ type: 'bold' }])] },
+        ],
+      },
+    ]).ok,
+  ).toBe(true);
+  expect(page.fragment.get(0)).toBe(element);
+  expect(element.get(0)).toBe(ytext);
+});
+
+it('selects a numbered exact occurrence in repeated table cells using their row ref', () => {
+  const cell = () => ({ type: 'tableCell', content: [paragraph('Approved')] });
+  const page = livePage(
+    doc({
+      type: 'table',
+      content: [{ type: 'tableRow', content: [cell(), cell()] }],
+    }),
+  );
+  const edit: BlockEdit = {
+    type: 'replace_text',
+    ref: page.refAt(0, 0),
+    oldText: 'Approved',
+    newText: 'Pending',
+  };
+  expect(page.edit([edit])).toMatchObject({
+    ok: false,
+    error: expect.stringMatching(/more than once/),
+  });
+  expect(page.edit([{ ...edit, occurrence: 3 }])).toMatchObject({
+    ok: false,
+    error: expect.stringMatching(/2 exact matches/),
+  });
+  expect(page.edit([{ ...edit, occurrence: 2 }]).ok).toBe(true);
+  expect(textsOf(page.read().child(0).child(0))).toEqual([
+    'Approved',
+    'Pending',
+  ]);
+});
+
+it('resolves distinct or overlapping Unicode occurrences against one immutable snapshot', () => {
+  const page = livePage(doc(paragraph('😃😃😃 / same same')));
+  const edit: BlockEdit = {
+    type: 'replace_text',
+    ref: 'b1',
+    oldText: '😃😃',
+    newText: '🎉',
+  };
+  const state = page.state();
+  expect(
+    page.edit([
+      { ...edit, occurrence: 1 },
+      { ...edit, occurrence: 2 },
+    ]),
+  ).toMatchObject({ ok: false, error: expect.stringMatching(/overlap/) });
+  expect(page.state()).toEqual(state);
+  for (const occurrence of [0, -1, 1.5])
+    expect(page.edit([{ ...edit, occurrence }]).ok).toBe(false);
+  expect(
+    page.edit([
+      { ...edit, occurrence: 2 },
+      { ...edit, oldText: 'same', newText: 'first', occurrence: 1 },
+      { ...edit, oldText: 'same', newText: 'second', occurrence: 2 },
+    ]).ok,
+  ).toBe(true);
+  expect(page.read().textContent).toBe('😃🎉 / first second');
+});
+
+it('rejects a delete paired with wrapping an unidentified legacy block elsewhere', () => {
+  const page = livePage(doc(paragraph('legacy note'), paragraph('other')));
+  const before = page.state();
+  expect(
+    page.edit([
+      { type: 'delete', ref: 'b1' },
+      {
+        type: 'insert_after',
+        ref: 'b2',
+        content: [{ type: 'callout', content: [paragraph('legacy note')] }],
+      },
+    ]),
+  ).toMatchObject({
+    ok: false,
+    error: expect.stringMatching(/recreate a deleted block/),
+  });
+  expect(page.state()).toEqual(before);
 });

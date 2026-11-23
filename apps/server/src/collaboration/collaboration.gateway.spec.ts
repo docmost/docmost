@@ -3,6 +3,11 @@ import { EventEmitter } from 'node:events';
 import { Logger } from '@nestjs/common';
 import { WebSocket } from 'ws';
 import { CollaborationGateway } from './collaboration.gateway';
+import { CollaborationHandler } from './collaboration.handler';
+import { editableDocument, pageRevision } from './block-edit/block-refs';
+import { tiptapExtensions } from './collaboration.util';
+import { TiptapTransformer } from '@hocuspocus/transformer';
+import * as Y from 'yjs';
 
 function makeGateway() {
   const environmentService = {
@@ -14,12 +19,13 @@ function makeGateway() {
     {} as any,
     {} as any,
     environmentService as any,
-    {} as any,
+    new CollaborationHandler(),
   );
   const redisSync = {
     onSocketOpen: jest.fn(),
     onSocketMessage: jest.fn(),
     onSocketClose: jest.fn(),
+    handleEvent: jest.fn(),
   };
   (gateway as any).redisSync = redisSync;
   return { gateway, redisSync };
@@ -98,5 +104,68 @@ describe('CollaborationGateway.handleConnection', () => {
     expect(logger).toHaveBeenCalledWith(
       expect.objectContaining({ err: failure }), expect.any(String),
     );
+  });
+});
+
+describe('CollaborationGateway page events', () => {
+  const name = 'page.one';
+  const json = {
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'body' }] }],
+  };
+
+  it('routes reads and writes through Redis when enabled', async () => {
+    const { gateway, redisSync } = makeGateway();
+    redisSync.handleEvent.mockResolvedValue(json);
+    expect(
+      await gateway.handleYjsEvent('getPageContent', name, undefined, true),
+    ).toBe(json);
+    expect(redisSync.handleEvent).toHaveBeenCalledWith(
+      'getPageContent',
+      name,
+      undefined,
+      true,
+    );
+    const payload = { edits: [], user: {} as any, expectedRevision: 'v1-read' };
+    await gateway.handleYjsEvent('applyBlockEdits', name, payload);
+    expect(redisSync.handleEvent).toHaveBeenCalledWith(
+      'applyBlockEdits',
+      name,
+      payload,
+      false,
+    );
+  });
+
+  it('reads loaded rooms and applies guarded writes to closed rooms with Redis disabled', async () => {
+    const { gateway } = makeGateway();
+    (gateway as any).redisSync = null;
+    const hp = (gateway as any).hocuspocus;
+    const ydoc = TiptapTransformer.toYdoc(json, 'default', tiptapExtensions);
+    const open = jest.spyOn(hp, 'openDirectConnection').mockResolvedValue({
+      transact: async (fn: (doc: Y.Doc) => void) =>
+        ydoc.transact(() => fn(ydoc)),
+      disconnect: async () => undefined,
+    });
+    expect(
+      await gateway.handleYjsEvent('getPageContent', name, undefined, true),
+    ).toBeUndefined();
+    expect(open).not.toHaveBeenCalled();
+    const changed = await gateway.handleYjsEvent('applyBlockEdits', name, {
+      expectedRevision: pageRevision(editableDocument(json)),
+      user: {} as any,
+      edits: [
+        { type: 'replace_text', ref: 'b1', oldText: 'body', newText: 'edited' },
+      ],
+    });
+    expect(changed).toMatchObject({ ok: true });
+    hp.documents.set(name, ydoc);
+    const live = await gateway.handleYjsEvent(
+      'getPageContent',
+      name,
+      undefined,
+      true,
+    );
+    expect(editableDocument(live).textContent).toBe('edited');
+    expect(open).toHaveBeenCalledTimes(1);
   });
 });

@@ -505,6 +505,7 @@ export class PageService {
     pageId: string,
     edits: BlockEdit[],
     user: User,
+    expectedRevision?: string,
   ): Promise<BlockEditResult> {
     const unavailable: BlockEditResult = {
       ok: false,
@@ -514,7 +515,7 @@ export class PageService {
       const result = await this.collaborationGateway.handleYjsEvent(
         'applyBlockEdits',
         `page.${pageId}`,
-        { edits, user },
+        { edits, user, expectedRevision },
       );
       return result ?? unavailable;
     } catch (err) {

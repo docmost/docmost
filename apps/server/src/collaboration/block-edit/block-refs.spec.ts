@@ -1,7 +1,7 @@
 import type { JSONContent } from '@tiptap/core';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import { jsonToNode, tiptapExtensions } from '../collaboration.util';
-import { BlockRefIndex, computeBlockRefs } from './block-refs';
+import { computeBlockRefs, editableDocument, pageRevision } from './block-refs';
 
 const text = (value: string): JSONContent => ({ type: 'text', text: value });
 const paragraph = (value: string): JSONContent => ({
@@ -16,35 +16,40 @@ const doc = (...content: JSONContent[]): JSONContent => ({
 const refsOf = (json: JSONContent) => computeBlockRefs(jsonToNode(json));
 
 describe('computeBlockRefs', () => {
-  it('gives every top-level block a 6-char ref', () => {
+  it('numbers addressable blocks in preorder using base 36', () => {
     const { byRef } = refsOf(
       doc(paragraph('one'), paragraph('two'), { type: 'horizontalRule' }),
     );
 
-    expect(byRef.size).toBe(3);
-    for (const ref of byRef.keys()) {
-      expect(ref).toMatch(/^[0-9a-z]{6}$/);
-    }
+    expect([...byRef.keys()]).toEqual(['b1', 'b2', 'b3']);
+    const many = refsOf(
+      doc(...Array.from({ length: 36 }, () => paragraph('same'))),
+    );
+    expect(many.byRef.get('bz').path).toEqual([34]);
+    expect(many.byRef.get('b10').path).toEqual([35]);
   });
 
-  it("keeps a block's ref when another block changes", () => {
-    const before = refsOf(doc(paragraph('one'), paragraph('two')));
-    const after = refsOf(doc(paragraph('one'), paragraph('two changed')));
-    const refAt = (index: BlockRefIndex, i: number) =>
-      [...index.byRef.values()].find((e) => e.path[0] === i).ref;
-
-    expect(refAt(after, 0)).toBe(refAt(before, 0));
-    expect(refAt(after, 1)).not.toBe(refAt(before, 1));
+  it('scopes all refs to the revision even if a changed block occupies the same position', () => {
+    const before = editableDocument(doc(paragraph('one'), paragraph('two')));
+    const after = editableDocument(
+      doc(paragraph('one'), paragraph('two changed')),
+    );
+    expect(computeBlockRefs(before).byRef.get('b2').node.textContent).toBe(
+      'two',
+    );
+    expect(computeBlockRefs(after).byRef.get('b2').node.textContent).toBe(
+      'two changed',
+    );
+    expect(pageRevision(before)).not.toBe(pageRevision(after));
   });
 
-  it('suffixes identical blocks in document order', () => {
+  it('assigns identical blocks separate positions', () => {
     const { byRef } = refsOf(
       doc({ type: 'horizontalRule' }, { type: 'horizontalRule' }),
     );
     const [first, second] = [...byRef.keys()];
 
-    expect(first).toMatch(/^[0-9a-z]{6}$/);
-    expect(second).toBe(`${first}-2`);
+    expect([first, second]).toEqual(['b1', 'b2']);
     expect(byRef.get(first).path).toEqual([0]);
     expect(byRef.get(second).path).toEqual([1]);
   });
@@ -63,9 +68,7 @@ describe('computeBlockRefs', () => {
         content: [
           {
             type: 'tableRow',
-            content: [
-              { type: 'tableCell', content: [paragraph('cell')] },
-            ],
+            content: [{ type: 'tableCell', content: [paragraph('cell')] }],
           },
         ],
       },
@@ -138,9 +141,10 @@ describe('computeBlockRefs', () => {
         ],
       }),
     );
-    expect(
-      [...table.byRef.values()].map((e) => e.node.type.name),
-    ).toEqual(['table', 'tableRow']);
+    expect([...table.byRef.values()].map((e) => e.node.type.name)).toEqual([
+      'table',
+      'tableRow',
+    ]);
   });
 
   it('addresses blocks inside toggles and tab panels', () => {
@@ -240,5 +244,90 @@ describe('computeBlockRefs', () => {
 
     expect(stored.byRef.size).toBeGreaterThan(0);
     expect(shape(live)).toEqual(shape(stored));
+    expect(pageRevision(editableDocument(roundTripped))).toBe(
+      pageRevision(editableDocument(json)),
+    );
+  });
+});
+
+describe('editable page revisions', () => {
+  it('normalizes schema defaults and nested object key order while hashing every meaningful value', () => {
+    const file = (items: object[], attrs = {}) =>
+      doc({ type: 'microsoftFile', attrs: { items, ...attrs } });
+    const revision = (input: JSONContent) =>
+      pageRevision(editableDocument(input));
+    const first = revision(file([{ name: 'Notes', webUrl: '/notes' }]));
+    expect(first).toMatch(/^v1-[A-Za-z0-9_-]{43}$/);
+    expect(
+      revision(file([{ webUrl: '/notes', name: 'Notes' }], { width: 800 })),
+    ).toBe(first);
+    expect(revision(file([{ webUrl: '/notes', name: 'Draft' }]))).not.toBe(
+      first,
+    );
+    const legacy = file([{ name: 'Notes', webUrl: '/notes' }], { width: null });
+    const roundTrip = TiptapTransformer.fromYdoc(
+      TiptapTransformer.toYdoc(legacy, 'default', tiptapExtensions),
+      'default',
+    );
+    expect(revision(legacy)).toBe(revision(roundTrip));
+    expect(revision(legacy)).toBe(first);
+    expect(
+      revision(
+        doc({
+          type: 'paragraph',
+          content: [{ ...text('body'), marks: [{ type: 'bold' }] }],
+        }),
+      ),
+    ).not.toBe(revision(doc(paragraph('body'))));
+  });
+
+  it('accepts a pristine empty fragment and refuses unknown native data or invalid structure', () => {
+    expect(editableDocument(doc()).childCount).toBe(0);
+    expect(() =>
+      editableDocument(
+        doc({
+          type: 'paragraph',
+          content: [{ type: 'hardBreak', marks: [{ type: 'bold' }] }],
+        }),
+      ),
+    ).toThrow(/cannot be preserved in collaboration/);
+    expect(() => editableDocument(doc({ type: 'futureWidget' }))).toThrow(
+      /Unsupported node/,
+    );
+    expect(() =>
+      editableDocument(
+        doc({ ...paragraph('body'), attrs: { future: { label: 'x' } } }),
+      ),
+    ).toThrow(/Unsupported attribute/);
+    expect(() =>
+      editableDocument(
+        doc({
+          type: 'paragraph',
+          content: [
+            {
+              ...text('body'),
+              marks: [{ type: 'bold', attrs: { future: 1 } }],
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/Unsupported attribute/);
+    expect(() =>
+      editableDocument(
+        doc({
+          type: 'paragraph',
+          content: [{ ...text('body'), marks: [{ type: 'futureMark' }] }],
+        }),
+      ),
+    ).toThrow(/Unsupported mark/);
+    expect(() =>
+      editableDocument(
+        doc({ type: 'bulletList', content: [paragraph('invalid')] }),
+      ),
+    ).toThrow(/Invalid content/);
+    expect(
+      editableDocument(doc({ ...paragraph('body'), attrs: { future: null } }))
+        .childCount,
+    ).toBe(1);
   });
 });

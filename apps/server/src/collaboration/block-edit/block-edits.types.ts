@@ -7,7 +7,11 @@ export type BlockEditType =
   | 'insert_after'
   | 'delete'
   | 'move_before'
-  | 'move_after';
+  | 'move_after'
+  | 'replace_text'
+  | 'replace_document'
+  | 'append_document'
+  | 'prepend_document';
 
 export type BlockEdit = {
   type: BlockEditType;
@@ -15,6 +19,9 @@ export type BlockEdit = {
   endRef?: string;
   targetRef?: string;
   content?: JSONContent[];
+  oldText?: string;
+  newText?: string;
+  occurrence?: number;
 };
 
 export type BlockEditResult =
@@ -31,10 +38,38 @@ export type BlockSplice = {
   parentPath: number[];
   index: number;
   deleteCount: number;
-  insert: Array<{ json: JSONContent } | { movedFrom: number[] }>;
+  insert: JSONContent[];
   expected: ExpectedNode[];
 };
 
+export type TextSplice = {
+  path: number[];
+  run: number;
+  before: string;
+  from: number;
+  to: number;
+  text: string;
+  marksAt: number;
+  expected: ExpectedNode[];
+};
+
+export type FormatSplice = {
+  path: number[];
+  format: JSONContent;
+  fill?: boolean;
+  expected: ExpectedNode[];
+};
+export type AttributeSplice = {
+  path: number[];
+  attributes: Record<string, unknown>;
+  expected: ExpectedNode[];
+};
+export type EditSplice =
+  | BlockSplice
+  | TextSplice
+  | FormatSplice
+  | AttributeSplice;
+
 export type BlockEditPlan =
-  | { ok: true; doc: Node; splices: BlockSplice[]; insertedRefs: string[][] }
+  | { ok: true; doc: Node; splices: EditSplice[]; insertedRefs: string[][] }
   | { ok: false; error: string };
