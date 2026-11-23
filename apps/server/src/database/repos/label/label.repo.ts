@@ -395,6 +395,8 @@ export class LabelRepo {
         .having((eb) => eb.fn.count('labels.id'), '=', labels.length);
     }
 
+    const dateColumn =
+      options.sortBy === 'createdAt' ? 'pages.createdAt' : 'pages.updatedAt';
     let query = this.db
       .selectFrom('pages')
       .innerJoin('spaces', 'spaces.id', 'pages.spaceId')
@@ -403,9 +405,12 @@ export class LabelRepo {
         'pages.slugId',
         'pages.title',
         'pages.icon',
+        'pages.isBase',
+        dateColumn,
         'spaces.id as spaceId',
         'spaces.slug as spaceSlug',
         'spaces.name as spaceName',
+        'spaces.archivedAt as spaceArchivedAt',
       ])
       .where('pages.workspaceId', '=', workspaceId)
       .whereRef('spaces.workspaceId', '=', 'pages.workspaceId')
@@ -453,11 +458,7 @@ export class LabelRepo {
         (eb) =>
           options.sortBy === 'title'
             ? eb.fn<string>('lower', ['pages.title'])
-            : eb.ref(
-                options.sortBy === 'createdAt'
-                  ? 'pages.createdAt'
-                  : 'pages.updatedAt',
-              ),
+            : eb.ref(dateColumn),
         options.sortDirection,
       )
       .orderBy('pages.id', 'asc')
@@ -465,11 +466,18 @@ export class LabelRepo {
       .execute();
 
     return {
-      items: rows.map(({ spaceId, spaceName, spaceSlug, labels, ...page }) => ({
-        ...page,
-        space: { id: spaceId, name: spaceName, slug: spaceSlug },
-        ...(labels && { labels: labels.map(({ name }) => name) }),
-      })),
+      items: rows.map(
+        ({ spaceId, spaceName, spaceSlug, spaceArchivedAt, labels, ...page }) => ({
+          ...page,
+          space: {
+            id: spaceId,
+            name: spaceName,
+            slug: spaceSlug,
+            archivedAt: spaceArchivedAt,
+          },
+          ...(labels && { labels: labels.map(({ name }) => name) }),
+        }),
+      ),
     };
   }
 

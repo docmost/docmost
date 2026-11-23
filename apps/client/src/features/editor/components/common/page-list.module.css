@@ -1,0 +1,114 @@
+.block {
+  --page-list-secondary: light-dark(#6b7280, var(--mantine-color-dark-1));
+}
+
+.headless {
+  display: flex;
+  flex-flow: row-reverse wrap;
+  align-items: flex-start;
+  column-gap: var(--mantine-spacing-xs);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: rem(4px) var(--mantine-spacing-xs);
+}
+
+:global(.ProseMirror) .heading {
+  margin: 0;
+  font-size: rem(20px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: rem(2px);
+  margin-inline-start: auto;
+}
+
+.headless > .actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-inline-start: 0;
+}
+
+.content {
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.headless > .content {
+  flex: 1 1 rem(200px);
+}
+
+.header + .content {
+  margin-top: rem(8px);
+  padding-top: rem(6px);
+  border-top: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+.block .content .row {
+  display: flex;
+  align-items: center;
+  gap: var(--page-list-row-gap, var(--mantine-spacing-sm));
+  min-width: 0;
+  min-height: rem(44px);
+  padding: rem(9px) var(--mantine-spacing-xs);
+  border: 0;
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    background-color: light-dark(
+      var(--mantine-color-gray-0),
+      var(--mantine-color-dark-6)
+    );
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: -2px;
+  }
+}
+
+.icon {
+  flex: none;
+  display: inline-flex;
+  align-self: start;
+  align-items: center;
+  justify-content: center;
+  width: rem(24px);
+  height: rem(21px);
+  color: var(--mantine-color-gray-text);
+  font-size: rem(18px);
+  line-height: 1;
+}
+
+.title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(
+    --docs-accent,
+    light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0))
+  );
+  font-size: rem(15px);
+  font-weight: 550;
+  line-height: 1.4;
+}
+
+.empty {
+  padding: var(--mantine-spacing-xs);
+  color: var(--page-list-secondary);
+  font-size: var(--mantine-font-size-sm);
+}

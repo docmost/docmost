@@ -83,6 +83,19 @@ describe('Pages by label block', () => {
     scope: 'workspace',
   });
 
+  it.each([
+    ['title', 'updated_at'],
+    ['updatedAt', 'updated_at'],
+    ['createdAt', 'created_at'],
+  ] as const)('selects the row metadata for %s sorting', async (sortBy, date) => {
+    const { repo, queries } = buildRepo();
+    await repo.queryPages('workspace', 'viewer', { ...filters, sortBy });
+    const [projection] = queries[0].sql.split(' from "pages"');
+    expect(projection).toContain(`"pages"."${date}"`);
+    expect(projection).toContain('"pages"."is_base"');
+    expect(projection).toContain('"spaces"."archived_at" as "space_archived_at"');
+  });
+
   it('applies inherited restrictions, membership and exclusions before sorting and limiting', async () => {
     const { repo, queries } = buildRepo();
     await repo.queryPages('workspace', 'viewer', {

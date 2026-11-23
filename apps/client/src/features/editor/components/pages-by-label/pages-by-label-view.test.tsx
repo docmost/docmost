@@ -11,6 +11,7 @@ import {
 } from "@testing-library/react";
 import { Editor, EditorContent } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
+import type { ContextType } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { createStore, Provider } from "jotai";
 import { pageEditorBindingAtom } from "@/features/editor/atoms/editor-atoms";
@@ -43,10 +44,11 @@ vi.mock("@/features/user/atoms/current-user-atom", async () => ({
     workspaceId: "workspace",
   }),
 }));
-vi.mock("react-i18next", () => ({
+vi.mock("react-i18next", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-i18next")>()),
   useTranslation: () => ({
-    t: (key: string, values?: { name: string }) =>
-      key.replace("{{name}}", values?.name ?? ""),
+    t: (key: string, values?: Record<string, string>) =>
+      key.replace(/\{\{(\w+)\}\}/g, (match, name) => values?.[name] ?? match),
   }),
 }));
 
@@ -55,6 +57,10 @@ function show(
   attrs?: Partial<PagesByLabelAttributes>,
   path = "/s/team/p/host-abc",
   editable = true,
+  host: ContextType<typeof PagesByLabelContext> = {
+    pageId: "host",
+    spaceId: "team",
+  },
 ) {
   const editor = new Editor({
     extensions: [
@@ -81,9 +87,7 @@ function show(
       <MemoryRouter initialEntries={[path]}>
         <MantineProvider env="test">
           <QueryClientProvider client={client}>
-            <PagesByLabelContext.Provider
-              value={{ pageId: "host", spaceId: "team" }}
-            >
+            <PagesByLabelContext.Provider value={host}>
               <EditorContent editor={editor} />
             </PagesByLabelContext.Provider>
           </QueryClientProvider>
@@ -176,34 +180,120 @@ it.each([true, false])(
       id: "target",
       title: "Release handoff",
       slugId: "a42",
-      space: { slug: "other", name: "Other" },
-      labels: ["guide"],
+      space: { id: "other-id", slug: "other", name: "Other" },
+      labels: ["guide", "review/100%"],
     };
     vi.mocked(api.post)
       .mockResolvedValueOnce({ data: { items: [page] } })
+      .mockResolvedValueOnce({
+        data: {
+          items: [
+            {
+              ...page,
+              title: null,
+              isBase: true,
+              space: { ...page.space, archivedAt: "2026-06-01" },
+            },
+          ],
+        },
+      })
       .mockResolvedValueOnce({ data: { items: [] } });
     const { client } = show(
-      { labels: ["guide"], showLabels: true, showSpace: true },
+      {
+        labels: ["guide"],
+        heading: "Team guides",
+        showLabels: true,
+        showSpace: true,
+      },
       undefined,
       editable,
     );
-    const link = await screen.findByRole("link", { name: /Release handoff/ });
+    expect(screen.getByRole("heading", { name: "Team guides" })).toBeTruthy();
+    const link = await screen.findByRole("link", { name: "Release handoff" });
     expect(link.getAttribute("href")).toBe("/s/other/p/release-handoff-a42");
-    expect(link.textContent).toContain("guide");
-    expect(api.post).toHaveBeenCalledWith(
-      "/labels/query-pages",
-      expect.objectContaining({
-        pageId: "host",
-        contextSpaceId: "team",
-        labels: ["guide"],
-        scope: "current",
-      }),
-    );
+    const guide = screen.getByRole("link", { name: "guide" });
+    expect(guide.getAttribute("href")).toBe("/labels/guide");
+    expect(link.contains(guide)).toBe(false);
+    expect(
+      screen.getByRole("link", { name: "review/100%" }).getAttribute("href"),
+    ).toBe("/labels/review%2F100%25");
+    expect(api.post).toHaveBeenCalledWith("/labels/query-pages", {
+      pageId: "host",
+      labels: ["guide"],
+      showLabels: true,
+    });
     expect(
       !!screen.queryByRole("button", { name: "Pages by label settings" }),
     ).toBe(editable);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Refresh matching pages" }),
+    );
+    const base = await screen.findByRole("link", { name: /Untitled base/ });
+    expect(
+      base.closest('[role="listitem"]')?.querySelector(".tabler-icon-table"),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "guide" }).getAttribute("href"),
+    ).toBe("/labels/guide?spaceId=other-id");
     await act(() => client.invalidateQueries({ queryKey: ["label-pages"] }));
     expect(await screen.findByText("No matching pages")).toBeTruthy();
+  },
+);
+
+it("sends non-default filters and the selected space IDs for a page", async () => {
+  const page = {
+    id: "p1",
+    slugId: "p1",
+    title: "Guide",
+    space: { id: "team", slug: "team", name: "Team" },
+    createdAt: "2026-03-02T10:15:00Z",
+    updatedAt: "2026-10-12T09:00:00Z",
+  };
+  vi.mocked(api.post).mockResolvedValue({ data: { items: [page] } });
+  const filters = {
+    labels: ["guide", "handbook"],
+    match: "all",
+    excludeLabels: ["draft"],
+    scope: "spaces",
+    spaceIds: ["a1d0dfc0-1000-4000-8000-000000000001"],
+    sortBy: "createdAt",
+    sortDirection: "desc",
+    limit: 8,
+    excludeCurrentPage: true,
+    showLabels: true,
+  } satisfies Partial<PagesByLabelAttributes>;
+  show({ ...filters, showSpace: true, heading: "Guides" });
+  await waitFor(() =>
+    expect(api.post).toHaveBeenCalledWith("/labels/query-pages", {
+      pageId: "host",
+      ...filters,
+    }),
+  );
+  const time = await screen.findByTitle(/^Created at /);
+  expect(time.getAttribute("datetime")).toBe(page.createdAt);
+});
+
+it.each([
+  { spaceId: "team", context: { contextSpaceId: "team" } },
+  { spaceId: null, context: {} },
+])(
+  "requests workspace results from a template with space $spaceId",
+  async ({ spaceId, context }) => {
+    vi.mocked(api.post).mockResolvedValue({ data: { items: [] } });
+    const { editor } = show(
+      { labels: ["guide"], scope: "workspace", excludeCurrentPage: true },
+      "/templates",
+      true,
+      { spaceId },
+    );
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith("/labels/query-pages", {
+        labels: ["guide"],
+        scope: "workspace",
+        ...context,
+      }),
+    );
+    expect(editor.state.doc.firstChild.attrs.excludeCurrentPage).toBe(true);
   },
 );
 
