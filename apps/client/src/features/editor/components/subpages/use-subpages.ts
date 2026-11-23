@@ -20,7 +20,7 @@ export function useSubpages(
   const sharedTreeData = useAtomValue(sharedTreeDataAtom);
   const publicSpaceTreeData = useAtomValue(publicSpaceTreeDataAtom);
 
-  const { data, isLoading, error } = useGetSidebarPagesQuery(
+  const { data, isLoading, error, refetch } = useGetSidebarPagesQuery(
     !isPublicView && enabled ? { pageId } : null,
   );
 
@@ -51,5 +51,10 @@ export function useSubpages(
     sortBy,
   ]);
 
-  return { subpages, isLoading, error };
+  return {
+    subpages,
+    isLoading,
+    error,
+    refetch: !isPublicView && enabled && pageId ? refetch : undefined,
+  };
 }

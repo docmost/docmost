@@ -10,6 +10,8 @@ export type SubpagesSortBy = "default" | "title-asc" | "recent";
 
 export interface SubpagesAttributes {
   sortBy?: SubpagesSortBy;
+  heading?: string;
+  hideHeading?: boolean;
 }
 
 declare module "@tiptap/core" {
@@ -39,6 +41,21 @@ export const Subpages = Node.create<SubpagesOptions>({
         renderHTML: (attributes: SubpagesAttributes) => ({
           "data-sort-by": attributes.sortBy || "default",
         }),
+      },
+      heading: {
+        default: "",
+        validate: "string",
+        parseHTML: (element) => element.getAttribute("data-heading") || "",
+        renderHTML: ({ heading }) =>
+          heading ? { "data-heading": heading } : {},
+      },
+      hideHeading: {
+        default: false,
+        validate: "boolean",
+        parseHTML: (element) =>
+          element.getAttribute("data-hide-heading") === "true",
+        renderHTML: ({ hideHeading }) =>
+          hideHeading ? { "data-hide-heading": "true" } : {},
       },
     };
   },
