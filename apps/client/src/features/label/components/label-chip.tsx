@@ -49,6 +49,7 @@ export function LabelChip({
         <button
           type="button"
           className={classes.chipX}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();

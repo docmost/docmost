@@ -225,7 +225,6 @@ export function PageListLabelFilters({
   const inputProps = {
     maxValues,
     isWithinLength,
-    className: classes.labelFilter,
     placeholder: t("Add label…"),
   };
   return (

@@ -8,6 +8,7 @@
 
 .chip {
   display: inline-flex;
+  max-width: 100%;
   align-items: center;
   gap: 6px;
   height: 24px;
@@ -21,10 +22,13 @@
 }
 
 .chipName {
+  overflow: hidden;
+  text-overflow: ellipsis;
   letter-spacing: 0.005em;
 }
 
 .chipX {
+  flex-shrink: 0;
   appearance: none;
   border: 0;
   background: transparent;
@@ -145,7 +149,10 @@
   text-align: left;
 }
 
-.popoverItemHover {
+.popoverItemHover,
+.popoverItem[data-combobox-selected],
+.popoverItem[role="option"]:hover {
+  color: var(--mantine-color-text);
   background: light-dark(
     var(--mantine-color-gray-1),
     var(--mantine-color-dark-5)
