@@ -1,4 +1,4 @@
-import { MantineProvider, Menu } from "@mantine/core";
+import { MantineProvider } from "@mantine/core";
 import { EventEmitter } from "node:events";
 import { MemoryRouter } from "react-router-dom";
 import type { Socket } from "socket.io-client";
@@ -21,7 +21,7 @@ import { useQuerySubscription } from "@/features/websocket/use-query-subscriptio
 import type { ICurrentUser } from "@/features/user/types/user.types";
 import api from "@/lib/api-client";
 import {
-  AddPagePropertyMenuItem,
+  AddPagePropertyButton,
   PagePropertiesPanel,
 } from "./page-properties-panel";
 import type { SelectTypeOptions } from "@/ee/base/types/base.types";
@@ -97,14 +97,7 @@ function panel(
       <QueryClientProvider client={client}>
         <MantineProvider env={env}>
           <SocketSubscription />
-          <Menu>
-            <Menu.Target>
-              <button>Page actions</button>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <AddPagePropertyMenuItem pageId={pageId} />
-            </Menu.Dropdown>
-          </Menu>
+          <AddPagePropertyButton pageId={pageId} />
           <PagePropertiesPanel
             pageId={pageId}
             spaceId="space"
@@ -171,13 +164,8 @@ describe("page properties", () => {
       .mockResolvedValueOnce({ data: null });
     const view = render(panel("one", true));
     const section = () => screen.queryByRole("region", { name: "Properties" });
-    const openActions = () =>
-      fireEvent.click(screen.getByRole("button", { name: "Page actions" }));
-
-    openActions();
-    const add = await screen.findByRole("menuitem", { name: "Add property" });
+    const add = await screen.findByRole("button", { name: "Add property" });
     expect(section()).toBeNull();
-    expect(screen.queryByRole("button", { name: "Add property" })).toBeNull();
     fireEvent.click(add);
     fireEvent.change(await screen.findByLabelText("Name"), {
       target: { value: field.name },
@@ -192,12 +180,9 @@ describe("page properties", () => {
     fireEvent.click(screen.getByRole("button", { name: "Delete property" }));
     await waitFor(() => expect(section()).toBeNull());
 
-    openActions();
-    expect(
-      await screen.findByRole("menuitem", { name: "Add property" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add property" })).toBeTruthy();
     view.rerender(panel("one", false));
-    expect(screen.queryByRole("menuitem", { name: "Add property" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add property" })).toBeNull();
   });
 
   it("keeps the portalled report and its column picker inside the print exclusion", async () => {
@@ -222,7 +207,19 @@ describe("page properties", () => {
     expect(option.closest(".print-hide")).toBeTruthy();
   });
 
-  it("withholds existing report rows immediately when access changes", async () => {
+  it.each([
+    ["access changes", { operation: "accessChanged" }],
+    [
+      "a reported page becomes a Base",
+      {
+        operation: "updateOne",
+        entity: ["pages"],
+        id: "other-page",
+        spaceId: "space",
+        payload: { isBase: true, slugId: "evaluation" },
+      },
+    ],
+  ])("clears stale report rows when %s", async (_change, event) => {
     const socket = new EventEmitter();
     store.set(
       socketAtom as PrimitiveAtom<Socket | null>,
@@ -262,7 +259,7 @@ describe("page properties", () => {
     expect(screen.getByText("Sensitive notes")).toBeTruthy();
 
     act(() => {
-      socket.emit("message", { operation: "accessChanged" });
+      socket.emit("message", event);
     });
     await waitFor(() => expect(reports).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole("link", { name: row.title })).toBeNull();

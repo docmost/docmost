@@ -133,6 +133,9 @@ export const useQuerySubscription = () => {
           }
 
           if (entity === "pages") {
+            if (data.payload.isBase === true) {
+              void queryClient.resetQueries({ queryKey: ["page-property-report"] });
+            }
             invalidateOnUpdatePage(
               data.spaceId,
               data.payload.parentPageId,

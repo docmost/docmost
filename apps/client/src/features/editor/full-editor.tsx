@@ -36,7 +36,10 @@ import clsx from "clsx";
 import { currentPageEditModeAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { EmptyPageGetStarted } from "@/features/editor/components/empty-page/empty-page-get-started";
 import { AddCoverButton } from "@/features/page-cover/components/add-cover-button.tsx";
-import { PagePropertiesPanel } from "@/ee/page-properties/page-properties-panel";
+import {
+  AddPagePropertyButton,
+  PagePropertiesPanel,
+} from "@/ee/page-properties/page-properties-panel";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
@@ -155,6 +158,7 @@ export function FullEditor({
         />
       </div>
       <PageByline
+        pageId={pageId}
         creator={creator}
         contributors={contributors}
         readOnly={!editable}
@@ -184,12 +188,18 @@ export function FullEditor({
 }
 
 type PageBylineProps = {
+  pageId: string;
   creator?: PageUser;
   contributors?: IContributor[];
   readOnly?: boolean;
 };
 
-function PageByline({ creator, contributors, readOnly }: PageBylineProps) {
+function PageByline({
+  pageId,
+  creator,
+  contributors,
+  readOnly,
+}: PageBylineProps) {
   const { t } = useTranslation();
   const detailsTriggerProps = useAsideTriggerProps("details");
 
@@ -289,6 +299,7 @@ function PageByline({ creator, contributors, readOnly }: PageBylineProps) {
       </Tooltip>
 
       <PageVerificationBadge readOnly={readOnly} />
+      {!readOnly && <AddPagePropertyButton pageId={pageId} />}
     </Group>
   );
 }

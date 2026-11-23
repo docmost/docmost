@@ -54,7 +54,6 @@ type ReportPage = {
   id: string;
   slugId: string;
   title: string | null;
-  isBase: boolean;
   spaceSlug: string;
   spaceName: string;
   properties: ReportCell[];
@@ -331,8 +330,7 @@ function ReportContent({ pageId, spaceId, properties, onClose }: Props) {
                         page.title ?? undefined,
                       )}
                     >
-                      {page.title ||
-                        (page.isBase ? t("Untitled base") : t("Untitled"))}
+                      {page.title || t("Untitled")}
                     </Anchor>
                     <Text size="xs" c="dimmed">
                       {page.spaceName}

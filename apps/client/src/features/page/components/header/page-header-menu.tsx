@@ -50,7 +50,6 @@ import PageAttachmentsModal from "@/features/attachments/components/page-attachm
 import PresentationModal from "@/features/editor/components/presentation/presentation-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
 import { PageShareModal } from "@/ee/page-permission";
-import { AddPagePropertyMenuItem } from "@/ee/page-properties/page-properties-panel";
 import {
   PageVerificationMenuItem,
   PageVerificationModal,
@@ -371,8 +370,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
           )}
 
           <Menu.Divider />
-
-          {!readOnly && <AddPagePropertyMenuItem pageId={page.id} />}
 
           {!readOnly && (
             <Menu.Item

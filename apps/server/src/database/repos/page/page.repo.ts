@@ -690,7 +690,7 @@ export class PageRepo {
         JOIN pages source ON source.id = m.source_id
         JOIN pages target ON target.id = m.target_id AND target.workspace_id = source.workspace_id
         WHERE source.workspace_id = ${actor.workspaceId} AND source.space_id = ${sourceSpaceId}
-          AND source.deleted_at IS NULL
+          AND source.deleted_at IS NULL AND NOT source.is_base AND NOT target.is_base
       ), fields AS (
         INSERT INTO base_properties (metadata_page_id, scope, id, name, type, position, type_options, workspace_id)
         SELECT c.target_id, 'page', p.id, p.name, p.type, p.position, p.type_options, p.workspace_id

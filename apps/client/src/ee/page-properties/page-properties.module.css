@@ -19,20 +19,11 @@
   }
 }
 
-.basePanel {
-  margin-inline: 0;
-  padding-inline-start: 20px;
-}
-
 .content {
   border-bottom: 1px solid
     light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
   padding-block: 3px 16px;
   margin-bottom: 12px;
-}
-
-.basePanel .content {
-  margin-bottom: 8px;
 }
 
 .heading,

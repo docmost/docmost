@@ -1,10 +1,17 @@
 import { useEffect, useId, useMemo, useState } from "react";
-import { ActionIcon, MantineThemeProvider, Menu, Portal } from "@mantine/core";
+import {
+  ActionIcon,
+  MantineThemeProvider,
+  Menu,
+  Portal,
+  Tooltip,
+} from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import {
   IconChevronDown,
   IconChevronRight,
   IconDots,
+  IconPlaylistAdd,
   IconPlus,
   IconReportAnalytics,
 } from "@tabler/icons-react";
@@ -29,25 +36,32 @@ type PanelProps = {
   pageId: string;
   spaceId: string;
   editable: boolean;
-  inBase?: boolean;
 };
 
 type AddPagePropertyAction = { pageId: string; open: () => void };
 const addPagePropertyActionAtom = atom(null as AddPagePropertyAction | null);
 
-export function AddPagePropertyMenuItem({ pageId }: { pageId: string }) {
+export function AddPagePropertyButton({ pageId }: { pageId: string }) {
   const { t } = useTranslation();
   const action = useAtomValue(addPagePropertyActionAtom);
   if (!action || action.pageId !== pageId) return null;
 
   return (
-    <Menu.Item
-      className="print-hide"
-      leftSection={<IconPlus size={16} />}
-      onClick={action.open}
+    <Tooltip
+      label={t("Add property")}
+      withArrow
+      openDelay={250}
+      withinPortal={false}
     >
-      {t("Add property")}
-    </Menu.Item>
+      <ActionIcon
+        variant="subtle"
+        color="gray"
+        aria-label={t("Add property")}
+        onClick={action.open}
+      >
+        <IconPlaylistAdd size={20} stroke={1.5} />
+      </ActionIcon>
+    </Tooltip>
   );
 }
 
@@ -87,7 +101,6 @@ function Properties({
   pageId,
   spaceId,
   editable,
-  inBase,
   userId,
 }: PanelProps & { userId: string }) {
   const { t } = useTranslation();
@@ -110,11 +123,7 @@ function Properties({
   }, [editable, loaded, pageId, setAddPropertyAction]);
 
   const rowsId = useId();
-  const className = clsx(
-    "print-hide",
-    classes.panel,
-    inBase && classes.basePanel,
-  );
+  const className = clsx("print-hide", classes.panel);
   if (!loaded) {
     return query.isError ? (
       <div className={className}>
