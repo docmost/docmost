@@ -27,6 +27,7 @@ export async function formatImportHtml(opts: {
   pageDir?: string;
   attachmentCandidates?: string[];
   spaceSlug?: string;
+  spaceId?: string;
 }): Promise<{
   html: string;
   backlinks: InsertableBacklink[];
@@ -54,7 +55,7 @@ export async function formatImportHtml(opts: {
     }
   }
 
-  normalizeImportHtml($, $root);
+  normalizeImportHtml($, $root, opts.spaceId);
 
   const backlinks = await rewriteInternalLinksToMentionHtml(
     $,
@@ -75,7 +76,7 @@ export async function formatImportHtml(opts: {
 }
 
 /**
- * Contextless HTML cleanup shared by every import path.
+ * HTML cleanup shared by every import path.
  * - notionFormatter: no-op on non-Notion HTML (class-selector-based).
  * - xwikiFormatter: no-op on non-XWiki HTML (looks for #xwikicontent).
  * - defaultHtmlFormatter: table column widths + provider auto-embeds.
@@ -85,8 +86,9 @@ export async function formatImportHtml(opts: {
 export function normalizeImportHtml(
   $: CheerioAPI,
   $root: Cheerio<any>,
+  spaceId?: string,
 ): void {
-  formatConfluenceRecentUpdates($, $root);
+  formatConfluenceRecentUpdates($, $root, spaceId);
   normalizeImportDates($, $root);
   notionFormatter($, $root);
   xwikiFormatter($, $root);

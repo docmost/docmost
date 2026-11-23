@@ -383,6 +383,9 @@ export class PageRepo {
   }
 
   async getRecentlyUpdatedPages(userId: string, workspaceId: string, options: RecentlyUpdatedDto) {
+    const hasNamedSpaces = options.spaceIds.length > 0;
+    if ((options.scope === 'spaces') !== hasNamedSpaces) return [];
+
     return this.db
       .selectFrom('pages')
       .innerJoin('spaces', 'spaces.id', 'pages.spaceId')
@@ -403,7 +406,7 @@ export class PageRepo {
         keepArchivedSpaceId: options.spaceId,
       }))
       .where(this.pagePermissionRepo.canUserAccessPageExpression(userId))
-      .where((eb) => recentlyUpdatedFilter(eb, options, userId))
+      .where((eb) => recentlyUpdatedFilter(eb, options))
       .orderBy('pages.updatedAt', 'desc')
       .orderBy('pages.id', 'desc')
       .limit(options.limit)

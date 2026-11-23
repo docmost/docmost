@@ -8,6 +8,7 @@ import {
   useEditorState,
 } from "@tiptap/react";
 import {
+  DEFAULT_RECENTLY_UPDATED_LIMIT,
   RECENTLY_UPDATED_FILTER_LIMITS,
   type RecentlyUpdatedAttributes,
   normalizeRecentlyUpdatedFilters,
@@ -26,6 +27,7 @@ import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
 import RecentlyUpdatedSettings from "./recently-updated-settings";
 import { useEditorSpaceId } from "./editor-space-context";
+import { getPageListSettingsChanges } from "../common/page-list-settings";
 import {
   PageListHeading,
   PageListLayout,
@@ -111,13 +113,32 @@ function Feed({
   );
   const spaceId = editorSpaceId ?? space?.id;
   const enabled = !!spaceId && !!viewer?.id;
+  const {
+    scope,
+    spaceIds,
+    excludeSpaceIds,
+    labels,
+    excludeLabels,
+    match,
+    limit,
+  } = filters;
+  const params = {
+    spaceId,
+    ...(scope !== "current" && { scope }),
+    ...(scope === "spaces" && { spaceIds }),
+    ...(excludeSpaceIds.length > 0 && { excludeSpaceIds }),
+    ...(labels.length > 0 && { labels }),
+    ...(excludeLabels.length > 0 && { excludeLabels }),
+    ...(match !== "any" && { match }),
+    ...(limit !== DEFAULT_RECENTLY_UPDATED_LIMIT && { limit }),
+  };
   const { data, isError, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["recently-updated", spaceId, viewer?.id, filters],
+    queryKey: ["recently-updated", viewer?.id, params],
     queryFn: async () => {
-      const response = await api.post<RecentPage[]>("/pages/recently-updated", {
-        spaceId,
-        ...filters,
-      });
+      const response = await api.post<RecentPage[]>(
+        "/pages/recently-updated",
+        params,
+      );
       return response.data;
     },
     enabled,
@@ -200,27 +221,33 @@ export default function RecentlyUpdatedView({
       {t("Recently updated")}
     </PageListHeading>
   );
+  let filterMessage: string | undefined;
+  if (!recentlyUpdatedFiltersWithinLimits(options)) {
+    filterMessage = t(
+      "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.",
+      RECENTLY_UPDATED_FILTER_LIMITS,
+    );
+  } else if (filters.scope === "spaces" && !filters.spaceIds.length) {
+    filterMessage = editable
+      ? t("Choose a space to show pages.")
+      : t("No matching pages");
+  }
   return (
     <NodeViewWrapper
       data-type="recently-updated"
       contentEditable={false}
       className={classes.block}
     >
-      {recentlyUpdatedFiltersWithinLimits(options) ? (
+      {filterMessage ? (
+        <PageListLayout heading={heading} actions={settingsButton}>
+          <div className={classes.empty}>{filterMessage}</div>
+        </PageListLayout>
+      ) : (
         <Feed
           filters={{ ...filters, limit: options.limit }}
           heading={heading}
           settings={settingsButton}
         />
-      ) : (
-        <PageListLayout heading={heading} actions={settingsButton}>
-          <div className={classes.empty}>
-            {t(
-              "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.",
-              RECENTLY_UPDATED_FILTER_LIMITS,
-            )}
-          </div>
-        </PageListLayout>
       )}
       {editable && editing && (
         <RecentlyUpdatedSettings
@@ -228,7 +255,16 @@ export default function RecentlyUpdatedView({
           onClose={() => setEditing(null)}
           onSave={(changes) => {
             if (editor.isEditable && Object.keys(changes).length) {
-              updateAttributes(changes);
+              const pos = getPos();
+              const current =
+                typeof pos === "number" && editor.state.doc.nodeAt(pos);
+              if (current && current.type === node.type) {
+                const repairs = getPageListSettingsChanges(
+                  current.attrs,
+                  normalizeRecentlyUpdatedFilters(current.attrs),
+                );
+                updateAttributes({ ...repairs, ...changes });
+              }
             }
             setEditing(null);
           }}

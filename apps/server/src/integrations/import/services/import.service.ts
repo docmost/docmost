@@ -73,7 +73,7 @@ export class ImportService {
       if (fileExtension.endsWith('.md')) {
         prosemirrorState = await this.processMarkdown(fileContent);
       } else if (fileExtension.endsWith('.html')) {
-        prosemirrorState = await this.processHTML(fileContent);
+        prosemirrorState = await this.processHTML(fileContent, spaceId);
       } else if (fileExtension.endsWith('.docx')) {
         prosemirrorState = await this.processDocx(
           fileBuffer,
@@ -150,10 +150,10 @@ export class ImportService {
     }
   }
 
-  async processHTML(htmlInput: string): Promise<any> {
+  async processHTML(htmlInput: string, spaceId?: string): Promise<any> {
     try {
       const $ = loadImportHtml(htmlInput);
-      normalizeImportHtml($, $.root());
+      normalizeImportHtml($, $.root(), spaceId);
       return htmlToJson($.html() || '');
     } catch (err) {
       throw err;

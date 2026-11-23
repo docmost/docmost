@@ -2,7 +2,9 @@ import { mergeAttributes, Node } from '@tiptap/core';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { ReactNodeViewRenderer, type ReactNodeViewProps } from '@tiptap/react';
 import type { ComponentType } from 'react';
+import { validate as isUuid } from 'uuid';
 import isLength from 'validator/lib/isLength';
+import { upgradeRecentlyUpdatedSpaceFilters } from './recently-updated-legacy';
 
 export const DEFAULT_RECENTLY_UPDATED_LIMIT = 15;
 export const MAX_RECENTLY_UPDATED_LIMIT = 200;
@@ -21,9 +23,9 @@ export function normalizeRecentlyUpdatedLimit(value: unknown): number {
 }
 
 export interface RecentlyUpdatedFilters {
-  spaces: string[];
-  excludeSpaces: string[];
-  spaceMatch: 'any' | 'all';
+  scope: 'current' | 'spaces' | 'workspace';
+  spaceIds: string[];
+  excludeSpaceIds: string[];
   labels: string[];
   excludeLabels: string[];
   match: 'any' | 'all';
@@ -39,13 +41,13 @@ export function recentlyUpdatedFilterValueWithinLimit(value: string): boolean {
 }
 
 export function recentlyUpdatedFiltersWithinLimits({
-  spaces,
-  excludeSpaces,
+  spaceIds,
+  excludeSpaceIds,
   labels,
   excludeLabels,
 }: RecentlyUpdatedFilters): boolean {
   const { maxValues } = RECENTLY_UPDATED_FILTER_LIMITS;
-  return [spaces, excludeSpaces, labels, excludeLabels].every(
+  return [spaceIds, excludeSpaceIds, labels, excludeLabels].every(
     (values) =>
       values.length <= maxValues &&
       values.every(recentlyUpdatedFilterValueWithinLimit),
@@ -62,32 +64,36 @@ function isFilterList(value: unknown): value is string[] {
 type FilterInput = Partial<Record<keyof RecentlyUpdatedFilters, unknown>>;
 
 export function normalizeRecentlyUpdatedFilters({
-  spaces = [],
-  excludeSpaces = [],
-  spaceMatch = 'any',
+  scope = 'current',
+  spaceIds = [],
+  excludeSpaceIds = [],
   labels = [],
   excludeLabels = [],
   match = 'any',
 }: FilterInput): RecentlyUpdatedFilters {
-  if (
-    !isFilterList(spaces) ||
-    !isFilterList(excludeSpaces) ||
-    (spaceMatch !== 'any' && spaceMatch !== 'all') ||
-    !isFilterList(labels) ||
-    !isFilterList(excludeLabels) ||
-    (match !== 'any' && match !== 'all')
-  ) {
-    // An unresolved space keeps a malformed restriction from exposing other pages.
-    return {
-      spaces: ['?'],
-      excludeSpaces: [],
-      spaceMatch: 'any',
-      labels: [],
-      excludeLabels: [],
-      match: 'any',
-    };
-  }
-  return { spaces, excludeSpaces, spaceMatch, labels, excludeLabels, match };
+  const validSpaces = isFilterList(spaceIds) && spaceIds.every(isUuid);
+  const validExclusions =
+    isFilterList(excludeSpaceIds) && excludeSpaceIds.every(isUuid);
+  const validLabels = isFilterList(labels);
+  const validExcludedLabels = isFilterList(excludeLabels);
+  const validMatch = match === 'any' || match === 'all';
+  const valid =
+    (scope === 'current' || scope === 'spaces' || scope === 'workspace') &&
+    validSpaces &&
+    (scope === 'spaces' || !spaceIds.length) &&
+    validExclusions &&
+    validLabels &&
+    validExcludedLabels &&
+    validMatch;
+  // An explicit empty set matches no pages when a restriction cannot be read.
+  return {
+    scope: valid ? scope : 'spaces',
+    spaceIds: valid ? [...spaceIds] : [],
+    excludeSpaceIds: validExclusions ? [...excludeSpaceIds] : [],
+    labels: validLabels ? [...labels] : [],
+    excludeLabels: validExcludedLabels ? [...excludeLabels] : [],
+    match: validMatch ? match : 'any',
+  };
 }
 
 function readFilterList(element: HTMLElement, attribute: string): unknown {
@@ -160,9 +166,21 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
           normalizeRecentlyUpdatedLimit(element.getAttribute('data-limit')),
         renderHTML: ({ limit }) => ({ 'data-limit': limit }),
       },
-      spaces: filterListAttribute,
-      excludeSpaces: filterListAttribute,
-      spaceMatch: matchAttribute,
+      scope: {
+        default: 'current',
+        rendered: false,
+        parseHTML: () => null,
+        validate: (value: unknown) => {
+          if (
+            value !== 'current' &&
+            value !== 'spaces' &&
+            value !== 'workspace'
+          )
+            throw new RangeError('Invalid recently updated space scope');
+        },
+      },
+      spaceIds: filterListAttribute,
+      excludeSpaceIds: filterListAttribute,
       labels: filterListAttribute,
       excludeLabels: filterListAttribute,
       match: matchAttribute,
@@ -180,15 +198,36 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
     return [
       {
         tag: 'div[data-type="recently-updated"]',
-        getAttrs: (element: HTMLElement) =>
-          normalizeRecentlyUpdatedFilters({
-            spaces: readFilterList(element, 'data-spaces'),
-            excludeSpaces: readFilterList(element, 'data-exclude-spaces'),
-            spaceMatch: element.getAttribute('data-space-match') ?? undefined,
+        getAttrs: (element: HTMLElement) => {
+          const scope = element.getAttribute('data-scope');
+          const legacy =
+            scope === null &&
+            !element.hasAttribute('data-space-ids') &&
+            !element.hasAttribute('data-exclude-space-ids') &&
+            ['data-spaces', 'data-exclude-spaces', 'data-space-match'].some(
+              (attr) => element.hasAttribute(attr),
+            );
+          return normalizeRecentlyUpdatedFilters({
+            ...(legacy
+              ? upgradeRecentlyUpdatedSpaceFilters({
+                  spaces: readFilterList(element, 'data-spaces'),
+                  excludeSpaces: readFilterList(element, 'data-exclude-spaces'),
+                  spaceMatch:
+                    element.getAttribute('data-space-match') ?? undefined,
+                })
+              : {
+                  scope: scope ?? undefined,
+                  spaceIds: readFilterList(element, 'data-space-ids'),
+                  excludeSpaceIds: readFilterList(
+                    element,
+                    'data-exclude-space-ids',
+                  ),
+                }),
             labels: readFilterList(element, 'data-labels'),
             excludeLabels: readFilterList(element, 'data-exclude-labels'),
             match: element.getAttribute('data-match') ?? undefined,
-          }),
+          });
+        },
       },
     ];
   },
@@ -204,18 +243,18 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    const { spaces, excludeSpaces, spaceMatch, labels, excludeLabels, match } =
+    const { scope, spaceIds, excludeSpaceIds, labels, excludeLabels, match } =
       normalizeRecentlyUpdatedFilters(node.attrs);
     return [
       'div',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-type': 'recently-updated',
         'data-match': match,
-        'data-space-match': spaceMatch,
-        ...(excludeSpaces.length && {
-          'data-exclude-spaces': JSON.stringify(excludeSpaces),
+        'data-scope': scope,
+        ...(excludeSpaceIds.length && {
+          'data-exclude-space-ids': JSON.stringify(excludeSpaceIds),
         }),
-        ...(spaces.length && { 'data-spaces': JSON.stringify(spaces) }),
+        ...(spaceIds.length && { 'data-space-ids': JSON.stringify(spaceIds) }),
         ...(labels.length && { 'data-labels': JSON.stringify(labels) }),
         ...(excludeLabels.length && {
           'data-exclude-labels': JSON.stringify(excludeLabels),
@@ -232,24 +271,14 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
   addCommands() {
     return {
       insertRecentlyUpdated:
-        ({
-          excludeSpaces,
-          spaces = excludeSpaces?.length ? [] : ['@self'],
-          ...attributes
-        } = {}) =>
+        (attributes = {}) =>
         ({ commands }) =>
           commands.insertContent({
             type: this.name,
             attrs: {
               limit: normalizeRecentlyUpdatedLimit(attributes.limit),
               hideHeading: attributes.hideHeading === true,
-              ...structuredClone(
-                normalizeRecentlyUpdatedFilters({
-                  ...attributes,
-                  spaces,
-                  excludeSpaces,
-                }),
-              ),
+              ...normalizeRecentlyUpdatedFilters(attributes),
             },
           }),
     };

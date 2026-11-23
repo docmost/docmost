@@ -34,13 +34,20 @@ interface SingleSpaceSelectProps {
 
 interface MultipleSpaceSelectProps extends Pick<
   MultiSelectProps,
-  "id" | "label" | "aria-label" | "description" | "autoFocus" | "placeholder"
+  | "id"
+  | "label"
+  | "aria-label"
+  | "description"
+  | "autoFocus"
+  | "placeholder"
+  | "disabled"
 > {
   multiple: true;
   value: string[];
   onChange: (values: string[]) => void;
   unavailableLabel?: string;
-  scopes?: (ComboboxItem & { spaceId?: string; logo?: string })[];
+  scopes?: (ComboboxItem & { logo?: string })[];
+  placeholderSpace?: SpaceIcon;
   maxValues: number;
   withinPortal?: boolean;
 }
@@ -153,31 +160,13 @@ export function SpaceSelect(
   };
 
   if (props.multiple === true) {
-    const scopes = (props.scopes ?? []).map(
-      ({ value, label, spaceId, logo }) => {
-        const listed = spaceId ? knownSpaces.get(spaceId) : undefined;
-        return {
-          id: value,
-          name: listed?.name ?? label,
-          logo: listed?.logo ?? logo,
-          spaceId,
-        };
-      },
-    );
-    // A relative scope and the space it resolves to share one choice.
+    const additional = props.scopes ?? [];
     const choices = [
-      ...scopes.filter(
-        ({ spaceId }) => !spaceId || !props.value.includes(spaceId),
-      ),
-      ...(spaces?.items ?? []).filter(
-        ({ id }) => !scopes.some((scope) => scope.spaceId === id),
-      ),
-    ].map(({ id, name, logo }) => ({
-      value: id,
-      label: name,
-      name,
-      logo,
-    }));
+      ...additional,
+      ...(spaces?.items ?? [])
+        .filter(({ id }) => !additional.some(({ value }) => value === id))
+        .map(({ id, name, logo }) => ({ value: id, label: name, logo })),
+    ];
 
     return (
       <MultiSelect
@@ -185,10 +174,17 @@ export function SpaceSelect(
         id={props.id}
         aria-label={props["aria-label"]}
         autoFocus={props.autoFocus}
+        disabled={props.disabled}
         label={props.label}
         description={props.description}
         inputWrapperOrder={["label", "input", "description", "error"]}
-        placeholder={props.placeholder}
+        placeholder={props.placeholderSpace?.name ?? props.placeholder}
+        leftSection={
+          props.placeholderSpace && !searchValue ? (
+            <SpaceAvatar {...props.placeholderSpace} />
+          ) : undefined
+        }
+        leftSectionPointerEvents="none"
         hidePickedOptions
         data={choices}
         value={props.value}
@@ -202,11 +198,10 @@ export function SpaceSelect(
           )
         }
         renderPill={({ value, onRemove }) => {
+          const option = additional.find((item) => item.value === value);
           const space =
             knownSpaces.get(value) ??
-            scopes.find(
-              (scope) => scope.id === value || scope.spaceId === value,
-            );
+            (option && { name: option.label, logo: option.logo });
           const pill = {
             token: value,
             space,

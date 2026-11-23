@@ -34,10 +34,13 @@ import RecentlyUpdatedView from "./recently-updated-view";
 vi.mock("@/lib/api-client", () => ({ default: { post: vi.fn() } }));
 vi.mock("@/features/space/queries/space-query", () => ({
   useGetSpaceBySlugQuery: vi.fn((key?: string) => ({
-    data: key === spaceId || key === "team" ? teamSpace : undefined,
+    data: [teamSpace, otherSpace].find(
+      (space) => space.id === key || space.slug === key,
+    ),
   })),
+  useUnlistedSpaceQuery: () => ({ data: undefined }),
   useGetSpacesQuery: () => ({
-    data: { items: [teamSpace, { id: otherId, name: "Engineering" }] },
+    data: { items: [teamSpace, otherSpace] },
   }),
 }));
 vi.mock("@/features/label/queries/label-query", () => ({
@@ -64,8 +67,14 @@ vi.mock("@/lib/time", () => ({
 }));
 
 const spaceId = "de44053e-d614-453b-9706-1737faf19b87";
-const teamSpace = { id: spaceId, name: "Product design", slug: "team" };
+const teamSpace = {
+  id: spaceId,
+  name: "Product design",
+  slug: "team",
+  logo: "design.png",
+};
 const otherId = "dcb7b4d5-a068-448d-9f18-e8b0684ee57e";
+const otherSpace = { id: otherId, name: "Engineering", slug: "eng" };
 const editors: Editor[] = [];
 
 function show(
@@ -157,7 +166,7 @@ afterEach(() => {
 it.each(["/docs/team", "/share/abc/p/home", "/share/p/home"])(
   "renders nothing and makes no block requests on %s even with a signed-in viewer",
   (path) => {
-    show(path, { labels: ["private"], spaces: ["@all"] }, spaceId);
+    show(path, { labels: ["private"], scope: "workspace" }, spaceId);
     expect(document.querySelector('[data-type="recently-updated"]')).toBeNull();
     expect(screen.queryByText("Recently updated")).toBeNull();
     expect(screen.queryByText("No matching pages")).toBeNull();
@@ -198,7 +207,7 @@ it.each([
         },
       ],
     });
-    show(path, { spaces: ["@self"] }, outerSpace, {
+    show(path, { scope: "current" }, outerSpace, {
       editable,
       templateSpaceId: spaceId,
     });
@@ -208,16 +217,16 @@ it.each([
     ).toBeTruthy();
     expect(api.post).toHaveBeenCalledExactlyOnceWith(
       "/pages/recently-updated",
-      expect.objectContaining({ spaceId, spaces: ["@self"] }),
+      { spaceId },
     );
     if (editable) {
       fireEvent.click(
         screen.getByRole("button", { name: "Recently updated settings" }),
       );
       expect(
-        within(screen.getByRole("dialog")).getByRole("button", {
-          name: "Remove Product design",
-        }),
+        within(screen.getByRole("dialog")).getByPlaceholderText(
+          "Product design",
+        ),
       ).toBeTruthy();
     } else {
       expect(
@@ -249,55 +258,146 @@ it("closes settings on a silent switch to Read and restores the button on Edit",
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
-it.each(["@self", spaceId])(
-  "shows the containing space by name for %s and clears it to include all spaces",
-  async (value) => {
-    vi.mocked(api.post).mockResolvedValue({ data: [] });
-    const { editor } = show("/s/team", { spaces: [value] }, spaceId);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Recently updated settings" }),
-    );
-    const dialog = within(screen.getByRole("dialog"));
-    const spaces = dialog.getByRole("combobox", { name: "Spaces" });
-    const remove = dialog.getByRole("button", {
-      name: "Remove Product design",
-    });
-    fireEvent.click(spaces);
-    expect(dialog.queryByRole("option", { name: "Product design" })).toBeNull();
-    expect(dialog.queryByRole("option", { name: "Current space" })).toBeNull();
-    fireEvent.click(remove);
-    act(() => spaces.focus());
-    const namedSpace = await dialog.findByRole("option", {
-      name: "Product design",
-    });
-    fireEvent.click(namedSpace);
-    fireEvent.click(
-      dialog.getByRole("button", { name: "Remove Product design" }),
-    );
-    fireEvent.click(dialog.getByRole("button", { name: "Save" }));
+it("offers named spaces including the host and saves a multi-space selection", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: [] });
+  const { editor } = show("/s/team", {});
+  fireEvent.click(
+    screen.getByRole("button", { name: "Recently updated settings" }),
+  );
+  const dialog = within(screen.getByRole("dialog"));
+  const spaces = dialog.getByRole("combobox", { name: "Spaces" });
+  expect(spaces.getAttribute("placeholder")).toBe("Product design");
+  expect(
+    dialog.getByRole("checkbox", {
+      name: "All accessible spaces",
+      checked: false,
+    }),
+  ).toBeTruthy();
+  expect(
+    spaces.closest(".mantine-MultiSelect-wrapper")?.querySelector("img")?.src,
+  ).toContain("/space-icon/design.png");
+  act(() => spaces.focus());
+  expect(dialog.getAllByRole("option")).toEqual([
+    dialog.getByRole("option", { name: "Product design" }),
+    dialog.getByRole("option", { name: "Engineering" }),
+  ]);
+  fireEvent.click(dialog.getByRole("option", { name: "Engineering" }));
+  fireEvent.click(dialog.getByRole("option", { name: "Product design" }));
+  expect(dialog.queryByRole("radiogroup")).toBeNull();
+  fireEvent.click(dialog.getByRole("button", { name: "Save" }));
+  const selection = { scope: "spaces", spaceIds: [otherId, spaceId] };
+  expect(editor.getJSON().content[0].attrs).toMatchObject(selection);
+  await waitFor(() =>
+    expect(api.post).toHaveBeenLastCalledWith("/pages/recently-updated", {
+      spaceId,
+      ...selection,
+    }),
+  );
+});
 
-    expect(editor.getJSON().content[0].attrs.spaces).toEqual([]);
+it("clears a named selection back to the containing space, including after a move", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: [] });
+  const { editor } = show(
+    "/s/team",
+    { scope: "spaces", spaceIds: [spaceId] },
+    spaceId,
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Recently updated settings" }),
+  );
+  const dialog = within(screen.getByRole("dialog"));
+  fireEvent.click(
+    dialog.getByRole("button", { name: "Remove Product design" }),
+  );
+  expect(dialog.getByPlaceholderText("Product design")).toBeTruthy();
+  fireEvent.click(dialog.getByRole("button", { name: "Save" }));
+  const saved = editor.getJSON().content[0].attrs;
+  expect(saved).toMatchObject({ scope: "current", spaceIds: [] });
+  await waitFor(() =>
+    expect(api.post).toHaveBeenLastCalledWith("/pages/recently-updated", {
+      spaceId,
+    }),
+  );
+  cleanup();
+  show("/s/eng", saved, otherId);
+  await waitFor(() =>
+    expect(api.post).toHaveBeenLastCalledWith("/pages/recently-updated", {
+      spaceId: otherId,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Recently updated settings" }),
+  );
+  expect(screen.getByPlaceholderText("Engineering")).toBeTruthy();
+});
+
+it.each<{ description: string; saved: Partial<RecentlyUpdatedAttributes> }>([
+  {
+    description: "an empty named selection",
+    saved: { scope: "spaces", spaceIds: [] },
+  },
+  {
+    description: "an unreadable exclusion",
+    saved: { scope: "workspace", excludeSpaceIds: ["missing-space"] },
+  },
+])(
+  "keeps $description empty until an editor chooses a space",
+  async ({ saved }) => {
+    vi.mocked(api.post).mockResolvedValue({ data: [] });
+    const { editor } = show(
+      "/s/team",
+      { ...saved, labels: ["review"] },
+      spaceId,
+    );
+    const settings = { name: "Recently updated settings" };
+    expect(screen.getByText("Choose a space to show pages.")).toBeTruthy();
+    act(() => editor.setEditable(false));
+    expect(screen.queryByRole("button", settings)).toBeNull();
+    expect(screen.getByText("No matching pages")).toBeTruthy();
+    act(() => editor.setEditable(true));
+    fireEvent.click(screen.getByRole("button", settings));
+    let dialog = within(screen.getByRole("dialog"));
+    expect(dialog.getByText("Choose a space to show pages.")).toBeTruthy();
+    fireEvent.click(dialog.getByRole("button", { name: "More options" }));
+    fireEvent.click(dialog.getByRole("checkbox", { name: "Show heading" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Save" }));
+    expect(editor.state.doc.firstChild.attrs).toMatchObject({
+      scope: "spaces",
+      spaceIds: [],
+      hideHeading: true,
+    });
+    expect(api.post).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", settings));
+    dialog = within(screen.getByRole("dialog"));
+    act(() => dialog.getByRole("combobox", { name: "Spaces" }).focus());
+    fireEvent.click(dialog.getByRole("option", { name: "Engineering" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Save" }));
     await waitFor(() =>
-      expect(api.post).toHaveBeenLastCalledWith(
+      expect(api.post).toHaveBeenCalledExactlyOnceWith(
         "/pages/recently-updated",
-        expect.objectContaining({ spaceId, spaces: [] }),
+        { spaceId, scope: "spaces", spaceIds: [otherId], labels: ["review"] },
       ),
     );
   },
 );
 
+const hundredSpaceIds = Array.from(
+  { length: 100 },
+  (_, i) => "00000000-0000-4000-8000-" + String(i + 1).padStart(12, "0"),
+);
+
 it.each([
   {
-    field: "spaces",
+    field: "spaceIds",
     label: "Spaces",
-    kept: Array.from({ length: 100 }, (_, i) => `?space-${i}`),
-    extra: "?another-space",
+    kept: hundredSpaceIds,
+    extra: otherId,
   },
   {
-    field: "excludeSpaces",
+    field: "excludeSpaceIds",
     label: "Exclude spaces",
-    kept: ["@personal"],
-    extra: "?" + "x".repeat(256),
+    kept: hundredSpaceIds,
+    extra: otherId,
   },
   {
     field: "labels",
@@ -318,7 +418,7 @@ it.each([
     const values = [...kept, extra];
     const { editor, queryClient } = show(
       "/s/team",
-      { [field]: values },
+      { ...(field === "spaceIds" && { scope: "spaces" }), [field]: values },
       spaceId,
     );
     expect(editor.getJSON().content[0].attrs[field]).toEqual(values);
@@ -337,7 +437,13 @@ it.each([
       screen.getByRole("button", { name: "Recently updated settings" }),
     );
     fireEvent.click(screen.getByRole("button", { name: "More options" }));
-    expect(screen.getByText(extra)).toBeTruthy();
+    if (extra === otherId) {
+      expect(
+        screen.getByRole("button", { name: "Remove Engineering" }),
+      ).toBeTruthy();
+    } else {
+      expect(screen.getByText(extra)).toBeTruthy();
+    }
     fireEvent.keyDown(screen.getByRole("combobox", { name: label }), {
       key: "Backspace",
     });
@@ -366,21 +472,15 @@ it("loads once across edits, polling intervals, focus, reconnect and recent-page
   vi.mocked(api.post)
     .mockResolvedValueOnce({ data: [page] })
     .mockResolvedValueOnce({ data: [{ ...page, title: "Renamed" }] });
-  const legacyOptions = { spaces: [otherId], authors: ["?former-user"] };
-  const { editor, queryClient } = show("/s/team", legacyOptions, spaceId);
+  const filters = { scope: "spaces" as const, spaceIds: [otherId] };
+  const { editor, queryClient } = show("/s/team", filters, spaceId);
   const link = await screen.findByRole("link", { name: /First.*Alex Morgan/ });
   expect(link.getAttribute("href")).toBe("/s/destination/p/first-abc");
   expect(within(link).getByText("📘")).toBeTruthy();
   expect(link.querySelector("img")).toBeNull();
   expect(api.post).toHaveBeenCalledWith("/pages/recently-updated", {
     spaceId,
-    limit: 15,
-    spaces: [otherId],
-    excludeSpaces: [],
-    spaceMatch: "any",
-    labels: [],
-    excludeLabels: [],
-    match: "any",
+    ...filters,
   });
   expect(
     screen.getByRole("button", { name: "Recently updated settings" }),
@@ -416,12 +516,7 @@ it("loads once across edits, polling intervals, focus, reconnect and recent-page
   expect(api.post).toHaveBeenCalledTimes(2);
   expect(api.post).toHaveBeenLastCalledWith("/pages/recently-updated", {
     spaceId,
-    labels: [],
-    excludeLabels: [],
-    match: "any",
-    spaces: [otherId],
-    excludeSpaces: [],
-    spaceMatch: "any",
+    ...filters,
     limit: 4,
   });
 });
@@ -448,7 +543,7 @@ it("refreshes on demand in read mode and shows space names only when results spa
   vi.mocked(api.post)
     .mockResolvedValueOnce({ data: [page, other] })
     .mockResolvedValueOnce({ data: [page] });
-  const { editor } = show("/s/team", { spaces: ["@all"] }, spaceId);
+  const { editor } = show("/s/team", { scope: "workspace" }, spaceId);
   act(() => editor.setEditable(false));
   expect(
     screen.getByRole("heading", { name: "Recently updated" }),
@@ -464,6 +559,10 @@ it("refreshes on demand in read mode and shows space names only when results spa
     name: /Release notes.*Documentation/,
   });
   expect(second.textContent).not.toContain("Updated by");
+  expect(api.post).toHaveBeenCalledWith("/pages/recently-updated", {
+    spaceId,
+    scope: "workspace",
+  });
   fireEvent.click(
     screen.getByRole("button", { name: "Refresh recently updated pages" }),
   );
@@ -507,9 +606,9 @@ it("edits the limit, heading and space choices while preserving literal labels",
   expect(editor.getJSON().content[0].attrs).toEqual({
     limit: 3,
     hideHeading: true,
-    spaces: [otherId],
-    excludeSpaces: [],
-    spaceMatch: "any",
+    scope: "spaces",
+    spaceIds: [otherId],
+    excludeSpaceIds: [],
     labels: ["?missing", "+review"],
     excludeLabels: [],
     match: "any",
@@ -550,20 +649,29 @@ it.each([5, 15])(
       editor.view.dispatch(
         editor.state.tr
           .setNodeAttribute(0, "labels", ["release"])
-          .setNodeAttribute(0, "spaces", ["@favorite"]),
+          .setNodeAttribute(0, "scope", "spaces")
+          .setNodeAttribute(0, "spaceIds", [otherId]),
       );
     });
     const beforeSave = editor.state.doc;
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    const expected = { limit, labels: ["release"], spaces: ["@favorite"] };
-    expect(editor.state.doc.firstChild.attrs).toMatchObject(expected);
+    const expected = {
+      labels: ["release"],
+      scope: "spaces",
+      spaceIds: [otherId],
+    };
+    expect(editor.state.doc.firstChild.attrs).toMatchObject({
+      ...expected,
+      limit,
+    });
     if (limit === 15) expect(editor.state.doc).toBe(beforeSave);
     await waitFor(() =>
-      expect(api.post).toHaveBeenLastCalledWith(
-        "/pages/recently-updated",
-        expect.objectContaining(expected),
-      ),
+      expect(api.post).toHaveBeenLastCalledWith("/pages/recently-updated", {
+        spaceId,
+        ...expected,
+        ...(limit !== 15 && { limit }),
+      }),
     );
   },
 );
@@ -654,7 +762,7 @@ it("allows empty label filters and discards display changes on cancel", async ()
   ]);
   expect(dialog.queryByRole("region", { name: "Display" })).toBeNull();
   expect(
-    dialog.getByText("Leave empty to include all accessible spaces."),
+    dialog.getByText("Leave empty to use the space containing this block."),
   ).toBeTruthy();
   fireEvent.click(
     dialog.getByRole("button", { name: "More options", expanded: false }),
@@ -689,13 +797,9 @@ it("allows empty label filters and discards display changes on cancel", async ()
   expect(api.post).toHaveBeenCalledTimes(1);
 });
 
-it("saves the space match and exclusions independently of label matching", async () => {
+it("applies named exclusions to all accessible spaces only when explicitly selected", async () => {
   vi.mocked(api.post).mockResolvedValue({ data: [] });
-  const { editor } = show(
-    "/s/team",
-    { spaces: ["@favorite", "@global"], labels: ["review"] },
-    spaceId,
-  );
+  const { editor } = show("/s/team", { labels: ["review"] }, spaceId);
   const open = screen.getByRole("button", {
     name: "Recently updated settings",
   });
@@ -704,9 +808,7 @@ it("saves the space match and exclusions independently of label matching", async
     screen.getByRole("dialog", { name: "Recently updated" }),
   );
   fireEvent.click(
-    within(
-      dialog.getByRole("radiogroup", { name: "Space matching" }),
-    ).getByRole("radio", { name: "All" }),
+    dialog.getByRole("checkbox", { name: "All accessible spaces" }),
   );
   fireEvent.click(dialog.getByRole("button", { name: "Exclude spaces" }));
   const excluded = dialog.getByRole("combobox", { name: "Exclude spaces" });
@@ -714,24 +816,53 @@ it("saves the space match and exclusions independently of label matching", async
   fireEvent.click(await dialog.findByRole("option", { name: "Engineering" }));
   fireEvent.click(dialog.getByRole("button", { name: "Save" }));
   const filters = {
-    spaces: ["@favorite", "@global"],
-    excludeSpaces: [otherId],
-    spaceMatch: "all",
+    scope: "workspace",
+    excludeSpaceIds: [otherId],
     labels: ["review"],
-    match: "any",
   };
   expect(editor.state.doc.firstChild.attrs).toMatchObject(filters);
   await waitFor(() =>
-    expect(api.post).toHaveBeenLastCalledWith(
-      "/pages/recently-updated",
-      expect.objectContaining(filters),
-    ),
+    expect(api.post).toHaveBeenLastCalledWith("/pages/recently-updated", {
+      spaceId,
+      ...filters,
+    }),
   );
   fireEvent.click(open);
+  expect(
+    screen.getByRole("checkbox", {
+      name: "All accessible spaces",
+      checked: true,
+    }),
+  ).toBeTruthy();
   expect(screen.getByRole("combobox", { name: "Exclude spaces" })).toBeTruthy();
   expect(
     screen.getByRole("button", { name: "Remove Engineering" }),
   ).toBeTruthy();
+  fireEvent.click(
+    screen.getByRole("checkbox", { name: "All accessible spaces" }),
+  );
+  act(() => {
+    editor.view.dispatch(
+      editor.state.tr
+        .setNodeAttribute(0, "scope", "spaces")
+        .setNodeAttribute(0, "spaceIds", [spaceId])
+        .setNodeAttribute(0, "labels", ["release"]),
+    );
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(editor.state.doc.firstChild.attrs).toMatchObject({
+    scope: "current",
+    spaceIds: [],
+    excludeSpaceIds: [otherId],
+    labels: ["release"],
+  });
+  await waitFor(() =>
+    expect(api.post).toHaveBeenLastCalledWith("/pages/recently-updated", {
+      spaceId,
+      labels: ["release"],
+      excludeSpaceIds: [otherId],
+    }),
+  );
 });
 
 it("refetches for changes to just the mode or just the exclusions and supports exclude-only settings", async () => {
@@ -753,11 +884,6 @@ it("refetches for changes to just the mode or just the exclusions and supports e
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(4));
   expect(api.post).toHaveBeenLastCalledWith("/pages/recently-updated", {
     spaceId,
-    spaces: [],
-    excludeSpaces: [],
-    spaceMatch: "any",
-    limit: 15,
-    labels: [],
     excludeLabels: ["?"],
     match: "all",
   });

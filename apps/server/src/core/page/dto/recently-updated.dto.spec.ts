@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { RecentlyUpdatedDto } from './recently-updated.dto';
 
 const spaceId = '53d63f2a-87be-415b-b340-bca58bd24ebe';
+const otherSpaceId = '019b193d-a530-78a2-8c7c-159675ff7791';
 const pipe = new ValidationPipe({ transform: true, whitelist: true });
 const validate = (payload: object) =>
   pipe.transform(payload, {
@@ -10,20 +11,31 @@ const validate = (payload: object) =>
   });
 
 describe('RecentlyUpdatedDto', () => {
-  it('uses bounded defaults for omitted options and retains literal label names', async () => {
+  it('defaults to the current space and retains literal label names', async () => {
     await expect(
-      validate({ spaceId, labels: ['-old', '?missing'] }),
+      validate({ spaceId, labels: ['-old', '+release', '?missing'] }),
     ).resolves.toEqual({
       spaceId,
-      labels: ['-old', '?missing'],
+      labels: ['-old', '+release', '?missing'],
       excludeLabels: [],
       match: 'any',
-      spaces: [],
-      excludeSpaces: [],
-      spaceMatch: 'any',
+      scope: 'current',
+      spaceIds: [],
+      excludeSpaceIds: [],
       limit: 15,
     });
   });
+
+  it.each(['workspace', 'spaces'])(
+    'keeps an explicit %s scope with no selected IDs',
+    async (scope) => {
+      await expect(validate({ spaceId, scope })).resolves.toMatchObject({
+        scope,
+        spaceIds: [],
+        excludeSpaceIds: [],
+      });
+    },
+  );
 
   it.each([
     ['unresolved authors', ['?missing']],
@@ -33,9 +45,9 @@ describe('RecentlyUpdatedDto', () => {
     const options = {
       spaceId,
       limit: 2,
-      spaces: ['@all'],
-      excludeSpaces: ['@personal'],
-      spaceMatch: 'all',
+      scope: 'spaces',
+      spaceIds: [spaceId, otherSpaceId],
+      excludeSpaceIds: [otherSpaceId],
       labels: ['+review'],
       excludeLabels: ['?retired'],
       match: 'all',
@@ -49,10 +61,18 @@ describe('RecentlyUpdatedDto', () => {
     { limit: 201 },
     { limit: 1.5 },
     { limit: '10' },
-    { spaces: '@all' },
-    { excludeSpaces: null },
-    { excludeSpaces: Array(101).fill('@self') },
-    { spaceMatch: 'some' },
+    { scope: 'some' },
+    { scope: null },
+    { spaceIds: 'space-key' },
+    { spaceIds: ['@self'] },
+    { spaceIds: ['*'] },
+    { spaceIds: [`+${spaceId}`] },
+    { spaceIds: Array(101).fill(spaceId) },
+    { excludeSpaceIds: null },
+    { excludeSpaceIds: ['@favorite'] },
+    { excludeSpaceIds: ['*'] },
+    { excludeSpaceIds: [`-${spaceId}`] },
+    { excludeSpaceIds: Array(101).fill(otherSpaceId) },
     { labels: null },
     { excludeLabels: null },
     { excludeLabels: [' '] },
@@ -61,8 +81,8 @@ describe('RecentlyUpdatedDto', () => {
     { match: 'some' },
     { match: null },
     { labels: [12] },
-    { spaces: ['  '] },
-    { spaces: Array(101).fill('@self') },
+    { labels: ['  '] },
+    { labels: Array(101).fill('x') },
     { labels: ['x'.repeat(257)] },
   ])('rejects invalid request shape %o', async (options) => {
     await expect(validate({ spaceId, ...options })).rejects.toMatchObject({

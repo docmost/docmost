@@ -108,6 +108,7 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
   const spaceId = '60bbbe22-a503-4935-816f-4ca8a355a9c5';
   const authorId = '2a1fc994-2e47-41d1-9bf7-228ac911fe40';
   const otherSpace = 'c37719be-b772-46a9-835b-3cc0855f2f88';
+  const thirdSpace = '2208ef6c-f374-4296-ba08-2b07c71f3cbe';
   const filters = Object.assign(new RecentlyUpdatedDto(), { spaceId, limit: 2 });
 
   async function run(filter: Partial<RecentlyUpdatedDto> = {}) {
@@ -128,6 +129,10 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
     expect(query.sql).toContain('"spaces"."deleted_at" is null');
     expect(boundAfter(query, '"pages"."workspace_id" = ')).toEqual(['workspace']);
     expect(boundAfter(query, '"user_id" = ')).toEqual(['viewer', 'viewer']);
+    expect(
+      countOf(query.sql, '"spaces"."archived_at" is null or "spaces"."id" = '),
+    ).toBe(2);
+    expect(boundAfter(query, '"spaces"."id" = ')).toEqual([spaceId, spaceId]);
     expect(boundAfter(query, 'pp.user_id = ')).toEqual(['viewer']);
     expect(boundAfter(query, 'gu.user_id = ')).toEqual(['viewer']);
     expect(query.sql).toContain('p.id = pages.id');
@@ -139,7 +144,7 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
   });
 
   it('uses the same feed query for legacy author filters', async () => {
-    const options = { spaces: ['@all'], labels: ['+review'] };
+    const options = { labels: ['+review'] };
     const legacyOptions = { ...options, authors: [authorId, '-?missing'] };
     const ordinary = await run(options);
     const legacy = await run(legacyOptions);
@@ -147,26 +152,60 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
     expect(legacy.parameters).toEqual(ordinary.parameters);
   });
 
-  it('includes all accessible spaces by default and limits the feed to explicitly selected spaces', async () => {
-    const unrestricted = await run();
-    expect(boundAfter(unrestricted, '"pages"."space_id" = ')).toEqual([]);
-    expect(unrestricted.sql).toContain('"pages"."space_id" in (select "spaces"."id" from "space_members"');
-    expect(boundAfter(await run({ spaces: ['@self'] }), '"pages"."space_id" = ')).toEqual([spaceId]);
-    const either = await run({ spaces: [otherSpace, '@self'] });
-    expect(either.sql).toMatch(/"pages"\."space_id" = \$\d+ or "pages"\."space_id" = /);
-    expect(boundAfter(either, '"pages"."space_id" = ')).toEqual([otherSpace, spaceId]);
-    const all = await run({ spaces: [otherSpace, '@self'], spaceMatch: 'all' });
-    expect(all.sql).toMatch(/"pages"\."space_id" = \$\d+ and "pages"\."space_id" = /);
-    expect(boundAfter(all, '"pages"."space_id" = ')).toEqual([otherSpace, spaceId]);
+  it('uses just the host space by default and applies exclusions to it', async () => {
+    expect(boundAfter(await run(), '"pages"."space_id" = ')).toEqual([spaceId]);
+    const query = await run({
+      scope: 'current',
+      excludeSpaceIds: [spaceId],
+    });
+    expect(boundAfter(query, '"pages"."space_id" = ')).toEqual([spaceId]);
+    expect(boundAfter(query, '"pages"."space_id" not in (')).toEqual([spaceId]);
+    expect(query.parameters).not.toContain(otherSpace);
   });
 
-  it('limits a negative-only filter to accessible spaces, including viewer-relative favorites', async () => {
-    const query = await run({ excludeSpaces: ['@favorite', '@global'] });
-    expect(query.sql).toMatch(/not \(exists .* or "spaces"\."is_personal"/);
+  it('includes every accessible space in workspace scope except excluded IDs', async () => {
+    const query = await run({
+      scope: 'workspace',
+      excludeSpaceIds: [thirdSpace],
+    });
     expect(query.sql).toContain('"pages"."space_id" in (select "spaces"."id" from "space_members"');
-    expect(boundAfter(query, '"favorites"."user_id" = ')).toEqual(['viewer']);
-    expect(boundAfter(query, '"spaces"."is_personal" = ')).toEqual([false]);
     expect(boundAfter(query, '"pages"."space_id" = ')).toEqual([]);
+    expect(boundAfter(query, '"pages"."space_id" in (')).toEqual([]);
+    expect(boundAfter(query, '"pages"."space_id" not in (')).toEqual([thirdSpace]);
+    expect(query.parameters).not.toContain(otherSpace);
+  });
+
+  it('matches any named space and excludes a space even when it was also included', async () => {
+    const query = await run({
+      scope: 'spaces',
+      spaceIds: [otherSpace, thirdSpace],
+      excludeSpaceIds: [thirdSpace],
+    });
+    expect(query.sql).toMatch(
+      /"pages"\."space_id" in \(\$\d+, \$\d+\) and "pages"\."space_id" not in \(\$\d+\)/,
+    );
+    const firstSpace = query.parameters.indexOf(otherSpace);
+    expect(query.parameters.slice(firstSpace, firstSpace + 3)).toEqual([
+      otherSpace,
+      thirdSpace,
+      thirdSpace,
+    ]);
+  });
+
+  it.each([
+    { scope: 'spaces' as const, spaceIds: [] },
+    { scope: 'workspace' as const, spaceIds: [otherSpace] },
+    { scope: 'current' as const, spaceIds: [otherSpace] },
+  ])('returns an empty feed for inconsistent space restrictions %o', async (selection) => {
+    const { repo, queries } = buildRepo();
+    const rows = await repo.getRecentlyUpdatedPages('viewer', 'workspace', {
+      ...filters,
+      ...selection,
+      labels: ['review'],
+      excludeSpaceIds: [otherSpace],
+    });
+    expect(rows).toEqual([]);
+    expect(queries).toHaveLength(0);
   });
 
   it('requires every distinct included label in all mode and respects literal exclusions', async () => {
@@ -188,13 +227,5 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
     const query = await run({ excludeLabels: ['draft'] });
     expect(query.sql.match(/exists \(select "page_labels"/g)).toHaveLength(1);
     expect(query.sql).toMatch(/not exists \(select "page_labels"/);
-  });
-
-  it.each([
-    { spaces: ['@all'], excludeSpaces: ['?missing'] },
-    { spaces: ['+@self'] },
-    { spaces: ['-unmapped-space'] },
-  ])('does not broaden an unresolved filter %o', async (filter) => {
-    expect((await run(filter)).sql).toMatch(/\bfalse\b/);
   });
 });

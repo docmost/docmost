@@ -5,6 +5,7 @@ import {
   IsInt,
   IsIn,
   IsString,
+  IsUUID,
   Matches,
   Max,
   MaxLength,
@@ -17,7 +18,7 @@ import {
 } from '@docmost/editor-ext';
 import { SpaceIdDto } from './page.dto';
 
-const FilterList = () =>
+const LabelList = () =>
   applyDecorators(
     IsArray(),
     ArrayMaxSize(RECENTLY_UPDATED_FILTER_LIMITS.maxValues),
@@ -32,19 +33,23 @@ export class RecentlyUpdatedDto extends SpaceIdDto {
   @Max(MAX_RECENTLY_UPDATED_LIMIT)
   limit: number = DEFAULT_RECENTLY_UPDATED_LIMIT;
 
-  @FilterList()
-  spaces: string[] = [];
+  @IsIn(['current', 'workspace', 'spaces'])
+  scope: 'current' | 'workspace' | 'spaces' = 'current';
 
-  @FilterList()
-  excludeSpaces: string[] = [];
+  @IsArray()
+  @ArrayMaxSize(RECENTLY_UPDATED_FILTER_LIMITS.maxValues)
+  @IsUUID('all', { each: true })
+  spaceIds: string[] = [];
 
-  @IsIn(['any', 'all'])
-  spaceMatch: 'any' | 'all' = 'any';
+  @IsArray()
+  @ArrayMaxSize(RECENTLY_UPDATED_FILTER_LIMITS.maxValues)
+  @IsUUID('all', { each: true })
+  excludeSpaceIds: string[] = [];
 
-  @FilterList()
+  @LabelList()
   labels: string[] = [];
 
-  @FilterList()
+  @LabelList()
   excludeLabels: string[] = [];
 
   @IsIn(['any', 'all'])

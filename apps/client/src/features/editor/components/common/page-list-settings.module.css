@@ -41,12 +41,16 @@
   line-height: 1.4;
 }
 
-.form :global(.mantine-MultiSelect-section) {
+.form :global(.mantine-MultiSelect-section[data-position="right"]) {
   display: none;
 }
 
+.form :global(.mantine-MultiSelect-wrapper) {
+  --input-padding: var(--mantine-spacing-xs);
+}
+
 .form :global(.mantine-MultiSelect-input) {
-  padding-inline: var(--mantine-spacing-xs);
+  padding-inline-end: var(--mantine-spacing-xs);
 }
 
 .form :global(.mantine-Pill-root) {

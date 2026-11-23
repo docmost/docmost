@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Editor } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
-import { RecentlyUpdated } from "@docmost/editor-ext";
+import {
+  RecentlyUpdated,
+  type RecentlyUpdatedAttributes,
+} from "@docmost/editor-ext";
 import { getSuggestionItems } from "./menu-items";
 
 vi.mock("@/main.tsx", async () => {
@@ -59,6 +62,8 @@ describe("slash menu", () => {
 
 describe("inserting a recently updated block", () => {
   let editor: Editor;
+  const design = "de44053e-d614-453b-9706-1737faf19b87";
+  const engineering = "dcb7b4d5-a068-448d-9f18-e8b0684ee57e";
   afterEach(() => editor?.destroy());
 
   it("keeps the paragraphs on either side when replacing a slash command", () => {
@@ -79,7 +84,8 @@ describe("inserting a recently updated block", () => {
         attrs: {
           limit: 15,
           hideHeading: false,
-          spaces: ["@self"],
+          scope: "current",
+          spaceIds: [],
           labels: [],
         },
       },
@@ -90,9 +96,9 @@ describe("inserting a recently updated block", () => {
   it("copies the chosen filters and bounds the number of results", () => {
     editor = new Editor({ extensions: [StarterKit, RecentlyUpdated] });
     const filters = {
-      spaces: ["@favorite", "@global"],
-      excludeSpaces: ["@self"],
-      spaceMatch: "all" as const,
+      scope: "spaces" as const,
+      spaceIds: [design],
+      excludeSpaceIds: [engineering],
       labels: ["+release"],
       excludeLabels: ["old"],
     };
@@ -101,8 +107,8 @@ describe("inserting a recently updated block", () => {
       hideHeading: true,
       ...filters,
     });
-    filters.spaces.pop();
-    filters.excludeSpaces.pop();
+    filters.spaceIds.pop();
+    filters.excludeSpaceIds.pop();
     filters.excludeLabels.pop();
     filters.labels.pop();
     expect(editor.getJSON().content?.[0]).toMatchObject({
@@ -110,9 +116,9 @@ describe("inserting a recently updated block", () => {
       attrs: {
         limit: 200,
         hideHeading: true,
-        spaces: ["@favorite", "@global"],
-        excludeSpaces: ["@self"],
-        spaceMatch: "all",
+        scope: "spaces",
+        spaceIds: [design],
+        excludeSpaceIds: [engineering],
         labels: ["+release"],
         excludeLabels: ["old"],
       },
@@ -120,16 +126,23 @@ describe("inserting a recently updated block", () => {
   });
 
   it.each([
-    { options: { limit: 3 }, expected: ["@self"] },
-    { options: { spaces: [] }, expected: [] },
-    { options: { excludeSpaces: ["@personal"] }, expected: [] },
-    { options: { spaces: ["@all"] }, expected: ["@all"] },
-  ])(
+    { options: { limit: 3 }, expected: "current" },
+    { options: { spaceIds: [] }, expected: "current" },
+    { options: { excludeSpaceIds: [engineering] }, expected: "current" },
+    { options: { scope: "workspace" }, expected: "workspace" },
+    { options: { scope: "spaces", spaceIds: [] }, expected: "spaces" },
+  ] satisfies {
+    options: Partial<RecentlyUpdatedAttributes>;
+    expected: RecentlyUpdatedAttributes["scope"];
+  }[])(
     "keeps the requested scope when inserting with $options",
     ({ options, expected }) => {
       editor = new Editor({ extensions: [StarterKit, RecentlyUpdated] });
       editor.commands.insertRecentlyUpdated(options);
-      expect(editor.getJSON().content[0].attrs.spaces).toEqual(expected);
+      expect(editor.getJSON().content[0].attrs).toMatchObject({
+        scope: expected,
+        spaceIds: [],
+      });
     },
   );
 });

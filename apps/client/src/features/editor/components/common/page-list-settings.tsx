@@ -118,10 +118,7 @@ type Match = "any" | "all";
 
 export function PageListFilterGroup({
   label,
-  matchLabel,
-  showMatch,
-  match,
-  onMatchChange,
+  labelAction,
   hint,
   excludeLabel,
   hasExclusions,
@@ -129,10 +126,7 @@ export function PageListFilterGroup({
   renderExcluded,
 }: {
   label: string;
-  matchLabel: string;
-  showMatch: boolean;
-  match: Match;
-  onMatchChange: (value: Match) => void;
+  labelAction?: ReactNode;
   hint: string;
   excludeLabel: string;
   hasExclusions: boolean;
@@ -143,7 +137,6 @@ export function PageListFilterGroup({
   }) => ReactNode;
   renderExcluded: (props: { label: string; autoFocus: boolean }) => ReactNode;
 }) {
-  const { t } = useTranslation();
   const id = useId();
   const [showExclusions, setShowExclusions] = useState(hasExclusions);
   return (
@@ -151,24 +144,7 @@ export function PageListFilterGroup({
       <Stack gap={6}>
         <Group justify="space-between" gap="xs">
           <Input.Label htmlFor={id}>{label}</Input.Label>
-          {showMatch && (
-            <Group gap={8} wrap="nowrap">
-              <Text component="span" size="sm" c="dimmed">
-                {t("Match")}
-              </Text>
-              <SegmentedControl<Match>
-                aria-label={matchLabel}
-                size="xs"
-                radius="md"
-                value={match}
-                onChange={onMatchChange}
-                data={[
-                  { value: "any", label: t("Any") },
-                  { value: "all", label: t("All") },
-                ]}
-              />
-            </Group>
-          )}
+          {labelAction}
         </Group>
         {renderIncluded({
           id,
@@ -231,10 +207,26 @@ export function PageListLabelFilters({
   return (
     <PageListFilterGroup
       label={t("Labels")}
-      matchLabel={t("Label matching")}
-      showMatch={labels.length > 1}
-      match={match}
-      onMatchChange={onMatchChange}
+      labelAction={
+        labels.length > 1 && (
+          <Group gap={8} wrap="nowrap">
+            <Text component="span" size="sm" c="dimmed">
+              {t("Match")}
+            </Text>
+            <SegmentedControl<Match>
+              aria-label={t("Label matching")}
+              size="xs"
+              radius="md"
+              value={match}
+              onChange={onMatchChange}
+              data={[
+                { value: "any", label: t("Any") },
+                { value: "all", label: t("All") },
+              ]}
+            />
+          </Group>
+        )
+      }
       hint={
         !required && !labels.length
           ? t("Add labels to narrow the list.")

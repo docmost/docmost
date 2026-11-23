@@ -46,24 +46,16 @@ export default function RecentlyUpdatedSettings({
     multiple: true as const,
     withinPortal: false,
     maxValues: RECENTLY_UPDATED_FILTER_LIMITS.maxValues,
-    scopes: [
-      {
-        value: "@self",
-        spaceId: currentSpace?.id ?? editorSpaceId,
-        logo: currentSpace?.logo,
-        label:
-          currentSpace?.name ??
-          (!spaceKey
-            ? t("Space where this block is used")
-            : isLoading
-              ? t("Loading…")
-              : t("Unavailable space")),
-      },
-      { value: "@all", label: t("All spaces") },
-      { value: "@personal", label: t("Personal spaces") },
-      { value: "@global", label: t("Non-personal spaces") },
-      { value: "@favorite", label: t("Favorite spaces") },
-    ],
+    unavailableLabel: t("Unavailable space"),
+    scopes: currentSpace
+      ? [
+          {
+            value: currentSpace.id,
+            label: currentSpace.name,
+            logo: currentSpace.logo,
+          },
+        ]
+      : [],
   };
   return (
     <PageListSettingsModal
@@ -71,41 +63,69 @@ export default function RecentlyUpdatedSettings({
       description={t("List pages by most recent edit.")}
       canSave={validLimit}
       onClose={onClose}
-      onSave={() =>
-        onSave(
-          getPageListSettingsChanges(initial, {
-            ...draft,
-            limit: normalizeRecentlyUpdatedLimit(limit),
-          }),
-        )
-      }
+      onSave={() => {
+        const changes = getPageListSettingsChanges(initial, {
+          ...draft,
+          limit: normalizeRecentlyUpdatedLimit(limit),
+        });
+        // A change to the space selection replaces both parts of that filter.
+        if ("scope" in changes || "spaceIds" in changes) {
+          changes.scope = draft.scope;
+          changes.spaceIds = draft.spaceIds;
+        }
+        onSave(changes);
+      }}
       primaryFilter={
         <PageListFilterGroup
           label={t("Spaces")}
-          matchLabel={t("Space matching")}
-          showMatch={draft.spaces.length > 1}
-          match={draft.spaceMatch}
-          onMatchChange={(spaceMatch) => setDraft({ ...draft, spaceMatch })}
+          labelAction={
+            <Checkbox
+              size="xs"
+              label={t("All accessible spaces")}
+              checked={draft.scope === "workspace"}
+              onChange={(event) =>
+                setDraft({
+                  ...draft,
+                  scope: event.currentTarget.checked ? "workspace" : "current",
+                  spaceIds: [],
+                })
+              }
+            />
+          }
           hint={
-            draft.spaces.length
-              ? draft.spaceMatch === "all"
-                ? t("Pages must match every selected space filter.")
-                : t("Pages can match any selected space filter.")
-              : draft.excludeSpaces.length
+            draft.scope === "spaces" && !draft.spaceIds.length
+              ? t("Choose a space to show pages.")
+              : draft.scope === "workspace"
                 ? t(
                     "This list shows pages from all accessible spaces except those you exclude.",
                   )
-                : t("Leave empty to include all accessible spaces.")
+                : t("Leave empty to use the space containing this block.")
           }
           excludeLabel={t("Exclude spaces")}
-          hasExclusions={draft.excludeSpaces.length > 0}
+          hasExclusions={draft.excludeSpaceIds.length > 0}
           renderIncluded={(field) => (
             <SpaceSelect
               {...spacePicker}
               {...field}
-              placeholder={t("Add space…")}
-              value={draft.spaces}
-              onChange={(spaces) => setDraft({ ...draft, spaces })}
+              disabled={draft.scope === "workspace"}
+              placeholderSpace={
+                draft.scope === "current" ? currentSpace : undefined
+              }
+              placeholder={
+                draft.scope !== "current"
+                  ? t("Add space…")
+                  : isLoading
+                    ? t("Loading…")
+                    : t("Space where this block is used")
+              }
+              value={draft.spaceIds}
+              onChange={(spaceIds) =>
+                setDraft({
+                  ...draft,
+                  scope: spaceIds.length ? "spaces" : "current",
+                  spaceIds,
+                })
+              }
             />
           )}
           renderExcluded={(field) => (
@@ -113,9 +133,9 @@ export default function RecentlyUpdatedSettings({
               {...spacePicker}
               {...field}
               placeholder={t("Add space…")}
-              value={draft.excludeSpaces}
-              onChange={(excludeSpaces) =>
-                setDraft({ ...draft, excludeSpaces })
+              value={draft.excludeSpaceIds}
+              onChange={(excludeSpaceIds) =>
+                setDraft({ ...draft, excludeSpaceIds })
               }
             />
           )}

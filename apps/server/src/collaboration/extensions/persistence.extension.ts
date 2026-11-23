@@ -11,11 +11,13 @@ import * as Y from 'yjs';
 import { Injectable, Logger } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import type { JSONContent } from '@tiptap/core';
+import { upgradeRecentlyUpdatedContent } from '@docmost/editor-ext';
 import {
   getPageId,
   isRenderableObject,
   jsonToText,
   tiptapExtensions,
+  upgradeRecentlyUpdatedYdoc,
 } from '../collaboration.util';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { InjectKysely } from 'nestjs-kysely';
@@ -88,6 +90,7 @@ export class PersistenceExtension implements Extension {
       const dbState = new Uint8Array(page.ydoc);
 
       Y.applyUpdate(doc, dbState);
+      upgradeRecentlyUpdatedYdoc(doc);
       return doc;
     }
 
@@ -96,7 +99,7 @@ export class PersistenceExtension implements Extension {
       this.logger.debug(`converting json to ydoc: ${pageId}`);
 
       const ydoc = TiptapTransformer.toYdoc(
-        page.content,
+        upgradeRecentlyUpdatedContent(page.content as JSONContent),
         'default',
         tiptapExtensions,
       );
