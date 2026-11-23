@@ -1,4 +1,7 @@
 import { MantineProvider } from "@mantine/core";
+import { EventEmitter } from "node:events";
+import { MemoryRouter } from "react-router-dom";
+import type { Socket } from "socket.io-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -8,11 +11,13 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { createStore, Provider } from "jotai";
+import { createStore, Provider, type PrimitiveAtom } from "jotai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { entitlementAtom } from "@/ee/entitlement/entitlement-atom";
 import { Feature } from "@/ee/features";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import { socketAtom } from "@/features/websocket/atoms/socket-atom";
+import { useQuerySubscription } from "@/features/websocket/use-query-subscription";
 import type { ICurrentUser } from "@/features/user/types/user.types";
 import api from "@/lib/api-client";
 import { PagePropertiesPanel } from "./page-properties-panel";
@@ -74,6 +79,11 @@ const fields = [
   ...field,
 })) as PageProperty[];
 
+function SocketSubscription() {
+  useQuerySubscription();
+  return null;
+}
+
 function panel(
   pageId = "one",
   editable = false,
@@ -83,6 +93,7 @@ function panel(
     <Provider store={store}>
       <QueryClientProvider client={client}>
         <MantineProvider env={env}>
+          <SocketSubscription />
           <PagePropertiesPanel
             pageId={pageId}
             spaceId="space"
@@ -161,6 +172,55 @@ describe("page properties", () => {
     fireEvent.click(screen.getByLabelText("Properties", { selector: "input" }));
     const option = await screen.findByRole("option", { name: "Estimate" });
     expect(option.closest(".print-hide")).toBeTruthy();
+  });
+
+  it("withholds existing report rows immediately when access changes", async () => {
+    const socket = new EventEmitter();
+    store.set(
+      socketAtom as PrimitiveAtom<Socket | null>,
+      socket as unknown as Socket,
+    );
+    const row = {
+      id: "other-page",
+      title: "Private evaluation",
+      slugId: "evaluation",
+      spaceName: "Engineering",
+      spaceSlug: "engineering",
+      isBase: false,
+      properties: [{ ...fields[3], column: 0, value: "Sensitive notes" }],
+    };
+    let finishRead: () => void;
+    const reports = vi
+      .fn()
+      .mockResolvedValueOnce({ data: { items: [row], nextCursor: null } })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishRead = () =>
+              resolve({ data: { items: [], nextCursor: null } });
+          }),
+      );
+    vi.mocked(api.post).mockImplementation(async (url) =>
+      url === read ? { data: [fields[3]] } : reports(),
+    );
+    render(<MemoryRouter>{panel()}</MemoryRouter>);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Property actions" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Property report" }),
+    );
+    expect(await screen.findByRole("link", { name: row.title })).toBeTruthy();
+    expect(screen.getByText("Sensitive notes")).toBeTruthy();
+
+    act(() => {
+      socket.emit("message", { operation: "accessChanged" });
+    });
+    await waitFor(() => expect(reports).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole("link", { name: row.title })).toBeNull();
+    expect(screen.queryByText("Sensitive notes")).toBeNull();
+    await act(async () => finishRead());
+    expect(await screen.findByText("No pages match this report.")).toBeTruthy();
   });
 
   it("cancels an outstanding report read when the dialog closes", async () => {
