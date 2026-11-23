@@ -11,6 +11,7 @@ import {
   buildSharedPageUrl,
 } from "@/features/page/page.utils.ts";
 import { extractPageSlugId } from "@/lib";
+import { scrollToPageAnchor } from "@/features/editor/utils/scroll-to-page-anchor";
 import { UserMention } from "./user-mention";
 import classes from "./mention.module.css";
 
@@ -54,9 +55,7 @@ export default function MentionView(props: NodeViewProps) {
   const handleClick = (e: React.MouseEvent) => {
     if (isSamePage && anchorId) {
       e.preventDefault();
-      const element = document.querySelector(`[id="${anchorId}"]`);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (scrollToPageAnchor(document, anchorId)) {
         navigate(`#${anchorId}`, { replace: true });
       }
     }
