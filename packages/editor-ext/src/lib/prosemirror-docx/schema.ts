@@ -269,7 +269,7 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
   date(state, node) {
     state.text(node.textContent);
   },
-  pagesByLabel(state, node) {
+  itemsByLabel(state, node) {
     state.text(node.attrs.heading || 'Pages by label');
     state.closeBlock(node);
   },

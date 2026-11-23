@@ -31,7 +31,7 @@ export const TRANSCLUSION_SOURCE_ALLOWED_NODE_TYPES = [
   'excalidraw',
   'pdf',
   'subpages',
-  'pagesByLabel',
+  'itemsByLabel',
   'columns',
   'youtube',
 ] as const;
