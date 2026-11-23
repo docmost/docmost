@@ -106,7 +106,6 @@ describe('PageRepo getRecentPagesByUser', () => {
 
 describe('PageRepo getRecentlyUpdatedPages', () => {
   const spaceId = '60bbbe22-a503-4935-816f-4ca8a355a9c5';
-  const authorId = '2a1fc994-2e47-41d1-9bf7-228ac911fe40';
   const otherSpace = 'c37719be-b772-46a9-835b-3cc0855f2f88';
   const thirdSpace = '2208ef6c-f374-4296-ba08-2b07c71f3cbe';
   const filters = Object.assign(new RecentlyUpdatedDto(), { spaceId, limit: 2 });
@@ -141,15 +140,6 @@ describe('PageRepo getRecentlyUpdatedPages', () => {
     expect(countOf(query.sql, ' limit ')).toBe(1);
     expect(query.sql).toMatch(/order by "pages"\."updated_at" desc, "pages"\."id" desc limit \$\d+$/);
     expect(query.parameters[query.parameters.length - 1]).toBe(2);
-  });
-
-  it('uses the same feed query for legacy author filters', async () => {
-    const options = { labels: ['+review'] };
-    const legacyOptions = { ...options, authors: [authorId, '-?missing'] };
-    const ordinary = await run(options);
-    const legacy = await run(legacyOptions);
-    expect(legacy.sql).toBe(ordinary.sql);
-    expect(legacy.parameters).toEqual(ordinary.parameters);
   });
 
   it('uses just the host space by default and applies exclusions to it', async () => {

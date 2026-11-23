@@ -23,7 +23,6 @@ export * from "./lib/search-and-replace";
 export * from "./lib/embed-provider";
 export * from "./lib/subpages";
 export * from "./lib/recently-updated";
-export * from "./lib/recently-updated-legacy";
 export * from "./lib/pages-by-label";
 export * from "./lib/transclusion";
 export * from "./lib/highlight";

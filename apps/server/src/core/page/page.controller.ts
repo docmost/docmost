@@ -11,8 +11,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PageService } from './services/page.service';
-import { upgradeRecentlyUpdatedContent } from '@docmost/editor-ext';
-import type { JSONContent } from '@tiptap/core';
 import { BacklinkService } from './services/backlink.service';
 import { PageAccessService } from './page-access/page-access.service';
 import { CreatePageDto } from './dto/create-page.dto';
@@ -106,11 +104,7 @@ export class PageController {
       };
     }
 
-    return {
-      ...page,
-      content: upgradeRecentlyUpdatedContent(page.content as JSONContent),
-      permissions,
-    };
+    return { ...page, permissions };
   }
 
   @ApiKeyScope('read')

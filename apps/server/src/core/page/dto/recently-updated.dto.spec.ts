@@ -37,11 +37,7 @@ describe('RecentlyUpdatedDto', () => {
     },
   );
 
-  it.each([
-    ['unresolved authors', ['?missing']],
-    ['an oversized author list', Array(101).fill('x'.repeat(257))],
-    ['malformed authors', null],
-  ])('ignores %s from earlier clients', async (_name, authors) => {
+  it('accepts included and excluded named spaces and labels', async () => {
     const options = {
       spaceId,
       limit: 2,
@@ -52,7 +48,7 @@ describe('RecentlyUpdatedDto', () => {
       excludeLabels: ['?retired'],
       match: 'all',
     };
-    await expect(validate({ ...options, authors })).resolves.toEqual(options);
+    await expect(validate(options)).resolves.toEqual(options);
   });
 
   it.each([

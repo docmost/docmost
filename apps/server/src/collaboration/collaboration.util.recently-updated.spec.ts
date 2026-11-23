@@ -1,20 +1,13 @@
-import {
-  pageNodeToDocxBuffer,
-  recentlyUpdatedFiltersWithinLimits,
-  upgradeRecentlyUpdatedContent,
-} from '@docmost/editor-ext';
+import { pageNodeToDocxBuffer } from '@docmost/editor-ext';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as JSZip from 'jszip';
-import * as Y from 'yjs';
 import {
   htmlToJson,
   jsonToHtml,
   jsonToMarkdown,
   jsonToNode,
   jsonToText,
-  prosemirrorNodeToYElement,
   tiptapExtensions,
-  upgradeRecentlyUpdatedYdoc,
 } from './collaboration.util';
 
 const block = (attrs = '') =>
@@ -71,7 +64,7 @@ describe('recently updated block', () => {
       expect(html).toContain('data-type="recently-updated"');
       expect(html).toContain('data-limit="6"');
       expect(html).toContain('data-hide-heading="true"');
-      expect(html).not.toMatch(/data-(spaces|exclude-spaces|space-match)=/);
+      expect(html).toContain('data-scope="spaces"');
       const expected = {
         type: 'recentlyUpdated',
         attrs: { limit: 6, hideHeading: true, ...filters },
@@ -107,8 +100,8 @@ describe('recently updated block', () => {
     ['data-scope', 'invalid'],
     ['data-labels', '{"invalid":"shape"}'],
     ['data-labels', '["release",false]'],
-    ['data-exclude-spaces', 'null'],
-    ['data-space-match', 'some'],
+    ['data-space-ids', '["invalid"]'],
+    ['data-exclude-space-ids', 'null'],
     ['data-exclude-labels', 'null'],
     ['data-exclude-labels', '[""]'],
     ['data-match', 'some'],
@@ -124,96 +117,10 @@ describe('recently updated block', () => {
     },
   );
 
-  it.each([
-    { spaces: [], scope: 'current', spaceIds: [] },
-    { spaces: ['@self'], scope: 'current', spaceIds: [] },
-    { spaces: ['@all'], scope: 'workspace', spaceIds: [] },
-    { spaces: [spaceA, spaceB], scope: 'spaces', spaceIds: [spaceA, spaceB] },
-    { spaces: ['@personal'], scope: 'spaces', spaceIds: [] },
-  ])(
-    'upgrades saved space filters $spaces in HTML, JSON and Yjs',
-    ({ spaces, scope, spaceIds }) => {
-      const attrs = {
-        limit: 4,
-        hideHeading: true,
-        spaces,
-        excludeSpaces: [spaceB],
-        labels: ['+review'],
-      };
-      const node = { type: 'recentlyUpdated', attrs };
-      const authors = [spaceA, '?missing'];
-      const legacyJson = {
-        type: 'doc',
-        content: [{ ...node, attrs: { ...attrs, authors } }],
-      };
-      const htmlAttrs = `data-limit="4" data-hide-heading="true" data-spaces='${JSON.stringify(spaces)}' data-exclude-spaces='${JSON.stringify([spaceB])}' data-labels='["+review"]'`;
-      const expected = htmlToJson(block(htmlAttrs)).content;
-      expect(expected).toMatchObject([
-        {
-          type: node.type,
-          attrs: {
-            scope,
-            spaceIds,
-            labels: ['+review'],
-            limit: 4,
-            hideHeading: true,
-          },
-        },
-      ]);
-      if (scope !== 'spaces' || spaceIds.length)
-        expect(expected[0].attrs.excludeSpaceIds).toEqual([spaceB]);
-      expect(expected[0].attrs).not.toHaveProperty('authors');
-      expect(expected[0].attrs).not.toHaveProperty('spaces');
-
-      expect(jsonToNode(legacyJson).toJSON().content).toEqual(expected);
-      expect(
-        htmlToJson(block(`${htmlAttrs} data-authors='bad JSON'`)).content,
-      ).toEqual(expected);
-      expect(jsonToHtml(legacyJson)).not.toContain('data-authors');
-      const ydoc = new Y.Doc();
-      try {
-        const savedBlock = prosemirrorNodeToYElement(legacyJson.content[0]) as Y.XmlElement;
-        const wrapper = new Y.XmlElement('transclusionSource');
-        ydoc.getXmlFragment('default').insert(0, [wrapper]);
-        wrapper.insert(0, [savedBlock]);
-        upgradeRecentlyUpdatedYdoc(ydoc);
-        const firstUpdate = Y.encodeStateVector(ydoc);
-        upgradeRecentlyUpdatedYdoc(ydoc);
-        expect(Y.encodeStateVector(ydoc)).toEqual(firstUpdate);
-        expect(wrapper.get(0)).toBe(savedBlock);
-        expect(savedBlock.getAttributes()).not.toHaveProperty('spaces');
-        const savedJson = TiptapTransformer.fromYdoc(ydoc, 'default');
-        expect(jsonToNode(savedJson).toJSON().content[0].content).toEqual(
-          expected,
-        );
-        expect(upgradeRecentlyUpdatedContent(savedJson)).toBe(savedJson);
-        expect(jsonToHtml(savedJson)).not.toContain('data-authors');
-      } finally {
-        ydoc.destroy();
-      }
-    },
-  );
-
-  it('ignores oversized legacy author filters when checking block settings', () => {
-    const legacy = {
-      scope: 'current' as const,
-      spaceIds: [],
-      labels: [],
-      excludeLabels: [],
-      match: 'any' as const,
-      excludeSpaceIds: [],
-      authors: Array(101).fill('x'.repeat(257)),
-    };
-    expect(recentlyUpdatedFiltersWithinLimits(legacy)).toBe(true);
-    expect(
-      recentlyUpdatedFiltersWithinLimits({ ...legacy, labels: legacy.authors }),
-    ).toBe(false);
-  });
-
   it('omits empty filter lists from exported HTML', () => {
     const doc = htmlToJson(block(`data-space-ids='[]' data-labels='[]'`));
     expect(jsonToHtml(doc)).not.toMatch(
-      /data-(space-ids|exclude-space-ids|labels|exclude-labels|authors)=/,
+      /data-(space-ids|exclude-space-ids|labels|exclude-labels)=/,
     );
   });
 

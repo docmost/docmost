@@ -27,7 +27,6 @@ import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
 import RecentlyUpdatedSettings from "./recently-updated-settings";
 import { useEditorSpaceId } from "./editor-space-context";
-import { getPageListSettingsChanges } from "../common/page-list-settings";
 import {
   PageListHeading,
   PageListLayout,
@@ -255,16 +254,7 @@ export default function RecentlyUpdatedView({
           onClose={() => setEditing(null)}
           onSave={(changes) => {
             if (editor.isEditable && Object.keys(changes).length) {
-              const pos = getPos();
-              const current =
-                typeof pos === "number" && editor.state.doc.nodeAt(pos);
-              if (current && current.type === node.type) {
-                const repairs = getPageListSettingsChanges(
-                  current.attrs,
-                  normalizeRecentlyUpdatedFilters(current.attrs),
-                );
-                updateAttributes({ ...repairs, ...changes });
-              }
+              updateAttributes(changes);
             }
             setEditing(null);
           }}

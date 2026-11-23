@@ -4,7 +4,6 @@ import { ReactNodeViewRenderer, type ReactNodeViewProps } from '@tiptap/react';
 import type { ComponentType } from 'react';
 import { validate as isUuid } from 'uuid';
 import isLength from 'validator/lib/isLength';
-import { upgradeRecentlyUpdatedSpaceFilters } from './recently-updated-legacy';
 
 export const DEFAULT_RECENTLY_UPDATED_LIMIT = 15;
 export const MAX_RECENTLY_UPDATED_LIMIT = 200;
@@ -198,36 +197,15 @@ export const RecentlyUpdated = Node.create<RecentlyUpdatedOptions>({
     return [
       {
         tag: 'div[data-type="recently-updated"]',
-        getAttrs: (element: HTMLElement) => {
-          const scope = element.getAttribute('data-scope');
-          const legacy =
-            scope === null &&
-            !element.hasAttribute('data-space-ids') &&
-            !element.hasAttribute('data-exclude-space-ids') &&
-            ['data-spaces', 'data-exclude-spaces', 'data-space-match'].some(
-              (attr) => element.hasAttribute(attr),
-            );
-          return normalizeRecentlyUpdatedFilters({
-            ...(legacy
-              ? upgradeRecentlyUpdatedSpaceFilters({
-                  spaces: readFilterList(element, 'data-spaces'),
-                  excludeSpaces: readFilterList(element, 'data-exclude-spaces'),
-                  spaceMatch:
-                    element.getAttribute('data-space-match') ?? undefined,
-                })
-              : {
-                  scope: scope ?? undefined,
-                  spaceIds: readFilterList(element, 'data-space-ids'),
-                  excludeSpaceIds: readFilterList(
-                    element,
-                    'data-exclude-space-ids',
-                  ),
-                }),
+        getAttrs: (element: HTMLElement) =>
+          normalizeRecentlyUpdatedFilters({
+            scope: element.getAttribute('data-scope') ?? undefined,
+            spaceIds: readFilterList(element, 'data-space-ids'),
+            excludeSpaceIds: readFilterList(element, 'data-exclude-space-ids'),
             labels: readFilterList(element, 'data-labels'),
             excludeLabels: readFilterList(element, 'data-exclude-labels'),
             match: element.getAttribute('data-match') ?? undefined,
-          });
-        },
+          }),
       },
     ];
   },

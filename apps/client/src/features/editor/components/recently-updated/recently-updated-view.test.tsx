@@ -331,55 +331,64 @@ it("clears a named selection back to the containing space, including after a mov
   expect(screen.getByPlaceholderText("Engineering")).toBeTruthy();
 });
 
-it.each<{ description: string; saved: Partial<RecentlyUpdatedAttributes> }>([
-  {
-    description: "an empty named selection",
-    saved: { scope: "spaces", spaceIds: [] },
-  },
-  {
-    description: "an unreadable exclusion",
-    saved: { scope: "workspace", excludeSpaceIds: ["missing-space"] },
-  },
-])(
-  "keeps $description empty until an editor chooses a space",
-  async ({ saved }) => {
-    vi.mocked(api.post).mockResolvedValue({ data: [] });
-    const { editor } = show(
-      "/s/team",
-      { ...saved, labels: ["review"] },
-      spaceId,
-    );
-    const settings = { name: "Recently updated settings" };
-    expect(screen.getByText("Choose a space to show pages.")).toBeTruthy();
-    act(() => editor.setEditable(false));
-    expect(screen.queryByRole("button", settings)).toBeNull();
-    expect(screen.getByText("No matching pages")).toBeTruthy();
-    act(() => editor.setEditable(true));
-    fireEvent.click(screen.getByRole("button", settings));
-    let dialog = within(screen.getByRole("dialog"));
-    expect(dialog.getByText("Choose a space to show pages.")).toBeTruthy();
-    fireEvent.click(dialog.getByRole("button", { name: "More options" }));
-    fireEvent.click(dialog.getByRole("checkbox", { name: "Show heading" }));
-    fireEvent.click(dialog.getByRole("button", { name: "Save" }));
-    expect(editor.state.doc.firstChild.attrs).toMatchObject({
-      scope: "spaces",
-      spaceIds: [],
-      hideHeading: true,
-    });
-    expect(api.post).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", settings));
-    dialog = within(screen.getByRole("dialog"));
-    act(() => dialog.getByRole("combobox", { name: "Spaces" }).focus());
-    fireEvent.click(dialog.getByRole("option", { name: "Engineering" }));
-    fireEvent.click(dialog.getByRole("button", { name: "Save" }));
-    await waitFor(() =>
-      expect(api.post).toHaveBeenCalledExactlyOnceWith(
-        "/pages/recently-updated",
-        { spaceId, scope: "spaces", spaceIds: [otherId], labels: ["review"] },
-      ),
-    );
-  },
-);
+it("keeps an empty named selection empty until an editor chooses a space", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: [] });
+  const { editor } = show(
+    "/s/team",
+    { scope: "spaces", spaceIds: [], labels: ["review"] },
+    spaceId,
+  );
+  const settings = { name: "Recently updated settings" };
+  expect(screen.getByText("Choose a space to show pages.")).toBeTruthy();
+  act(() => editor.setEditable(false));
+  expect(screen.queryByRole("button", settings)).toBeNull();
+  expect(screen.getByText("No matching pages")).toBeTruthy();
+  act(() => editor.setEditable(true));
+  fireEvent.click(screen.getByRole("button", settings));
+  let dialog = within(screen.getByRole("dialog"));
+  expect(dialog.getByText("Choose a space to show pages.")).toBeTruthy();
+  fireEvent.click(dialog.getByRole("button", { name: "More options" }));
+  fireEvent.click(dialog.getByRole("checkbox", { name: "Show heading" }));
+  fireEvent.click(dialog.getByRole("button", { name: "Save" }));
+  expect(editor.state.doc.firstChild.attrs).toMatchObject({
+    scope: "spaces",
+    spaceIds: [],
+    hideHeading: true,
+  });
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", settings));
+  dialog = within(screen.getByRole("dialog"));
+  act(() => dialog.getByRole("combobox", { name: "Spaces" }).focus());
+  fireEvent.click(dialog.getByRole("option", { name: "Engineering" }));
+  fireEvent.click(dialog.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(api.post).toHaveBeenCalledExactlyOnceWith(
+      "/pages/recently-updated",
+      { spaceId, scope: "spaces", spaceIds: [otherId], labels: ["review"] },
+    ),
+  );
+});
+
+it("saves a heading change without rewriting the stored filters", () => {
+  const { editor } = show(
+    "/s/team",
+    { scope: "workspace", excludeSpaceIds: ["missing-space"] },
+    spaceId,
+  );
+  const stored = editor.state.doc.firstChild.attrs;
+  fireEvent.click(
+    screen.getByRole("button", { name: "Recently updated settings" }),
+  );
+  const dialog = within(screen.getByRole("dialog"));
+  fireEvent.click(dialog.getByRole("button", { name: "More options" }));
+  fireEvent.click(dialog.getByRole("checkbox", { name: "Show heading" }));
+  fireEvent.click(dialog.getByRole("button", { name: "Save" }));
+  expect(editor.state.doc.firstChild.attrs).toEqual({
+    ...stored,
+    hideHeading: true,
+  });
+  expect(api.post).not.toHaveBeenCalled();
+});
 
 const hundredSpaceIds = Array.from(
   { length: 100 },

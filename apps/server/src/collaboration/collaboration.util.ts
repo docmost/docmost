@@ -36,9 +36,6 @@ import {
   Mention,
   Subpages,
   RecentlyUpdated,
-  hasLegacyRecentlyUpdatedSpaces,
-  upgradeRecentlyUpdatedContent,
-  upgradeRecentlyUpdatedSpaceFilters,
   PagesByLabel,
   Highlight,
   Color,
@@ -169,7 +166,7 @@ export const templateExtensions: Extensions = [
 
 // Pages and templates share serializers. Only template imports retain editable fields.
 export function jsonToHtml(tiptapJson: any) {
-  return generateHTML(upgradeRecentlyUpdatedContent(tiptapJson), templateExtensions);
+  return generateHTML(tiptapJson, templateExtensions);
 }
 
 export function htmlToJson(
@@ -199,7 +196,6 @@ export function parseDocumentJson(
   content: JSONContent,
   extensions: Extensions = tiptapExtensions,
 ) {
-  content = upgradeRecentlyUpdatedContent(content);
   const schema = getSchema(extensions);
   try {
     return { content, node: Node.fromJSON(schema, content) };
@@ -218,29 +214,6 @@ export function parseDocumentJson(
 
 export function jsonToNode(content: JSONContent) {
   return parseDocumentJson(content).node;
-}
-
-// Update attributes in place so existing Yjs history and relative positions survive.
-export function upgradeRecentlyUpdatedYdoc(doc: Y.Doc) {
-  const blocks = doc.getXmlFragment('default').querySelectorAll('recentlyUpdated');
-  if (!blocks.length) return;
-  doc.transact(() => {
-    for (const node of blocks) {
-      if (!(node instanceof Y.XmlElement)) continue;
-      const block: Y.XmlElement<Record<string, string | string[]>> = node;
-      const attrs = block.getAttributes();
-      if (!hasLegacyRecentlyUpdatedSpaces(attrs)) continue;
-      if (attrs.scope === undefined) {
-        const filters = upgradeRecentlyUpdatedSpaceFilters(attrs);
-        for (const [key, value] of Object.entries(filters)) {
-          block.setAttribute(key, value);
-        }
-      }
-      block.removeAttribute('spaces');
-      block.removeAttribute('excludeSpaces');
-      block.removeAttribute('spaceMatch');
-    }
-  });
 }
 
 export function getPageId(documentName: string) {
