@@ -57,6 +57,11 @@ export function LabelFilter({
       searchable
       hidePickedOptions
       classNames={{ option: classes.popoverItem }}
+      maxDropdownHeight={240}
+      scrollAreaProps={{
+        scrollbars: "y",
+        styles: { content: { minWidth: 0 } },
+      }}
       renderOption={({ option }) => (
         <LabelOption name={option.label} scheme={scheme} />
       )}
