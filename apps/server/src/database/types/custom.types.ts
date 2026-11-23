@@ -39,4 +39,5 @@ export interface ConfluenceApiImports {
   creatorId: string | null;
   createdAt: Generated<Timestamp>;
   updatedAt: Generated<Timestamp>;
+  finishedAt: Timestamp | null;
 }

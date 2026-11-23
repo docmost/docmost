@@ -73,6 +73,7 @@ export type ImportStatusResponse = Partial<ConfluenceImportCounts> & {
   importedRestrictedPages?: number;
   createdAt?: string;
   updatedAt?: string;
+  finishedAt?: string | null;
   error?: string;
 };
 
@@ -102,6 +103,7 @@ export type ConfluenceImportHistoryItem = ConfluenceImportCounts & {
   spaceKeys: string[];
   createdAt: string;
   updatedAt: string;
+  finishedAt: string | null;
   creatorId: string | null;
   creatorName: string | null;
   creatorAvatarUrl: string | null;

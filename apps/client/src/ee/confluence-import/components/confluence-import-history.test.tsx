@@ -16,7 +16,7 @@ vi.mock("@/lib/time", () => ({
   formattedDate: (date: Date) => date.toISOString(),
 }));
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({ t: (key: string) => key, i18n: { language: "en-US" } }),
 }));
 
 beforeEach(() => {
@@ -53,6 +53,7 @@ function historyItem(
     errorMessage: null,
     createdAt: "2026-01-01T12:00:00Z",
     updatedAt: "2026-01-01T12:00:00Z",
+    finishedAt: null,
     creatorId: null,
     creatorName: null,
     creatorAvatarUrl: null,
@@ -148,4 +149,27 @@ it("distinguishes an old unrecorded count from an option left off", () => {
   expect(
     details.getByRole("row", { name: /Page history revisions/ }).textContent,
   ).toContain("Not requested");
+});
+
+it("shows the task's final duration in history and details when cancellation finishes", () => {
+  const running = historyItem({
+    cancelled: true,
+    updatedAt: "2026-01-02T14:00:00Z",
+  });
+  provide(running);
+  const { rerender } = showDetails();
+  const details = within(screen.getByRole("dialog"));
+  expect(details.queryByText("Finished at")).toBeNull();
+  expect(details.queryByText("Duration")).toBeNull();
+
+  const finishedAt = "2026-01-02T14:03:08Z";
+  provide({ ...running, status: "failed", finishedAt });
+  rerender(<ConfluenceImportHistory />);
+  expect(screen.getAllByText("26h 3m 8s")).toHaveLength(2);
+  expect(details.getByText("Finished at")).toBeDefined();
+  const timestamps = screen.getByRole("dialog").querySelectorAll("time");
+  expect(Array.from(timestamps, (element) => element.dateTime)).toEqual([
+    running.createdAt,
+    finishedAt,
+  ]);
 });

@@ -93,6 +93,46 @@ function phaseLabel(phase: string | null, t: (key: string) => string): string {
   return t(phase.charAt(0).toUpperCase() + phase.slice(1));
 }
 
+function formatImportDuration(
+  item: ConfluenceImportHistoryItem,
+  language: string,
+) {
+  if (!item.finishedAt) return "—";
+  const seconds = Math.round(
+    (Date.parse(item.finishedAt) - Date.parse(item.createdAt)) / 1000,
+  );
+  if (!Number.isFinite(seconds) || seconds < 0) return "—";
+
+  const units = [
+    ["hour", Math.floor(seconds / 3600)],
+    ["minute", Math.floor(seconds / 60) % 60],
+    ["second", seconds % 60],
+  ] as const;
+  return units
+    .filter(([unit, value]) => value > 0 || (unit === "second" && seconds === 0))
+    .map(([unit, value]) =>
+      value.toLocaleString(language, { style: "unit", unit, unitDisplay: "narrow" }),
+    )
+    .join(" ");
+}
+
+function ImportTimestamp({ label, value }: { label: string; value: string }) {
+  const { i18n } = useTranslation();
+  return (
+    <div>
+      <Text fz="sm" c="dimmed">
+        {label}
+      </Text>
+      <Text component="time" dateTime={value} fz="sm">
+        {new Date(value).toLocaleString(i18n.language, {
+          dateStyle: "medium",
+          timeStyle: "medium",
+        })}
+      </Text>
+    </div>
+  );
+}
+
 function progressValue(item: ConfluenceImportHistoryItem) {
   if (item.status === "success") return 100;
   if (item.totalPages > 0) {
@@ -143,7 +183,7 @@ function ImportStatsModal({
   item: ConfluenceImportHistoryItem | null;
   onClose: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   function optionalCount(requested: boolean, imported: number | null) {
     if (requested === false) return t("Not requested");
@@ -221,12 +261,20 @@ function ImportStatsModal({
               {item.siteUrl}
             </Text>
           </div>
-          <div>
-            <Text fz="sm" c="dimmed">
-              {t("Started at")}
-            </Text>
-            <Text fz="sm">{formattedDate(new Date(item.createdAt))}</Text>
-          </div>
+          <Group gap="xl" align="flex-start">
+            <ImportTimestamp label={t("Started at")} value={item.createdAt} />
+            {item.finishedAt && (
+              <>
+                <ImportTimestamp label={t("Finished at")} value={item.finishedAt} />
+                <div>
+                  <Text fz="sm" c="dimmed">
+                    {t("Duration")}
+                  </Text>
+                  <Text fz="sm">{formatImportDuration(item, i18n.language)}</Text>
+                </div>
+              </>
+            )}
+          </Group>
           <Table verticalSpacing="xs" fz="sm">
             <Table.Tbody>
               {stats.map((stat) => (
@@ -283,6 +331,9 @@ function TableSkeleton() {
           <Table.Td>
             <Skeleton height={14} width={120} />
           </Table.Td>
+          <Table.Td>
+            <Skeleton height={14} width={60} />
+          </Table.Td>
         </Table.Tr>
       ))}
     </>
@@ -290,7 +341,7 @@ function TableSkeleton() {
 }
 
 export default function ConfluenceImportHistory() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data, isLoading } = useConfluenceImportsQuery();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -298,7 +349,7 @@ export default function ConfluenceImportHistory() {
   const selectedItem = items.find((item) => item.fileTaskId === selectedId) ?? null;
 
   return (
-    <Table.ScrollContainer minWidth={720}>
+    <Table.ScrollContainer minWidth={820}>
       <Table verticalSpacing="xs" highlightOnHover>
         <Table.Thead>
           <Table.Tr>
@@ -308,6 +359,7 @@ export default function ConfluenceImportHistory() {
             <Table.Th>{t("Progress")}</Table.Th>
             <Table.Th>{t("Started by")}</Table.Th>
             <Table.Th>{t("Started at")}</Table.Th>
+            <Table.Th>{t("Duration")}</Table.Th>
           </Table.Tr>
         </Table.Thead>
 
@@ -376,10 +428,15 @@ export default function ConfluenceImportHistory() {
                     {formattedDate(new Date(item.createdAt))}
                   </Text>
                 </Table.Td>
+                <Table.Td>
+                  <Text fz="sm" style={{ whiteSpace: "nowrap" }}>
+                    {formatImportDuration(item, i18n.language)}
+                  </Text>
+                </Table.Td>
               </Table.Tr>
             ))
           ) : (
-            <NoTableResults colSpan={6} />
+            <NoTableResults colSpan={7} />
           )}
         </Table.Tbody>
       </Table>
