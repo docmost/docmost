@@ -17,6 +17,19 @@ import { useTranslation } from "react-i18next";
 import { LabelFilter } from "@/features/label/components/label-filter";
 import classes from "./page-list-settings.module.css";
 
+export function getPageListSettingsChanges<T extends object>(
+  initial: T,
+  draft: T,
+): Partial<T> {
+  const changes: Partial<T> = {};
+  for (const key in draft) {
+    if (JSON.stringify(draft[key]) !== JSON.stringify(initial[key])) {
+      changes[key] = draft[key];
+    }
+  }
+  return changes;
+}
+
 export function PageListSettingsModal({
   title,
   description,

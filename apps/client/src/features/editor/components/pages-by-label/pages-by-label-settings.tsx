@@ -7,16 +7,17 @@ import {
   TextInput,
 } from "@mantine/core";
 import {
-  normalizePagesByLabelAttributes,
+  parsePagesByLabelAttributes,
+  pagesByLabelNameWithinLimit,
   PAGES_BY_LABEL_MAX_FILTERS,
   PAGES_BY_LABEL_MAX_HEADING_LENGTH,
-  PAGES_BY_LABEL_MAX_LABEL_LENGTH,
   PAGES_BY_LABEL_MAX_LIMIT,
   type PagesByLabelAttributes,
 } from "@docmost/editor-ext";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  getPageListSettingsChanges,
   PageListLabelFilters,
   PageListLimitInput,
   PageListSettingsModal,
@@ -26,8 +27,7 @@ import classes from "./pages-by-label.module.css";
 
 const labelLimits = {
   maxValues: PAGES_BY_LABEL_MAX_FILTERS,
-  isWithinLength: (name: string) =>
-    [...name].length <= PAGES_BY_LABEL_MAX_LABEL_LENGTH,
+  isWithinLength: pagesByLabelNameWithinLimit,
 };
 
 export function PagesByLabelSettings({
@@ -66,13 +66,14 @@ export function PagesByLabelSettings({
       : draft.sortBy === "title"
         ? t("Reverse alphabetical order")
         : t("Oldest first");
+  const options = parsePagesByLabelAttributes({
+    ...draft,
+    limit,
+    spaceIds: draft.scope === "spaces" ? draft.spaceIds : [],
+  });
   const valid =
-    draft.labels.length > 0 &&
-    (draft.scope !== "spaces" || draft.spaceIds.length > 0) &&
-    typeof limit === "number" &&
-    Number.isInteger(limit) &&
-    limit >= 1 &&
-    limit <= PAGES_BY_LABEL_MAX_LIMIT;
+    !!options?.labels.length &&
+    (options.scope !== "spaces" || options.spaceIds.length > 0);
 
   return (
     <PageListSettingsModal
@@ -81,18 +82,8 @@ export function PagesByLabelSettings({
       canSave={valid}
       onClose={onClose}
       onSave={() => {
-        const options = normalizePagesByLabelAttributes({
-          ...draft,
-          limit,
-          spaceIds: draft.scope === "spaces" ? draft.spaceIds : [],
-        });
-        // Preserve settings another editor changed while this dialog was open.
-        const changes = Object.fromEntries(
-          Object.entries(options).filter(
-            ([key, value]) =>
-              JSON.stringify(value) !== JSON.stringify(initial[key]),
-          ),
-        );
+        if (!options) return;
+        const changes = getPageListSettingsChanges(initial, options);
         // Each picker edits a pair of stored attributes together.
         if ("scope" in changes || "spaceIds" in changes) {
           Object.assign(changes, {

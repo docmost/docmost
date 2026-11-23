@@ -22,7 +22,11 @@ import { PagesByLabelView } from "./pages-by-label-view";
 
 vi.mock("@/lib/api-client", () => ({ default: { post: vi.fn() } }));
 vi.mock("@/features/label/queries/label-query", () => ({
-  useWorkspaceLabelsQuery: () => ({ data: { items: [{ name: "guide" }] } }),
+  useWorkspaceLabelsQuery: () => ({
+    data: {
+      items: [{ name: "guide" }, { name: longLabel }, { name: boundaryLabel }],
+    },
+  }),
 }));
 vi.mock("@/features/space/queries/space-query", () => ({
   useGetSpacesQuery: () => ({
@@ -52,6 +56,8 @@ vi.mock("react-i18next", async (importOriginal) => ({
   }),
 }));
 
+const longLabel = "x".repeat(101);
+const boundaryLabel = "x".repeat(98) + "📌☀️";
 const editors: Editor[] = [];
 function show(
   attrs?: Partial<PagesByLabelAttributes>,
@@ -317,6 +323,63 @@ it("saves edited settings without overwriting another collaborator's changes", a
     expect(editor.state.doc.firstChild.attrs.heading).toBe("New list"),
   );
   expect(editor.state.doc.firstChild.attrs.excludeLabels).toEqual(["draft"]);
+});
+
+it.each(["Labels", "Exclude labels"])(
+  "offers only valid catalog labels in %s and preserves the rest of the report",
+  async (field) => {
+    vi.mocked(api.post).mockResolvedValue({ data: { items: [] } });
+    const { editor } = show({
+      heading: "Design guides",
+      scope: "workspace",
+      labels: ["guide"],
+      excludeLabels: ["draft"],
+      limit: 7,
+    });
+    const original = editor.state.doc.firstChild.attrs;
+    fireEvent.click(
+      screen.getByRole("button", { name: "Pages by label settings" }),
+    );
+    const picker = screen.getByRole("combobox", { name: field });
+    fireEvent.click(picker);
+    fireEvent.change(picker, { target: { value: longLabel } });
+    expect(screen.queryByRole("option", { name: longLabel })).toBeNull();
+    fireEvent.change(picker, { target: { value: boundaryLabel } });
+    fireEvent.click(await screen.findByRole("option", { name: boundaryLabel }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    const key = field === "Labels" ? "labels" : "excludeLabels";
+    expect(editor.state.doc.firstChild.attrs).toEqual({
+      ...original,
+      [key]: [...original[key], boundaryLabel],
+    });
+  },
+);
+
+it("keeps the saved configuration when a settings draft fails validation", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: { items: [] } });
+  const { editor } = show({
+    labels: ["guide"],
+    excludeLabels: ["draft"],
+    scope: "workspace",
+    heading: "Design guides",
+  });
+  const original = editor.state.doc.firstChild;
+  fireEvent.click(
+    screen.getByRole("button", { name: "Pages by label settings" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "More options" }));
+  const heading = await screen.findByRole("textbox", { name: "Heading" });
+  fireEvent.change(heading, { target: { value: "x".repeat(256) } });
+  const save = screen.getByRole<HTMLButtonElement>("button", { name: "Save" });
+  fireEvent.submit(save.form);
+  expect(editor.state.doc.firstChild).toBe(original);
+  expect(save.disabled).toBe(true);
+  fireEvent.change(heading, { target: { value: "New heading" } });
+  fireEvent.click(save);
+  expect(editor.state.doc.firstChild.attrs).toEqual({
+    ...original.attrs,
+    heading: "New heading",
+  });
 });
 
 it("replaces scope choices with named spaces and keeps imported ordering and display settings", async () => {

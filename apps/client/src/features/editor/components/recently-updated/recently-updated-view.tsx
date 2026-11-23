@@ -1,4 +1,4 @@
-import { useContext, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ActionIcon, Skeleton } from "@mantine/core";
 import { IconSettings } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
@@ -20,11 +20,12 @@ import { useTranslation } from "react-i18next";
 import api from "@/lib/api-client";
 import { DefaultPageIcon } from "@/components/common/page-list-icon";
 import { PageListTime } from "@/components/common/page-list-time";
+import { pageEditorBindingAtom } from "@/features/editor/atoms/editor-atoms";
 import { buildPageUrl, getPageTitle } from "@/features/page/page.utils";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
 import { userAtom } from "@/features/user/atoms/current-user-atom";
 import RecentlyUpdatedSettings from "./recently-updated-settings";
-import { EditorSpaceContext } from "./editor-space-context";
+import { useEditorSpaceId } from "./editor-space-context";
 import {
   PageListHeading,
   PageListLayout,
@@ -103,7 +104,7 @@ function Feed({
 }) {
   const { t } = useTranslation();
   const viewer = useAtomValue(userAtom);
-  const editorSpaceId = useContext(EditorSpaceContext);
+  const editorSpaceId = useEditorSpaceId();
   const { spaceSlug } = useParams();
   const { data: space } = useGetSpaceBySlugQuery(
     editorSpaceId ? undefined : spaceSlug,
@@ -161,11 +162,19 @@ export default function RecentlyUpdatedView({
 }: NodeViewProps) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const editable = useEditorState({
+  const binding = useAtomValue(pageEditorBindingAtom);
+  const editorEditable = useEditorState({
     editor,
     selector: ({ editor }) => editor.isEditable,
   });
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const editable =
+    binding?.editor === editor ? binding.editable : editorEditable;
+  const [editing, setEditing] = useState<RecentlyUpdatedAttributes | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!editable) setEditing(null);
+  }, [editable]);
   if (/^\/(share|docs)(\/|$)/i.test(pathname)) return null;
 
   const filters = normalizeRecentlyUpdatedFilters(node.attrs);
@@ -181,7 +190,7 @@ export default function RecentlyUpdatedView({
       size="md"
       aria-label={t("Recently updated settings")}
       title={t("Recently updated settings")}
-      onClick={() => setSettingsOpen(true)}
+      onClick={() => setEditing(options)}
     >
       <IconSettings size={16} />
     </ActionIcon>
@@ -213,13 +222,15 @@ export default function RecentlyUpdatedView({
           </div>
         </PageListLayout>
       )}
-      {editable && settingsOpen && (
+      {editable && editing && (
         <RecentlyUpdatedSettings
-          options={options}
-          onClose={() => setSettingsOpen(false)}
-          onSave={(attributes) => {
-            if (editor.isEditable) updateAttributes(attributes);
-            setSettingsOpen(false);
+          initial={editing}
+          onClose={() => setEditing(null)}
+          onSave={(changes) => {
+            if (editor.isEditable && Object.keys(changes).length) {
+              updateAttributes(changes);
+            }
+            setEditing(null);
           }}
         />
       )}

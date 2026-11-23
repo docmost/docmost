@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { Checkbox } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
@@ -11,9 +11,9 @@ import {
 } from "@docmost/editor-ext";
 import { SpaceSelect } from "@/features/space/components/sidebar/space-select";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
-import { EditorSpaceContext } from "./editor-space-context";
-import { PagesByLabelContext } from "../pages-by-label/pages-by-label-context";
+import { useEditorSpaceId } from "./editor-space-context";
 import {
+  getPageListSettingsChanges,
   PageListFilterGroup,
   PageListLabelFilters,
   PageListLimitInput,
@@ -21,22 +21,21 @@ import {
 } from "../common/page-list-settings";
 
 export default function RecentlyUpdatedSettings({
-  options,
+  initial,
   onSave,
   onClose,
 }: {
-  options: RecentlyUpdatedAttributes;
-  onSave: (options: RecentlyUpdatedAttributes) => void;
+  initial: RecentlyUpdatedAttributes;
+  onSave: (changes: Partial<RecentlyUpdatedAttributes>) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const pageContext = useContext(PagesByLabelContext);
-  const editorSpaceId = useContext(EditorSpaceContext) ?? pageContext?.spaceId;
+  const editorSpaceId = useEditorSpaceId();
   const { spaceSlug } = useParams();
   const spaceKey = editorSpaceId ?? spaceSlug;
   const { data: currentSpace, isLoading } = useGetSpaceBySlugQuery(spaceKey);
-  const [draft, setDraft] = useState(options);
-  const [limit, setLimit] = useState<string | number>(options.limit);
+  const [draft, setDraft] = useState(initial);
+  const [limit, setLimit] = useState<string | number>(initial.limit);
   const validLimit =
     typeof limit === "number" &&
     Number.isInteger(limit) &&
@@ -73,7 +72,12 @@ export default function RecentlyUpdatedSettings({
       canSave={validLimit}
       onClose={onClose}
       onSave={() =>
-        onSave({ ...draft, limit: normalizeRecentlyUpdatedLimit(limit) })
+        onSave(
+          getPageListSettingsChanges(initial, {
+            ...draft,
+            limit: normalizeRecentlyUpdatedLimit(limit),
+          }),
+        )
       }
       primaryFilter={
         <PageListFilterGroup

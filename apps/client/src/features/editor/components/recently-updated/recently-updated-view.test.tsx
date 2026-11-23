@@ -21,10 +21,13 @@ import {
   RecentlyUpdated,
   type RecentlyUpdatedAttributes,
 } from "@docmost/editor-ext";
+import { createStore, Provider } from "jotai";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import api from "@/lib/api-client";
+import { pageEditorBindingAtom } from "@/features/editor/atoms/editor-atoms";
 import { useGetSpaceBySlugQuery } from "@/features/space/queries/space-query";
+import { PagesByLabelContext } from "../pages-by-label/pages-by-label-context";
 import { EditorSpaceContext } from "./editor-space-context";
 import RecentlyUpdatedView from "./recently-updated-view";
 
@@ -69,6 +72,10 @@ function show(
   path: string,
   attrs: Partial<RecentlyUpdatedAttributes> = {},
   sourceId?: string,
+  {
+    editable = true,
+    templateSpaceId,
+  }: { editable?: boolean; templateSpaceId?: string } = {},
 ) {
   const editor = new Editor({
     extensions: [
@@ -76,13 +83,21 @@ function show(
       Text,
       RecentlyUpdated.configure({ view: RecentlyUpdatedView }),
     ],
-    editable: true,
+    editable,
     content: { type: "doc", content: [{ type: "recentlyUpdated", attrs }] },
   });
   editors.push(editor);
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  const store = createStore();
+  const content = (
+    <PagesByLabelContext.Provider
+      value={templateSpaceId ? { spaceId: templateSpaceId } : null}
+    >
+      <EditorContent editor={editor} />
+    </PagesByLabelContext.Provider>
+  );
   render(
     <MemoryRouter initialEntries={[path]}>
       <MantineProvider env="test">
@@ -94,21 +109,21 @@ function show(
                 "/share/:shareId/p/:pageSlug",
                 "/share/p/:pageSlug",
                 "/s/:spaceSlug",
+                "/templates",
                 "/templates/:templateId",
               ].map((path) => (
-                <Route
-                  key={path}
-                  path={path}
-                  element={<EditorContent editor={editor} />}
-                />
+                <Route key={path} path={path} element={content} />
               ))}
             </Routes>
           </EditorSpaceContext.Provider>
         </QueryClientProvider>
       </MantineProvider>
     </MemoryRouter>,
+    {
+      wrapper: ({ children }) => <Provider store={store}>{children}</Provider>,
+    },
   );
-  return { editor, queryClient };
+  return { editor, queryClient, store };
 }
 
 beforeAll(() => {
@@ -155,6 +170,83 @@ it.each(["/docs/team", "/share/abc/p/home", "/share/p/home"])(
 it("waits for a source space before requesting authenticated rows", () => {
   show("/templates/sample");
   expect(api.post).not.toHaveBeenCalled();
+});
+
+it.each([
+  { surface: "template editor", path: "/templates/sample", editable: true },
+  {
+    surface: "read-only template preview",
+    path: "/templates",
+    editable: false,
+  },
+  {
+    surface: "template preview inside another space",
+    path: "/s/other",
+    editable: false,
+    outerSpace: otherId,
+  },
+])(
+  "loads the template's own space in the $surface",
+  async ({ path, editable, outerSpace }) => {
+    vi.mocked(api.post).mockResolvedValue({
+      data: [
+        {
+          id: "result",
+          slugId: "abc",
+          title: "Design notes",
+          spaceSlug: "team",
+        },
+      ],
+    });
+    show(path, { spaces: ["@self"] }, outerSpace, {
+      editable,
+      templateSpaceId: spaceId,
+    });
+
+    expect(
+      await screen.findByRole("link", { name: "Design notes" }),
+    ).toBeTruthy();
+    expect(api.post).toHaveBeenCalledExactlyOnceWith(
+      "/pages/recently-updated",
+      expect.objectContaining({ spaceId, spaces: ["@self"] }),
+    );
+    if (editable) {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Recently updated settings" }),
+      );
+      expect(
+        within(screen.getByRole("dialog")).getByRole("button", {
+          name: "Remove Product design",
+        }),
+      ).toBeTruthy();
+    } else {
+      expect(
+        screen.queryByRole("button", { name: "Recently updated settings" }),
+      ).toBeNull();
+    }
+  },
+);
+
+it("closes settings on a silent switch to Read and restores the button on Edit", async () => {
+  vi.mocked(api.post).mockResolvedValue({ data: [] });
+  const { editor, store } = show("/s/team", {}, spaceId);
+  const settings = { name: "Recently updated settings" };
+  const switchMode = (editable: boolean) =>
+    act(() => {
+      editor.setEditable(editable, false);
+      store.set(pageEditorBindingAtom, { pageId: "host", editor, editable });
+    });
+
+  await screen.findByText("No matching pages");
+  switchMode(true);
+  fireEvent.click(screen.getByRole("button", settings));
+  expect(screen.getByRole("dialog")).toBeTruthy();
+  switchMode(false);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByRole("button", settings)).toBeNull();
+  switchMode(true);
+  expect(screen.getByRole("button", settings)).toBeTruthy();
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 it.each(["@self", spaceId])(
@@ -436,6 +528,45 @@ it("edits the limit, heading and space choices while preserving literal labels",
     ).toBeTruthy();
   });
 });
+
+it.each([5, 15])(
+  "preserves concurrent filter edits when saving a limit of %i",
+  async (limit) => {
+    vi.mocked(api.post).mockResolvedValue({ data: [] });
+    const { editor } = show(
+      "/s/team",
+      { labels: ["review"], limit: 15 },
+      spaceId,
+    );
+    await screen.findByText("No matching pages");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Recently updated settings" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    const field = screen.getByLabelText("Show up to");
+    fireEvent.change(field, { target: { value: "8" } });
+    fireEvent.change(field, { target: { value: String(limit) } });
+    act(() => {
+      editor.view.dispatch(
+        editor.state.tr
+          .setNodeAttribute(0, "labels", ["release"])
+          .setNodeAttribute(0, "spaces", ["@favorite"]),
+      );
+    });
+    const beforeSave = editor.state.doc;
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    const expected = { limit, labels: ["release"], spaces: ["@favorite"] };
+    expect(editor.state.doc.firstChild.attrs).toMatchObject(expected);
+    if (limit === 15) expect(editor.state.doc).toBe(beforeSave);
+    await waitFor(() =>
+      expect(api.post).toHaveBeenLastCalledWith(
+        "/pages/recently-updated",
+        expect.objectContaining(expected),
+      ),
+    );
+  },
+);
 
 it("saves literal names, exclusions and the match mode, then requests the new filter", async () => {
   vi.mocked(api.post).mockResolvedValue({ data: [] });

@@ -425,6 +425,7 @@ export const mainExtensions = [
     view: RecentlyUpdatedView,
   }),
   PagesByLabel.configure({
+    defaultHeading: () => i18n.t("Pages by label"),
     view: PagesByLabelView,
   }),
   IntegrationCard.configure({

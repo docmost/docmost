@@ -41,6 +41,10 @@ const defaults: PagesByLabelAttributes = {
   excludeCurrentPage: false,
 };
 
+export function pagesByLabelNameWithinLimit(name: string): boolean {
+  return isLength(name, { min: 1, max: PAGES_BY_LABEL_MAX_LABEL_LENGTH });
+}
+
 function normalizeList(value: unknown, isSpace = false): string[] | null {
   if (!Array.isArray(value) || value.length > PAGES_BY_LABEL_MAX_FILTERS)
     return null;
@@ -48,22 +52,17 @@ function normalizeList(value: unknown, isSpace = false): string[] | null {
   for (const raw of value) {
     if (typeof raw !== 'string') return null;
     const item = isSpace ? raw : raw.trim().replace(/\s+/g, '-').toLowerCase();
-    if (
-      isSpace
-        ? !isUuid(item)
-        : !isLength(item, { min: 1, max: PAGES_BY_LABEL_MAX_LABEL_LENGTH })
-    )
+    if (isSpace ? !isUuid(item) : !pagesByLabelNameWithinLimit(item))
       return null;
     result.add(item);
   }
   return [...result];
 }
 
-export function normalizePagesByLabelAttributes(
+export function parsePagesByLabelAttributes(
   value: unknown,
-): PagesByLabelAttributes {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    return defaults;
+): PagesByLabelAttributes | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const attrs = { ...defaults, ...value };
   const labels = normalizeList(attrs.labels);
   const excludeLabels = normalizeList(attrs.excludeLabels);
@@ -87,7 +86,7 @@ export function normalizePagesByLabelAttributes(
       (flag) => typeof flag !== 'boolean',
     )
   )
-    return defaults;
+    return null;
   return {
     labels,
     match: attrs.match,
@@ -104,7 +103,14 @@ export function normalizePagesByLabelAttributes(
   };
 }
 
+export function normalizePagesByLabelAttributes(
+  value: unknown,
+): PagesByLabelAttributes {
+  return parsePagesByLabelAttributes(value) ?? defaults;
+}
+
 type PagesByLabelOptions = {
+  defaultHeading: () => string;
   view: ComponentType<ReactNodeViewProps> | null;
 };
 
@@ -130,7 +136,7 @@ export const PagesByLabel = Node.create<PagesByLabelOptions>({
   isolating: true,
 
   addOptions() {
-    return { view: null };
+    return { view: null, defaultHeading: () => 'Pages by label' };
   },
 
   addAttributes() {
@@ -191,6 +197,7 @@ export const PagesByLabel = Node.create<PagesByLabelOptions>({
             normalizePagesByLabelAttributes({
               ...attributes,
               scope: attributes?.scope ?? 'workspace',
+              heading: attributes?.heading ?? this.options.defaultHeading(),
             }),
           );
           const before = tr.steps.length;

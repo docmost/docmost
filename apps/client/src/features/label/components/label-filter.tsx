@@ -35,11 +35,12 @@ export function LabelFilter({
   const [debouncedSearch] = useDebouncedValue(search, 200);
   const { data } = useWorkspaceLabelsQuery(debouncedSearch, true);
   const candidate = normalizeLabelName(search);
-  const names = new Set([
-    ...value,
-    ...(data?.items.map((item) => item.name) ?? []),
-  ]);
-  if (candidate && isWithinLength(candidate)) names.add(candidate);
+  const suggestions =
+    data?.items.map(({ name }) => normalizeLabelName(name)) ?? [];
+  const names = new Set(value);
+  for (const name of [...suggestions, candidate]) {
+    if (name && isWithinLength(name)) names.add(name);
+  }
   return (
     <MultiSelect
       {...inputProps}
