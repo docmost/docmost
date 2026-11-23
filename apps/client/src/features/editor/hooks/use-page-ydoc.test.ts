@@ -43,6 +43,19 @@ afterEach(() => {
 });
 
 describe("usePageYdoc", () => {
+  it("waits for the server to upgrade a cached report without writing stale filters into the shared document", async () => {
+    const { result } = mount();
+    const block = new Y.XmlElement("recentlyUpdated");
+    const cached = caches[0].ydoc as Y.Doc;
+    cached.getXmlFragment("default").insert(0, [block]);
+    const saved: Y.XmlElement<Record<string, string | string[]>> = block;
+    saved.setAttribute("spaces", ["@all"]);
+    const before = Y.encodeStateAsUpdate(cached);
+    await act(async () => caches[0].resolve(true));
+    expect(result.current?.hasLegacySpaceFilters).toBe(true);
+    expect(Y.encodeStateAsUpdate(cached)).toEqual(before);
+  });
+
   it.each([false, true])(
     "publishes the restored document and its cached status (%s)",
     async (cached) => {
@@ -51,6 +64,7 @@ describe("usePageYdoc", () => {
       await act(async () => caches[0].resolve(cached));
       expect(result.current?.ydoc).toBe(caches[0].ydoc);
       expect(result.current?.hasCachedDocument).toBe(cached);
+      expect(result.current?.hasLegacySpaceFilters).toBe(false);
     },
   );
 

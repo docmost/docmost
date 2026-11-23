@@ -28,6 +28,7 @@ import {
   useEditorState,
 } from "@tiptap/react";
 import { createDocument } from "@tiptap/core";
+import { upgradeRecentlyUpdatedContent } from "@docmost/editor-ext";
 import { EditorState } from "@tiptap/pm/state";
 import { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import {
@@ -145,8 +146,13 @@ export default function PageEditor({
   const canReplayDrafts = editable && !roomDeniedWrite && !isCheckingLock && editMode === PageEditMode.Edit;
   const localDoc = usePageYdoc(pageId, user?.id, onStorageError, canReplayDrafts, verifiedReadOnly);
   const canMountEditor = Boolean(hasCollabToken && user && localDoc);
+  // Bind the new schema after the server upgrades any selectors in an older draft.
+  const waitingForSpaceFilters = Boolean(
+    localDoc?.hasLegacySpaceFilters && syncedDocument !== localDoc.ydoc,
+  );
   const showStatic =
     !canMountEditor ||
+    waitingForSpaceFilters ||
     !(localDoc.hasCachedDocument || syncedDocument === localDoc.ydoc);
 
   useEffect(() => {
@@ -283,6 +289,7 @@ export default function PageEditor({
               requiresConnection={!localDoc.cache?.opened}
               cache={localDoc.cache}
               showStatic={showStatic}
+              waitingForSpaceFilters={waitingForSpaceFilters}
             />
           </HocuspocusRoom>
         </HocuspocusProviderWebsocketComponent>
@@ -294,6 +301,7 @@ export default function PageEditor({
 type CollabPageEditorProps = Omit<PageEditorProps, "content"> & {
   user: IUser;
   showStatic: boolean;
+  waitingForSpaceFilters: boolean;
   requiresConnection: boolean;
   cache?: PageDraftCache;
 };
@@ -304,6 +312,7 @@ function CollabPageEditor({
   canComment,
   user,
   showStatic,
+  waitingForSpaceFilters,
   requiresConnection,
   cache,
 }: CollabPageEditorProps) {
@@ -368,8 +377,10 @@ function CollabPageEditor({
   }, [isIdle, documentState, provider, resetIdle]);
 
   const extensions = useMemo(
-    () => [...mainExtensions, ...collabExtensions(provider, user)],
-    [provider, user],
+    () => waitingForSpaceFilters
+      ? mainExtensions
+      : [...mainExtensions, ...collabExtensions(provider, user)],
+    [provider, user, waitingForSpaceFilters],
   );
 
   const debouncedUpdateContent = useDebouncedCallback((doc: ProseMirrorNode) => {
@@ -667,7 +678,7 @@ function StaticPageEditor({
   useLayoutEffect(() => {
     if (!editor || editor.isDestroyed) return;
     const doc = createDocument(
-      content,
+      upgradeRecentlyUpdatedContent(content),
       editor.schema,
       editor.options.parseOptions,
     );

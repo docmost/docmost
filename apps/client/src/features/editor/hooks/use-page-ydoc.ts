@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Doc } from "yjs";
+import { XmlElement, type Doc } from "yjs";
+import { hasLegacyRecentlyUpdatedSpaces } from "@docmost/editor-ext";
 import { PageDraftCache } from "./page-draft-cache";
 
 const LOCAL_OPEN_TIMEOUT = 2000;
@@ -10,6 +11,7 @@ type LoadedYdoc = {
   ydoc: Doc;
   cache: PageDraftCache;
   hasCachedDocument: boolean;
+  hasLegacySpaceFilters: boolean;
   reopenConfirmed: () => void;
   discardRejectedChanges: (forgetPage?: boolean) => boolean;
 };
@@ -48,6 +50,16 @@ export function usePageYdoc(
           scope,
           cache,
           hasCachedDocument,
+          hasLegacySpaceFilters:
+            hasCachedDocument &&
+            cache.ydoc
+              .getXmlFragment("default")
+              .querySelectorAll("recentlyUpdated")
+              .some(
+                (node) =>
+                  node instanceof XmlElement &&
+                  hasLegacyRecentlyUpdatedSpaces(node.getAttributes()),
+              ),
           ydoc: cache.ydoc,
           reopenConfirmed: () => {
             if (!active || current !== cache || !cache?.hasPending) return;
