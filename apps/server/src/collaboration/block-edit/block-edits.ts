@@ -2,6 +2,12 @@ import { Fragment, Node } from '@tiptap/pm/model';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
 import { tiptapExtensions } from '../collaboration.util';
+import {
+  CellChange,
+  editableCellValue,
+  prepareStatusLabel,
+  resolveCellChanges,
+} from './block-cells';
 import { documentInsertion } from './block-document';
 import {
   changedAttributes,
@@ -21,6 +27,7 @@ import {
   EditSplice,
   ExpectedNode,
   FormatSplice,
+  UpdatedCell,
 } from './block-edits.types';
 import {
   applyTextChange,
@@ -46,6 +53,7 @@ type ResolvedEdit = {
   nodes: Node[];
   insert: BlockSplice['insert'];
   text?: TextChange;
+  cells?: CellChange[];
 };
 
 type PlannedSplice = {
@@ -181,6 +189,20 @@ function resolveEdit(
   const anchors = [start, end];
 
   switch (edit.type) {
+    case 'update_cells': {
+      if (edit.endRef || edit.targetRef)
+        return `Edit ${n}: update_cells takes a single table row ref.`;
+      const cells = resolveCellChanges(nodeAt(doc, start), start, edit.changes);
+      if (typeof cells === 'string') return `Edit ${n}: ${cells}`;
+      return {
+        range,
+        removes: false,
+        anchors: cells.map(({ path }) => [...path, 0]),
+        nodes: [],
+        insert: [],
+        cells,
+      };
+    }
     case 'replace_text': {
       if (edit.endRef || edit.targetRef)
         return `Edit ${n}: replace_text takes a single block ref.`;
@@ -258,6 +280,11 @@ function findOverlap(resolved: ResolvedEdit[]): string | undefined {
         k !== i &&
         ((edit.removes &&
           other.anchors.some((path) => isInside(path, edit.range))) ||
+          (edit.cells &&
+            (other.cells || other.text) &&
+            edit.anchors.some((path) =>
+              other.anchors.some((target) => comparePaths(path, target) === 0),
+            )) ||
           (text &&
             other.text &&
             comparePaths(text.splice.path, other.text.splice.path) === 0 &&
@@ -700,17 +727,32 @@ export function planBlockEdits(
         b.blockOffset + b.matchFrom - a.blockOffset - a.matchFrom,
     );
   let textDoc = doc;
+  const splices: EditSplice[] = [];
+  const updatedCells: UpdatedCell[] = [];
+  for (const [i, edit] of resolved.entries()) {
+    for (const { cell, column, path, splice } of edit.cells ?? []) {
+      if (splice) {
+        textDoc = updateAt(textDoc, path, () => cell);
+        splices.push(splice);
+      }
+      updatedCells.push({
+        rowRef: edits[i].ref,
+        column,
+        value: editableCellValue(cell),
+      });
+    }
+  }
   for (const change of textChanges) {
     textDoc = updateAt(textDoc, change.splice.path, (node) =>
       applyTextChange(node, change),
     );
+    splices.push(change.splice);
   }
   const { newDoc, parents } = simulateSplices(textDoc, planned);
   const error =
     findSchemaError(newDoc, parents) ?? duplicatePageId(doc, newDoc, resolved);
   if (error) return { ok: false, error };
 
-  const splices: EditSplice[] = textChanges.map(({ splice }) => splice);
   for (const change of planned) {
     const explicitDelete = edits[change.removal]?.type === 'delete';
     const steps = explicitDelete
@@ -751,6 +793,7 @@ export function planBlockEdits(
     ok: true,
     doc: newDoc,
     splices,
+    ...(updatedCells.length > 0 && { updatedCells }),
     insertedRefs: resolved.map(({ nodes }) =>
       nodes.map((node) => newRefs.byNode.get(node)),
     ),
@@ -776,6 +819,12 @@ export function applyBlockSplices(
       : [],
   );
   if (textSteps.some((step) => !step)) return false;
+  const statusSteps = changes.flatMap((change) =>
+    'oldLabel' in change
+      ? [prepareStatusLabel(yNodeAt(fragment, change.path), change)]
+      : [],
+  );
+  if (statusSteps.some((step) => !step)) return false;
 
   const json = splices.flatMap(({ insert }) => insert);
   const formats = changes.filter(
@@ -825,6 +874,7 @@ export function applyBlockSplices(
     }
   }
   for (const step of formatSteps) step();
+  for (const step of statusSteps) step();
   for (const step of textSteps) step();
   for (const { splice, parent, elements } of steps) {
     if (splice.deleteCount > 0) parent.delete(splice.index, splice.deleteCount);

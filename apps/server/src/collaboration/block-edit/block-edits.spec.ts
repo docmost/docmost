@@ -423,6 +423,205 @@ describe('block edits', () => {
   });
 });
 
+describe('targeted table cell edits', () => {
+  const cell = (...content: JSONContent[]): JSONContent => ({
+    type: 'tableCell',
+    content: [{ type: 'paragraph', content }],
+  });
+  const table = (...cells: JSONContent[]) => ({
+    type: 'table',
+    content: [{ type: 'tableRow', content: cells }],
+  });
+  const badge = { type: 'status', attrs: { text: 'Draft', color: 'blue' } };
+  const update = (
+    ...changes: { column: number; oldValue: string; newValue: string }[]
+  ): BlockEdit => ({ type: 'update_cells', ref: 'b2', changes });
+  const owner = { column: 2, oldValue: 'Sam', newValue: 'Lin' };
+  const office = { column: 3, oldValue: 'Floor 2', newValue: 'Floor 4' };
+  const status = { column: 4, oldValue: 'Draft', newValue: 'Approved' };
+
+  it('edits duplicate text by physical column and changes only the native badge label', () => {
+    const comment = {
+      type: 'comment',
+      attrs: { commentId: 'c1', resolved: false },
+    };
+    const page = livePage(
+      doc(
+        table(
+          { ...cell(text('Sam')), type: 'tableHeader', attrs: { colspan: 2 } },
+          cell(text('Sam', [comment])),
+          cell(
+            text('Floor ', [{ type: 'bold' }]),
+            text('2', [{ type: 'italic' }]),
+          ),
+          { ...cell(badge), attrs: { backgroundColorName: 'blue' } },
+          cell(text('Note '), badge, text(' stays', [{ type: 'bold' }])),
+        ),
+      ),
+    );
+    const row = (page.fragment.get(0) as Y.XmlElement).get(0) as Y.XmlElement;
+    const cells = row.toArray() as Y.XmlElement[];
+    const paragraphs = cells.map((cell) => cell.get(0) as Y.XmlElement);
+    paragraphs.forEach((block, i) =>
+      block.setAttribute('id', `row-a-field-${i}`),
+    );
+    const content = paragraphs.map((block) => block.toArray());
+    const before = page.read().child(0).child(0);
+    expect(page.edit([update(owner, office, status)])).toMatchObject({
+      ok: true,
+      updatedCells: [
+        { rowRef: 'b2', column: 2, value: 'Lin' },
+        { rowRef: 'b2', column: 3, value: 'Floor 4' },
+        { rowRef: 'b2', column: 4, value: 'Approved' },
+      ],
+    });
+    const after = page.read().child(0).child(0);
+    expect(after.child(0).toJSON()).toEqual(before.child(0).toJSON());
+    expect(after.child(4).toJSON()).toEqual(before.child(4).toJSON());
+    expect(after.child(1).firstChild.firstChild.toJSON()).toEqual(
+      text('Lin', [comment]),
+    );
+    expect(after.child(2).firstChild.children.map((n) => n.toJSON())).toEqual([
+      text('Floor ', [{ type: 'bold' }]),
+      text('4', [{ type: 'italic' }]),
+    ]);
+    expect(after.child(3).firstChild.firstChild.attrs).toEqual({
+      ...before.child(3).firstChild.firstChild.attrs,
+      text: 'Approved',
+    });
+    expect(after.child(3).attrs).toEqual(before.child(3).attrs);
+    for (const [i, element] of cells.entries()) {
+      expect(row.get(i)).toBe(element);
+      expect(element.get(0)).toBe(paragraphs[i]);
+      expect(after.child(i).firstChild.attrs.id).toBe(`row-a-field-${i}`);
+      content[i].forEach((node, j) => expect(paragraphs[i].get(j)).toBe(node));
+    }
+  });
+
+  it('rejects stale, overlapping, ambiguous and non-scalar changes before any write', () => {
+    const page = livePage(
+      doc(
+        table(
+          cell(text('Sam')),
+          cell(text('Sam')),
+          cell(text('Floor 2')),
+          cell(badge),
+          cell(text('prefix'), badge),
+          cell(badge, badge),
+          { type: 'tableCell', content: [paragraph('one'), paragraph('two')] },
+          cell(text('foo', [{ type: 'bold' }]), text('bar')),
+          {
+            type: 'tableCell',
+            content: [
+              { type: 'blockquote', content: [table(cell(text('nested')))] },
+            ],
+          },
+        ),
+      ),
+    );
+    const before = page.state();
+    for (const edits of [
+      [update(owner, { ...office, oldValue: 'Floor' })],
+      [update(owner, { ...status, oldValue: 'draft' })],
+      [update(owner, owner)],
+      [update(owner), update(owner)],
+      [
+        update(owner),
+        {
+          type: 'replace_text',
+          ref: 'b2',
+          oldText: 'Sam',
+          newText: 'Eli',
+          occurrence: 2,
+        },
+      ],
+      [update(owner), { type: 'delete', ref: 'b1' }],
+      [update(owner, { ...office, column: 0 })],
+      [update(owner, { ...office, column: 1.5 })],
+      [update(owner, { ...office, column: 10 })],
+      [update(owner, { ...status, column: 5 })],
+      [update(owner, { ...status, column: 6 })],
+      [update(owner, { column: 7, oldValue: 'onetwo', newValue: 'three' })],
+      [update(owner, { column: 8, oldValue: 'foobar', newValue: 'quux' })],
+      [update(owner, { column: 8, oldValue: 'foobar', newValue: 'bar' })],
+      [update(owner, { column: 9, oldValue: 'nested', newValue: 'outer' })],
+      [{ ...update(owner), ref: 'b1' }],
+      [{ ...update(owner), ref: 'unknown' }],
+      [update()],
+    ] as BlockEdit[][]) {
+      expect(page.edit(edits)).toMatchObject({ ok: false });
+      expect(page.state()).toEqual(before);
+    }
+    expect(page.edit([update(owner)], 'stale')).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/changed/),
+    });
+    expect(page.state()).toEqual(before);
+  });
+
+  it('validates the live badge before applying any other cell and tolerates adjacent emptied text', () => {
+    const page = livePage(
+      doc(
+        table(
+          cell(text('Other')),
+          cell(text('Sam')),
+          cell(text('Prefix'), badge),
+        ),
+      ),
+    );
+    expect(
+      page.edit([
+        { type: 'replace_text', ref: 'b2', oldText: 'Prefix', newText: '' },
+      ]).ok,
+    ).toBe(true);
+    const row = (page.fragment.get(0) as Y.XmlElement).get(0) as Y.XmlElement;
+    const paragraph = (row.get(2) as Y.XmlElement).get(0) as Y.XmlElement;
+    const badgeElement = paragraph
+      .toArray()
+      .find((node) => node instanceof Y.XmlElement) as Y.XmlElement;
+    const edit = update(owner, { ...status, column: 3 });
+    const plan = planBlockEdits(page.read(), [edit]);
+    if (plan.ok === false) throw new Error(plan.error);
+    badgeElement.setAttribute('text', 'Changed');
+    const before = page.state();
+    expect(applyBlockSplices(page.fragment, plan.splices)).toBe(false);
+    expect(page.state()).toEqual(before);
+    const receipt = page.edit([
+      update(owner, { ...status, column: 3, oldValue: 'Changed' }),
+    ]);
+    expect(receipt.ok).toBe(true);
+    expect(paragraph.toArray()).toContain(badgeElement);
+    expect(badgeElement.getAttribute('text')).toBe('Approved');
+  });
+
+  it('fills and clears empty text cells in place, alongside another operation on the same row', () => {
+    const page = livePage(doc(table(cell(text('Other')), cell(), cell(badge))));
+    const block = (
+      (page.fragment.get(0) as Y.XmlElement).get(0) as Y.XmlElement
+    ).get(1) as Y.XmlElement;
+    const paragraph = block.get(0) as Y.XmlElement;
+    const fill = { column: 2, oldValue: '', newValue: 'North' };
+    expect(
+      page.edit([
+        update(fill),
+        { type: 'replace_text', ref: 'b2', oldText: 'Other', newText: 'First' },
+      ]).ok,
+    ).toBe(true);
+    const run = paragraph.get(0);
+    expect(
+      page.edit([update({ column: 2, oldValue: 'North', newValue: '' })]).ok,
+    ).toBe(true);
+    expect(page.edit([update(fill)]).ok).toBe(true);
+    expect(block.get(0)).toBe(paragraph);
+    expect(paragraph.get(0)).toBe(run);
+    expect(textsOf(page.read().child(0).child(0))).toEqual([
+      'First',
+      'North',
+      '',
+    ]);
+  });
+});
+
 describe('exact text edits', () => {
   const change = (
     ref: string,

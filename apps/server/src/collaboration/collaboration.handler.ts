@@ -184,7 +184,11 @@ export class CollaborationHandler {
             }
             const fragment = doc.getXmlFragment('default');
             result = applyBlockSplices(fragment, plan.splices)
-              ? { ok: true, insertedRefs: plan.insertedRefs }
+              ? {
+                  ok: true,
+                  insertedRefs: plan.insertedRefs,
+                  ...(plan.updatedCells && { updatedCells: plan.updatedCells }),
+                }
               : {
                   ok: false,
                   error:

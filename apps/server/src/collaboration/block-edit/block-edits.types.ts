@@ -9,6 +9,7 @@ export type BlockEditType =
   | 'move_before'
   | 'move_after'
   | 'replace_text'
+  | 'update_cells'
   | 'replace_document'
   | 'append_document'
   | 'prepend_document';
@@ -22,10 +23,14 @@ export type BlockEdit = {
   oldText?: string;
   newText?: string;
   occurrence?: number;
+  changes?: CellEdit[];
 };
 
+export type CellEdit = { column: number; oldValue: string; newValue: string };
+export type UpdatedCell = { rowRef: string; column: number; value: string };
+
 export type BlockEditResult =
-  | { ok: true; insertedRefs: string[][] }
+  | { ok: true; insertedRefs: string[][]; updatedCells?: UpdatedCell[] }
   | { ok: false; error: string };
 
 export type ExpectedNode = {
@@ -64,12 +69,25 @@ export type AttributeSplice = {
   attributes: Record<string, unknown>;
   expected: ExpectedNode[];
 };
+export type StatusLabelSplice = {
+  path: number[];
+  oldLabel: string;
+  newLabel: string;
+  expected: ExpectedNode[];
+};
 export type EditSplice =
   | BlockSplice
   | TextSplice
   | FormatSplice
-  | AttributeSplice;
+  | AttributeSplice
+  | StatusLabelSplice;
 
 export type BlockEditPlan =
-  | { ok: true; doc: Node; splices: EditSplice[]; insertedRefs: string[][] }
+  | {
+      ok: true;
+      doc: Node;
+      splices: EditSplice[];
+      insertedRefs: string[][];
+      updatedCells?: UpdatedCell[];
+    }
   | { ok: false; error: string };

@@ -146,3 +146,89 @@ it.each(cases)(
     initial.destroy();
   },
 );
+
+it('merges withheld peer edits to the same badge color, cell formatting and neighboring text', () => {
+  const cell = (content: JSONContent) => ({
+    type: 'tableCell',
+    content: [paragraph(content)],
+  });
+  const initial = TiptapTransformer.toYdoc(
+    {
+      type: 'doc',
+      content: [
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'tableRow',
+              content: [
+                cell(text('Desk 1')),
+                cell({
+                  type: 'status',
+                  attrs: { text: 'Open', color: 'blue' },
+                }),
+                cell(text('Note')),
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    'default',
+    tiptapExtensions,
+  );
+  const base = Y.encodeStateAsUpdate(initial);
+  const clock = Y.encodeStateVector(initial);
+  const server = replica(base),
+    peer = replica(base);
+  const cellContent = (doc: Y.Doc, column: number) => {
+    const table = doc.getXmlFragment('default').get(0) as Y.XmlElement;
+    const row = table.get(0) as Y.XmlElement;
+    return ((row.get(column) as Y.XmlElement).get(0) as Y.XmlElement).get(0);
+  };
+  peer.transact(() => {
+    (cellContent(peer, 0) as Y.XmlText).format(0, 4, { bold: {} });
+    (cellContent(peer, 1) as Y.XmlElement).setAttribute('color', 'green');
+    (cellContent(peer, 2) as Y.XmlText).insert(4, ' from peer');
+  });
+  const peerUpdate = Y.encodeStateAsUpdate(peer, clock);
+  const edit: BlockEdit = {
+    type: 'update_cells',
+    ref: 'b2',
+    changes: [
+      { column: 1, oldValue: 'Desk 1', newValue: 'Desk 2' },
+      { column: 2, oldValue: 'Open', newValue: 'Done' },
+    ],
+  };
+  const revision = pageRevision(read(initial));
+  expect(planBlockEdits(read(peer), [edit], revision)).toMatchObject({
+    ok: false,
+    error: expect.stringMatching(/changed/),
+  });
+  server.transact(() => {
+    const plan = planBlockEdits(read(server), [edit], revision);
+    if (plan.ok === false) throw new Error(plan.error);
+    expect(
+      applyBlockSplices(server.getXmlFragment('default'), plan.splices),
+    ).toBe(true);
+  });
+  const serverUpdate = Y.encodeStateAsUpdate(server, clock);
+  const a = replica(base),
+    b = replica(base);
+  Y.applyUpdate(a, serverUpdate);
+  Y.applyUpdate(a, peerUpdate);
+  Y.applyUpdate(b, peerUpdate);
+  Y.applyUpdate(b, serverUpdate);
+  expect(read(a).toJSON()).toEqual(read(b).toJSON());
+  const row = read(a).firstChild.firstChild;
+  expect(row.child(0).textContent).toBe('Desk 2');
+  expect(row.child(0).firstChild.firstChild.toJSON()).toEqual(
+    text('Desk', [{ type: 'bold' }]),
+  );
+  expect(row.child(1).firstChild.firstChild.attrs).toMatchObject({
+    text: 'Done',
+    color: 'green',
+  });
+  expect(row.child(2).textContent).toBe('Note from peer');
+  for (const doc of [initial, server, peer, a, b]) doc.destroy();
+});
