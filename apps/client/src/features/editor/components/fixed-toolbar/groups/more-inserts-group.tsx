@@ -7,6 +7,7 @@ import {
   IconCalendarMonth,
   IconCaretRightFilled,
   IconChevronDown,
+  IconClockHour3,
   IconCursorText,
   IconForms,
   IconInfoCircle,
@@ -117,6 +118,12 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
           onClick={() => editor.chain().focus().insertSubpages().run()}
         >
           {t("Subpages")}
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<IconClockHour3 size={16} />}
+          onClick={() => editor.chain().focus().insertRecentlyUpdated().run()}
+        >
+          {t("Recently updated")}
         </Menu.Item>
         <Menu.Item
           leftSection={<IconTags size={16} />}

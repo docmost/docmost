@@ -1,6 +1,7 @@
 import classes from "./switch-space.module.css";
 import { useNavigate } from "react-router-dom";
 import { SpaceSelect } from "./space-select";
+import { SpaceAvatar } from "../space-avatar";
 import { getSpaceUrl } from "@/lib/config";
 import { Badge, Button, Popover, Text, Tooltip } from "@mantine/core";
 import {
@@ -9,8 +10,6 @@ import {
   IconWorld,
 } from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
-import { CustomAvatar } from "@/components/ui/custom-avatar.tsx";
-import { AvatarIconType } from "@/features/attachments/types/attachment.types.ts";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -60,14 +59,7 @@ export function SwitchSpace({
           color="gray"
           onClick={toggle}
         >
-          <CustomAvatar
-            name={spaceName}
-            avatarUrl={spaceIcon}
-            type={AvatarIconType.SPACE_ICON}
-            color="initials"
-            variant="filled"
-            size={20}
-          />
+          <SpaceAvatar name={spaceName} logo={spaceIcon} />
           <Text className={classes.spaceName} size="md" fw={500} lineClamp={1}>
             {spaceName}
           </Text>

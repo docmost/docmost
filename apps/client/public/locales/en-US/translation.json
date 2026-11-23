@@ -201,6 +201,12 @@
   "Slide {{current}} of {{total}}": "Slide {{current}} of {{total}}",
   "Print PDF": "Print PDF",
   "Profile": "Profile",
+  "Exclude spaces": "Exclude spaces",
+  "Choose a space to show pages.": "Choose a space to show pages.",
+  "Leave empty to use the space containing this block.": "Leave empty to use the space containing this block.",
+  "This list shows pages from all accessible spaces except those you exclude.": "This list shows pages from all accessible spaces except those you exclude.",
+  "Space where this block is used": "Space where this block is used",
+  "List pages by most recent edit.": "List pages by most recent edit.",
   "Recently updated": "Recently updated",
   "Remove": "Remove",
   "Remove from favorites": "Remove from favorites",
@@ -726,6 +732,7 @@
   "No subpages": "No subpages",
   "Subpages (Child pages)": "Subpages (Child pages)",
   "List all subpages of the current page": "List all subpages of the current page",
+  "List recently updated pages": "List recently updated pages",
   "Attachments": "Attachments",
   "All spaces": "All spaces",
   "Unknown": "Unknown",
@@ -2378,5 +2385,10 @@
   "This email is linked to a different account at your identity provider. Contact your workspace admin.": "This email is linked to a different account at your identity provider. Contact your workspace admin.",
   "Your identity provider didn't share an email address. Contact your workspace admin.": "Your identity provider didn't share an email address. Contact your workspace admin.",
   "Single sign-on isn't available on this workspace's plan. Contact your workspace admin.": "Single sign-on isn't available on this workspace's plan. Contact your workspace admin.",
-  "Something went wrong while signing you in. Try again, or contact your workspace admin if it keeps happening.": "Something went wrong while signing you in. Try again, or contact your workspace admin if it keeps happening."
+  "Something went wrong while signing you in. Try again, or contact your workspace admin if it keeps happening.": "Something went wrong while signing you in. Try again, or contact your workspace admin if it keeps happening.",
+  "Show heading": "Show heading",
+  "Recently updated settings": "Recently updated settings",
+  "Refresh recently updated pages": "Refresh recently updated pages",
+  "Updated by {{name}}": "Updated by {{name}}",
+  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value."
 }

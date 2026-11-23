@@ -34,13 +34,20 @@ interface SingleSpaceSelectProps {
 
 interface MultipleSpaceSelectProps extends Pick<
   MultiSelectProps,
-  "id" | "label" | "aria-label" | "description" | "autoFocus" | "placeholder"
+  | "id"
+  | "label"
+  | "aria-label"
+  | "description"
+  | "autoFocus"
+  | "placeholder"
+  | "disabled"
 > {
   multiple: true;
   value: string[];
   onChange: (values: string[]) => void;
   unavailableLabel?: string;
   scopes?: (ComboboxItem & { spaceId?: string; logo?: string })[];
+  placeholderSpace?: SpaceIcon;
   maxValues: number;
   withinPortal?: boolean;
 }
@@ -170,7 +177,8 @@ export function SpaceSelect(
         ({ spaceId }) => !spaceId || !props.value.includes(spaceId),
       ),
       ...(spaces?.items ?? []).filter(
-        ({ id }) => !scopes.some((scope) => scope.spaceId === id),
+        ({ id }) =>
+          !scopes.some((scope) => scope.id === id || scope.spaceId === id),
       ),
     ].map(({ id, name, logo }) => ({
       value: id,
@@ -185,10 +193,17 @@ export function SpaceSelect(
         id={props.id}
         aria-label={props["aria-label"]}
         autoFocus={props.autoFocus}
+        disabled={props.disabled}
         label={props.label}
         description={props.description}
         inputWrapperOrder={["label", "input", "description", "error"]}
-        placeholder={props.placeholder}
+        placeholder={props.placeholderSpace?.name ?? props.placeholder}
+        leftSection={
+          props.placeholderSpace && !searchValue ? (
+            <SpaceAvatar {...props.placeholderSpace} />
+          ) : undefined
+        }
+        leftSectionPointerEvents="none"
         hidePickedOptions
         data={choices}
         value={props.value}

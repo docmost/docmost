@@ -53,6 +53,7 @@ import {
   TableHeaderPin,
   TableReadonlySort,
   Subpages,
+  RecentlyUpdated,
   ItemsByLabel,
   Heading,
   SectionAnchor,
@@ -111,6 +112,7 @@ import ExcalidrawView from "@/features/editor/components/excalidraw/excalidraw-v
 import EmbedView from "@/features/editor/components/embed/embed-view.tsx";
 import PdfView from "@/features/editor/components/pdf/pdf-view.tsx";
 import SubpagesView from "@/features/editor/components/subpages/subpages-view.tsx";
+import RecentlyUpdatedView from "@/features/editor/components/recently-updated/recently-updated-view.tsx";
 import { PagesByLabelView } from "@/features/editor/components/pages-by-label/pages-by-label-view";
 import IntegrationCardView from "@/features/editor/components/integration-link/integration-card-view.tsx";
 import IntegrationMentionView from "@/features/editor/components/integration-link/integration-mention-view.tsx";
@@ -418,6 +420,9 @@ export const mainExtensions = [
   PageBreak,
   Subpages.configure({
     view: SubpagesView,
+  }),
+  RecentlyUpdated.configure({
+    view: RecentlyUpdatedView,
   }),
   ItemsByLabel.configure({
     defaultHeading: () => i18n.t("Pages by label"),

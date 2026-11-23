@@ -432,7 +432,7 @@ export class ShareService {
       page.id,
       page.workspaceId,
     );
-    return doc?.toJSON() ?? page.content;
+    return doc.toJSON();
   }
 
   async updatePublicCoverPhoto(page: Page): Promise<string | null> {
@@ -463,7 +463,7 @@ export class ShareService {
           item.sourcePageId,
           workspaceId,
         );
-        return { ...item, content: doc?.toJSON() ?? item.content };
+        return { ...item, content: doc.toJSON() };
       }),
     );
 
@@ -481,7 +481,7 @@ export class ShareService {
 
   /**
    * Prepare a ProseMirror JSON doc for delivery to a public share viewer.
-   * Performs the two transforms required by the share threat model:
+   * Prepares attachments and removes private editor metadata.
    *
    * 1. Mint a per-attachment public token scoped to `attachmentOwnerPageId`
    *    and rewrite each attachment node's `src`/`url` to the public form
@@ -503,7 +503,7 @@ export class ShareService {
     content: unknown,
     attachmentOwnerPageId: string,
     workspaceId: string,
-  ): Promise<Node | null> {
+  ): Promise<Node> {
     const pmJson = getProsemirrorContent(content);
     const attachmentIds = getAttachmentIds(pmJson);
 
@@ -520,10 +520,12 @@ export class ShareService {
     );
 
     const doc = jsonToNode(pmJson);
-    if (!doc) return null;
     const tr = new Transform(doc);
     doc.descendants((node: Node, pos: number) => {
-      if (node.type.name === 'itemsByLabel') {
+      if (
+        node.type.name === 'recentlyUpdated' ||
+        node.type.name === 'itemsByLabel'
+      ) {
         const from = tr.mapping.map(pos);
         tr.delete(from, from + node.nodeSize);
         return false;

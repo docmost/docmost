@@ -22,6 +22,7 @@ export * from "./lib/markdown";
 export * from "./lib/search-and-replace";
 export * from "./lib/embed-provider";
 export * from "./lib/subpages";
+export * from "./lib/recently-updated";
 export * from "./lib/items-by-label";
 export * from "./lib/transclusion";
 export * from "./lib/highlight";
