@@ -1,5 +1,6 @@
 import { ActionIcon, Box, Group, ScrollArea, Title, Tooltip } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
+import { CommentErrorBoundary } from "@/features/comment/components/comment-error-boundary.tsx";
 import { useAtom } from "jotai";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom.ts";
 import React, { lazy, ReactNode, Suspense, useEffect } from "react";
@@ -42,7 +43,11 @@ export default function Aside() {
 
   switch (tab) {
     case "comments":
-      component = <CommentListWithTabs />;
+      component = (
+        <CommentErrorBoundary>
+          <CommentListWithTabs />
+        </CommentErrorBoundary>
+      );
       title = "Comments";
       break;
     case "toc":

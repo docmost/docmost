@@ -89,7 +89,7 @@ function paste(text: string, html = "") {
   const handled = handlePaste(
     editor,
     event as unknown as ClipboardEvent,
-    "page-id",
+    { pageId: "page-id" },
   );
   return { handled, preventDefault: event.preventDefault };
 }

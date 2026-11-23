@@ -9,10 +9,12 @@ import {
   IPageVerificationInfo,
   ISetupVerification,
   IUpdateVerification,
+  IVerificationChanges,
   IVerificationListItem,
   IVerificationListParams,
 } from "@/ee/page-verification/types/page-verification.types";
 import {
+  getVerificationChanges,
   getVerificationInfo,
   getVerificationList,
   markObsolete,
@@ -27,13 +29,41 @@ import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import { IPagination } from "@/lib/types";
 
+// An answer this recent already counts as the check for a page being opened.
+const ENTRY_CHECK_FRESH_MS = 5_000;
+
 export function usePageVerificationInfoQuery(
   pageId: string | undefined,
+  checkOnEntry = false,
 ): UseQueryResult<IPageVerificationInfo, Error> {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ["page-verification-info", pageId],
-    queryFn: () => getVerificationInfo(pageId!),
+    queryFn: async () => {
+      const info = await getVerificationInfo(pageId!);
+      // A slug lookup also answers for the page id, which the lock and live updates use.
+      if (info.pageId && info.pageId !== pageId)
+        queryClient.setQueryData(["page-verification-info", info.pageId], info);
+      return info;
+    },
     enabled: !!pageId,
+    refetchOnMount: checkOnEntry ? "always" : true,
+    ...(checkOnEntry && { staleTime: ENTRY_CHECK_FRESH_MS }),
+    retryOnMount: false,
+  });
+}
+
+// every open fetches again: the server flushes pending edits first
+export function usePageVerificationChangesQuery(
+  pageId: string | undefined,
+  enabled: boolean,
+): UseQueryResult<IVerificationChanges, Error> {
+  return useQuery({
+    queryKey: ["page-verification-changes", pageId],
+    queryFn: () => getVerificationChanges(pageId!),
+    enabled: enabled && !!pageId,
+    staleTime: 0,
+    gcTime: 0,
   });
 }
 

@@ -7,7 +7,6 @@ import {
   Switch,
   Divider,
   Tooltip,
-  Badge,
 } from "@mantine/core";
 import {
   exportPage,
@@ -17,10 +16,12 @@ import { useState } from "react";
 import { ExportFormat } from "@/features/page/types/page.types.ts";
 import { notifications } from "@mantine/notifications";
 import { exportSpace } from "@/features/space/services/space-service";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { useTranslation } from "react-i18next";
 import { Feature } from "@/ee/features";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
+import { UpgradeBadge } from "@/ee/components/upgrade-badge";
 
 interface ExportModalProps {
   id: string;
@@ -69,7 +70,7 @@ export default function ExportModal({
       onClose();
     } catch (err) {
       notifications.show({
-        message: "Export failed:" + err.response?.data.message,
+        message: getApiErrorMessage(err, t("Export failed")),
         color: "red",
       });
       console.error("export error", err);
@@ -219,9 +220,7 @@ function ExportFormatSelection({
             <Text size="sm" c="dimmed">
               {option.label}
             </Text>
-            <Badge size="xs" mt={4}>
-              {t("Enterprise")}
-            </Badge>
+            <UpgradeBadge mt={4} />
           </div>
         ) : (
           <Text size="sm">{option.label}</Text>

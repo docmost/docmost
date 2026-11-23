@@ -1,6 +1,7 @@
 import Image from "@tiptap/extension-image";
 import { ImageOptions as DefaultImageOptions } from "@tiptap/extension-image";
 import { ReactNodeViewRenderer } from "@tiptap/react";
+import type { DOMOutputSpec } from "@tiptap/pm/model";
 import {
   mergeAttributes,
   Range,
@@ -8,6 +9,7 @@ import {
 import { ResizableNodeView } from "../resizable-nodeview";
 import type { ResizableNodeViewDirection } from "../resizable-nodeview";
 import { normalizeFileUrl, syncAltBadge } from "../media-utils";
+import { sanitizeUrl } from "../utils";
 
 export type ImageResizeOptions = {
   enabled: boolean;
@@ -27,10 +29,12 @@ export type ImageResizeOptions = {
 export interface ImageOptions extends DefaultImageOptions {
   view: any;
   resize: ImageResizeOptions | false;
+  resolveLink?: (href: string) => string;
 }
 
 export interface ImageAttributes {
   src?: string;
+  href?: string;
   alt?: string;
   align?: string;
   attachmentId?: string;
@@ -123,6 +127,12 @@ export const TiptapImage = Image.extend<ImageOptions>({
           alt: attributes.alt,
         }),
       },
+      href: {
+        default: null,
+        rendered: false,
+        parseHTML: (element) =>
+          sanitizeUrl(element.closest("a[href]")?.getAttribute("href")) || null,
+      },
       attachmentId: {
         default: undefined,
         parseHTML: (element) => element.getAttribute("data-attachment-id"),
@@ -151,11 +161,15 @@ export const TiptapImage = Image.extend<ImageOptions>({
     };
   },
 
-  renderHTML({ HTMLAttributes }) {
-    return [
+  renderHTML({ node, HTMLAttributes }) {
+    const image: DOMOutputSpec = [
       "img",
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
     ];
+    const href = sanitizeUrl(node.attrs.href);
+    return href
+      ? ["a", { href, "aria-label": node.attrs.alt ? undefined : href }, image]
+      : image;
   },
 
   addCommands() {
@@ -267,6 +281,30 @@ export const TiptapImage = Image.extend<ImageOptions>({
 
       let currentNode = node;
 
+      const syncLink = (attrs: ImageAttributes) => {
+        const href = sanitizeUrl(attrs.href);
+        let anchor = el.parentElement instanceof HTMLAnchorElement ? el.parentElement : null;
+        if (!href) {
+          anchor?.replaceWith(el);
+          return;
+        }
+        if (!anchor) {
+          anchor = document.createElement("a");
+          anchor.style.display = "block";
+          anchor.addEventListener("click", (event) => {
+            // An ordinary click selects the image for editing.
+            if (editor.isEditable && event.detail > 0 && !event.ctrlKey && !event.metaKey) {
+              event.preventDefault();
+            }
+          });
+          el.replaceWith(anchor);
+          anchor.appendChild(el);
+        }
+        anchor.href = this.options.resolveLink?.(href) ?? href;
+        if (attrs.alt) anchor.removeAttribute("aria-label");
+        else anchor.setAttribute("aria-label", href);
+      };
+
       const nodeView = new ResizableNodeView({
         element: el,
         editor,
@@ -300,6 +338,12 @@ export const TiptapImage = Image.extend<ImageOptions>({
 
           if (updatedNode.attrs.alt !== currentNode.attrs.alt) {
             el.alt = updatedNode.attrs.alt || "";
+          }
+          if (
+            updatedNode.attrs.href !== currentNode.attrs.href ||
+            updatedNode.attrs.alt !== currentNode.attrs.alt
+          ) {
+            syncLink(updatedNode.attrs);
           }
 
           const w = updatedNode.attrs.width;
@@ -335,6 +379,7 @@ export const TiptapImage = Image.extend<ImageOptions>({
 
       const dom = nodeView.dom as HTMLElement;
 
+      syncLink(node.attrs);
       syncAltBadge(nodeView.wrapper, node.attrs.alt);
 
       // Apply initial alignment
@@ -365,7 +410,7 @@ export const TiptapImage = Image.extend<ImageOptions>({
       }
 
       // Show skeleton background while image loads from server
-      dom.style.pointerEvents = "none";
+      if (!node.attrs.href) dom.style.pointerEvents = "none";
       el.classList.add("media-pulse");
 
       el.onload = () => {

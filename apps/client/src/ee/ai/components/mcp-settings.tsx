@@ -1,6 +1,5 @@
 import {
   Anchor,
-  Badge,
   Group,
   List,
   Text,
@@ -9,7 +8,6 @@ import {
   ActionIcon,
   Tooltip,
   Stack,
-  Alert,
 } from "@mantine/core";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
@@ -20,8 +18,10 @@ import { notifications } from "@mantine/notifications";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
+import { UpgradeAlert } from "@/ee/components/upgrade-alert";
+import { UpgradeBadge } from "@/ee/components/upgrade-badge";
 import { getAppUrl } from "@/lib/config.ts";
-import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
+import { IconCheck, IconCopy } from "@tabler/icons-react";
 import { CopyButton } from "@/components/common/copy-button.tsx";
 
 export default function McpSettings() {
@@ -50,11 +50,9 @@ export default function McpSettings() {
   return (
     <Stack gap="lg">
       {!hasAccess && (
-        <Alert icon={<IconInfoCircle />} title={upgradeLabel} color="blue">
-          {t(
-            "MCP is only available in the Docmost enterprise edition. Contact sales@docmost.com.",
-          )}
-        </Alert>
+        <UpgradeAlert
+          message={t("MCP is available in the Docmost paid editions.")}
+        />
       )}
 
       <Group justify="space-between" wrap="nowrap" gap="xl">
@@ -145,6 +143,11 @@ export default function McpSettings() {
               </List.Item>
               <List.Item>
                 <Text size="sm" c="dimmed" span>
+                  list_templates, get_template
+                </Text>
+              </List.Item>
+              <List.Item>
+                <Text size="sm" c="dimmed" span>
                   search_attachments, list_workspace_members, get_current_user
                 </Text>
               </List.Item>
@@ -184,11 +187,7 @@ function McpEnforceOauthSetting() {
           <Text size="sm" fw={500}>
             {t("Enforce OAuth")}
           </Text>
-          {!hasAccess && (
-            <Badge variant="light" size="sm" radius="sm">
-              {t("Enterprise")}
-            </Badge>
-          )}
+          {!hasAccess && <UpgradeBadge />}
         </Group>
         <Text size="sm" c="dimmed">
           {t(

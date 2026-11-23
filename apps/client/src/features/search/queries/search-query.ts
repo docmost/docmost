@@ -29,7 +29,7 @@ export function useSearchSuggestionsQuery(
 ): UseQueryResult<ISuggestionResult, Error> {
   const { preload, ...queryParams } = params;
   return useQuery({
-    queryKey: ["search-suggestion", params.query],
+    queryKey: ["search-suggestion", queryParams],
     staleTime: 60 * 1000, // 1min
     queryFn: () => searchSuggestions(queryParams),
     enabled: preload || !!params.query,

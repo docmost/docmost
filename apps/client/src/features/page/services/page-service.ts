@@ -13,6 +13,7 @@ import { IPagination } from "@/lib/types.ts";
 import { saveAs } from "file-saver";
 import { InfiniteData } from "@tanstack/react-query";
 import { IFileTask } from '@/features/file-task/types/file-task.types.ts';
+import type { UploadTarget } from "@docmost/editor-ext";
 import { IAttachment } from '@/features/attachments/types/attachment.types.ts';
 
 export async function createPage(data: Partial<IPage>): Promise<IPage> {
@@ -195,14 +196,18 @@ export async function getAttachmentInfo(
 
 export async function uploadFile(
   file: File,
-  pageId: string,
+  uploadTarget: UploadTarget,
   attachmentId?: string,
 ): Promise<IAttachment> {
   const formData = new FormData();
   if (attachmentId) {
     formData.append("attachmentId", attachmentId);
   }
-  formData.append("pageId", pageId);
+  if ("pageId" in uploadTarget) {
+    formData.append("pageId", uploadTarget.pageId);
+  } else {
+    formData.append("templateId", uploadTarget.templateId);
+  }
   formData.append("file", file);
 
   const req = await api.post<IAttachment>("/files/upload", formData, {

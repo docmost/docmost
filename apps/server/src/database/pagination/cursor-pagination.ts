@@ -1,4 +1,5 @@
 // adapted from https://github.com/charlie-hadden/kysely-paginate/blob/main/src/cursor.ts - MIT
+import { BadRequestException } from '@nestjs/common';
 import {
   OrderByDirection,
   OrderByModifiers,
@@ -238,7 +239,7 @@ export async function executeWithCursorPagination<
 
   const rows = await qb.limit(opts.perPage + 1).execute();
 
-  const hasNextPage = rows.length > opts.perPage;
+  const hasMore = rows.length > opts.perPage;
 
   // If we fetched an extra row to determine if we have a next page, that
   // shouldn't be in the returned results
@@ -249,7 +250,8 @@ export async function executeWithCursorPagination<
   const startRow = rows[0];
   const endRow = rows[rows.length - 1];
 
-  const hasPrevPage = !!opts.cursor;
+  const hasNextPage = reversed ? !!opts.beforeCursor : hasMore;
+  const hasPrevPage = reversed ? hasMore : !!opts.cursor;
   const prevCursor = hasPrevPage && startRow ? generateCursor(startRow) : null;
   const nextCursor = hasNextPage && endRow ? generateCursor(endRow) : null;
 
@@ -342,11 +344,11 @@ export function defaultDecodeCursor<
       ).entries(),
     ];
   } catch {
-    throw new Error('Unparsable cursor');
+    throw new BadRequestException('Invalid cursor');
   }
 
   if (parsed.length !== fields.length) {
-    throw new Error('Unexpected number of fields');
+    throw new BadRequestException('Invalid cursor');
   }
 
   for (let i = 0; i < fields.length; i++) {
@@ -354,11 +356,11 @@ export function defaultDecodeCursor<
     const expectedName = fields[i];
 
     if (!field) {
-      throw new Error('Unable to find field');
+      throw new BadRequestException('Invalid cursor');
     }
 
     if (field[0] !== expectedName) {
-      throw new Error('Unexpected field name');
+      throw new BadRequestException('Invalid cursor');
     }
   }
 

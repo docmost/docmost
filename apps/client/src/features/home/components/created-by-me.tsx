@@ -11,6 +11,7 @@ import PageListSkeleton from "@/components/ui/page-list-skeleton";
 import { buildPageUrl, getPageTitle } from "@/features/page/page.utils";
 import { formattedDate } from "@/lib/time";
 import { useCreatedByQuery } from "@/features/page/queries/page-query";
+import { usePagePrefetch } from "@/features/page/hooks/use-page-prefetch";
 import { PageListIcon } from "@/components/common/page-list-icon";
 import { IconFiles } from "@tabler/icons-react";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -33,6 +34,8 @@ export default function CreatedByMe({ spaceId }: Props) {
     fetchNextPage,
     isFetchingNextPage,
   } = useCreatedByQuery({ spaceId });
+  const { prefetch: prefetchPage, cancel: cancelPagePrefetch } =
+    usePagePrefetch();
 
   const pages = data?.pages.flatMap((p) => p.items) ?? [];
 
@@ -60,6 +63,8 @@ export default function CreatedByMe({ spaceId }: Props) {
                       page.slugId,
                       page.title,
                     )}
+                    onMouseEnter={() => prefetchPage(page.id)}
+                    onMouseLeave={cancelPagePrefetch}
                   >
                     <Group wrap="nowrap">
                       <PageListIcon icon={page.icon} isBase={page.isBase} />

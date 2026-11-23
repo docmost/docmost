@@ -23,7 +23,6 @@ i18n
     lng: serverLanguage,
     fallbackLng: "en-US",
     debug: false,
-    showSupportNotice: false,
     load: 'currentOnly',
 
     interpolation: {

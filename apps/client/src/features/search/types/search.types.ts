@@ -22,6 +22,8 @@ export interface IPageSearch {
 export interface SearchSuggestionParams {
   query: string;
   includeUsers?: boolean;
+  /** Only applies when includeUsers is true; defaults to false. */
+  includeDeactivatedUsers?: boolean;
   includeGroups?: boolean;
   includePages?: boolean;
   spaceId?: string;
@@ -41,6 +43,7 @@ export interface IPageSearchParams {
   creatorId?: string;
   labelIds?: string[];
   titleOnly?: boolean;
+  includeArchived?: boolean;
 }
 
 export interface IAttachmentSearch {
@@ -57,6 +60,7 @@ export interface IAttachmentSearch {
     name: string;
     slug: string;
     icon: string;
+    archivedAt?: Date | null;
   };
   page: {
     id: string;

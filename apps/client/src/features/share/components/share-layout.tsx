@@ -18,7 +18,7 @@ import { shareSearchSpotlight } from "@/features/search/constants";
 
 export default function ShareLayout() {
   const { shareId } = useParams();
-  const { data } = useGetSharedPageTreeQuery(shareId);
+  const { data, isPlaceholderData } = useGetSharedPageTreeQuery(shareId);
 
   // Shares have no appearance settings; apply the default docs accent.
   useDocsAccent(undefined);
@@ -27,9 +27,9 @@ export default function ShareLayout() {
   const setSharedTreeData = useSetAtom(sharedTreeDataAtom);
 
   const treeData = useMemo(() => {
-    if (!data?.pageTree) return null;
+    if (isPlaceholderData || !data?.pageTree) return null;
     return buildSharedPageTree(data.pageTree);
-  }, [data?.pageTree]);
+  }, [data?.pageTree, isPlaceholderData]);
 
   useEffect(() => {
     setSharedPageTree(data || null);

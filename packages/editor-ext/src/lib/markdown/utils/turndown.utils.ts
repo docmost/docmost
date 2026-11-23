@@ -1,6 +1,8 @@
 import * as _TurndownService from '@joplin/turndown';
 import * as TurndownPluginGfm from '@joplin/turndown-plugin-gfm';
 import { getBasename } from './basename';
+import { getFileNameFromUrl } from '../../media-utils';
+import { normalizeItemsByLabelAttributes } from '../../items-by-label';
 
 // CJS/ESM interop: .default exists in Vite, not in NestJS
 const TurndownService = (_TurndownService as any).default || _TurndownService;
@@ -15,12 +17,42 @@ function sanitizeMdLinkText(value: string): string {
     .replace(/[\r\n]+/g, ' ');
 }
 
+function isItemsByLabel(node: HTMLElement): boolean {
+  return (
+    node.nodeName === 'DIV' &&
+    node.getAttribute('data-type') === 'items-by-label'
+  );
+}
+
+function itemsByLabelMarkdown(
+  service: _TurndownService,
+  node: HTMLElement,
+): string {
+  const paragraph = node.ownerDocument.createElement('p');
+  let heading = '';
+  try {
+    const attrs = JSON.parse(node.getAttribute('data-config') ?? '{}');
+    heading = normalizeItemsByLabelAttributes(attrs).heading.trim();
+  } catch {
+    // Older or incomplete HTML can contain only the marker.
+  }
+  paragraph.textContent = heading || 'Pages by label';
+  // Rich tables emit outerHTML after converting their children.
+  node.parentNode.replaceChild(paragraph, node);
+  return '\n\n' + service.turndown(paragraph) + '\n\n';
+}
+
 export function htmlToMarkdown(html: string): string {
   const turndownService = new TurndownService({
     headingStyle: 'atx',
     codeBlockStyle: 'fenced',
     hr: '---',
     bulletListMarker: '-',
+    // Turndown bypasses custom rules for nodes with no text.
+    blankReplacement: (_content: string, node: HTMLElement & { isBlock: boolean }) => {
+      if (isItemsByLabel(node)) return itemsByLabelMarkdown(turndownService, node);
+      return node.isBlock ? '\n\n' : '';
+    },
   });
 
   turndownService.use([
@@ -36,11 +68,18 @@ export function htmlToMarkdown(html: string): string {
     mathInline,
     mathBlock,
     iframeEmbed,
+    pdf,
     image,
     video,
+    audio,
     footnoteRef,
     footnotesList,
   ]);
+  turndownService.addRule('itemsByLabel', {
+    filter: isItemsByLabel,
+    replacement: (_content: string, node: HTMLElement) =>
+      itemsByLabelMarkdown(turndownService, node),
+  });
   const htmlWithoutColgroups = html.replace(
     /<colgroup\b[^>]*>[\s\S]*?<\/colgroup>/gi,
     '',
@@ -340,6 +379,25 @@ function footnotesList(turndownService: _TurndownService) {
   });
 }
 
+// a link to the file, named after it, instead of the generic iframe rule
+function pdf(turndownService: _TurndownService) {
+  turndownService.addRule('pdf', {
+    filter: function (node: HTMLElement) {
+      return (
+        node.nodeName === 'DIV' && node.getAttribute('data-type') === 'pdf'
+      );
+    },
+    replacement: function (_content: string, node: HTMLElement) {
+      const src = node.getAttribute('src') || '';
+      if (!src) return '';
+      const name = sanitizeMdLinkText(
+        node.getAttribute('data-name') || getFileNameFromUrl(src) || src,
+      );
+      return '\n\n[' + name + '](' + src + ')\n\n';
+    },
+  });
+}
+
 function video(turndownService: _TurndownService) {
   turndownService.addRule('video', {
     filter: function (node: HTMLInputElement) {
@@ -350,6 +408,22 @@ function video(turndownService: _TurndownService) {
       const ariaLabel = node.getAttribute('aria-label');
       const name = sanitizeMdLinkText(ariaLabel || getBasename(src) || src);
       return '[' + name + '](' + src + ')';
+    },
+  });
+}
+
+function audio(turndownService: _TurndownService) {
+  turndownService.addRule('audio', {
+    filter: function (node: HTMLInputElement) {
+      return node.tagName === 'AUDIO';
+    },
+    replacement: function (_content: string, node: HTMLInputElement) {
+      const src = node.getAttribute('src') || '';
+      if (!src) return '';
+      const name = sanitizeMdLinkText(
+        node.getAttribute('data-name') || getFileNameFromUrl(src) || src,
+      );
+      return '\n\n[' + name + '](' + src + ')\n\n';
     },
   });
 }

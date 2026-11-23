@@ -12,6 +12,7 @@ import {
 } from "@/ee/base/services/base-service";
 import {
   IBase,
+  BaseTemplate,
   CreateBaseInput,
   UpdateBaseInput,
 } from "@/ee/base/types/base.types";
@@ -20,6 +21,7 @@ import { notifications } from "@mantine/notifications";
 import { queryClient } from "@/main";
 import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "@/lib/api-error";
+import { invalidateOnDeletePage } from "@/features/page/queries/page-query";
 import { useAtom } from "jotai";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 import { treeModel } from "@/features/page/tree/model/tree-model";
@@ -60,7 +62,7 @@ export function useConvertPageToBaseMutation() {
   const [, setTreeData] = useAtom(treeDataAtom);
   const [socket] = useAtom(socketAtom);
 
-  return useMutation<IBase, Error, { pageId: string; template?: "kanban" }>({
+  return useMutation<IBase, Error, { pageId: string; template?: BaseTemplate }>({
     mutationFn: ({ pageId, template }) => convertPageToBase(pageId, template),
     onSuccess: (base) => {
       const markAsBase = (old?: IPage) => (old ? { ...old, isBase: true } : old);
@@ -96,10 +98,16 @@ export function useUpdateBaseMutation() {
   const { t } = useTranslation();
   return useMutation<IBase, Error, UpdateBaseInput>({
     mutationFn: (data) => updateBase(data),
-    onSuccess: (data) => {
-      queryClient.setQueryData<IBase>(["bases", data.id], (old) => {
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData<IBase>(["bases", variables.pageId], (old) => {
         if (!old) return old;
-        return { ...old, ...data };
+        return {
+          ...old,
+          ...data,
+          properties: old.properties,
+          views: old.views,
+          permissions: old.permissions,
+        };
       });
     },
     onError: (error) => {
@@ -121,6 +129,7 @@ export function useDeleteBaseMutation() {
         queryKey: ["bases", "list", spaceId],
       });
       notifications.show({ message: t("Base deleted") });
+      return invalidateOnDeletePage(pageId, spaceId);
     },
     onError: (error) => {
       notifications.show({

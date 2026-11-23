@@ -13,7 +13,7 @@ import { IconColumns5 } from "@/components/icons/icon-columns-5";
 import { useTranslation } from "react-i18next";
 
 interface Props {
-  editor: Editor;
+  editor: Editor | null;
 }
 
 export const QuickInsertsGroup: FC<Props> = ({ editor }) => {
@@ -27,7 +27,7 @@ export const QuickInsertsGroup: FC<Props> = ({ editor }) => {
           color="dark"
           size="md"
           aria-label={t("Mention")}
-          onClick={() => editor.chain().focus().insertContent("@").run()}
+          onClick={() => editor?.chain().focus().insertContent("@").run()}
         >
           <IconAt size={16} />
         </ActionIcon>
@@ -38,7 +38,7 @@ export const QuickInsertsGroup: FC<Props> = ({ editor }) => {
           color="dark"
           size="md"
           aria-label={t("Emoji")}
-          onClick={() => editor.chain().focus().insertContent(":").run()}
+          onClick={() => editor?.chain().focus().insertContent(":").run()}
         >
           <IconMoodSmile size={16} />
         </ActionIcon>
@@ -60,7 +60,11 @@ export const QuickInsertsGroup: FC<Props> = ({ editor }) => {
           <Menu.Item
             leftSection={<IconColumns2 size={16} />}
             onClick={() =>
-              editor.chain().focus().insertColumns({ layout: "two_equal" }).run()
+              editor
+                ?.chain()
+                .focus()
+                .insertColumns({ layout: "two_equal" })
+                .run()
             }
           >
             {t("{{count}} Columns", { count: 2 })}
@@ -69,7 +73,7 @@ export const QuickInsertsGroup: FC<Props> = ({ editor }) => {
             leftSection={<IconColumns3 size={16} />}
             onClick={() =>
               editor
-                .chain()
+                ?.chain()
                 .focus()
                 .insertColumns({ layout: "three_equal" })
                 .run()
@@ -80,7 +84,11 @@ export const QuickInsertsGroup: FC<Props> = ({ editor }) => {
           <Menu.Item
             leftSection={<IconColumns4 size={16} />}
             onClick={() =>
-              editor.chain().focus().insertColumns({ layout: "four_equal" }).run()
+              editor
+                ?.chain()
+                .focus()
+                .insertColumns({ layout: "four_equal" })
+                .run()
             }
           >
             {t("{{count}} Columns", { count: 4 })}
@@ -88,7 +96,11 @@ export const QuickInsertsGroup: FC<Props> = ({ editor }) => {
           <Menu.Item
             leftSection={<IconColumns5 size={16} />}
             onClick={() =>
-              editor.chain().focus().insertColumns({ layout: "five_equal" }).run()
+              editor
+                ?.chain()
+                .focus()
+                .insertColumns({ layout: "five_equal" })
+                .run()
             }
           >
             {t("{{count}} Columns", { count: 5 })}
@@ -103,7 +115,7 @@ export const QuickInsertsGroup: FC<Props> = ({ editor }) => {
           aria-label={t("Table")}
           onClick={() =>
             editor
-              .chain()
+              ?.chain()
               .focus()
               .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
               .run()

@@ -16,6 +16,10 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
+import type { RecentlyUpdatedDto } from '../../../core/page/dto/recently-updated.dto';
+import { recentlyUpdatedFilter } from './recently-updated-filter';
+import { PagePermissionRepo } from './page-permission.repo';
+import { UserRecentPageActivity } from '../../../core/user/user.types';
 
 @Injectable()
 export class PageRepo {
@@ -23,6 +27,7 @@ export class PageRepo {
     @InjectKysely() private readonly db: KyselyDB,
     private spaceMemberRepo: SpaceMemberRepo,
     private eventEmitter: EventEmitter2,
+    private readonly pagePermissionRepo: PagePermissionRepo,
   ) {}
 
   private baseFields: Array<keyof Page> = [
@@ -31,6 +36,8 @@ export class PageRepo {
     'title',
     'icon',
     'coverPhoto',
+    'coverPosition',
+    'coverAttribution',
     'position',
     'parentPageId',
     'creatorId',
@@ -138,6 +145,15 @@ export class PageRepo {
     return this.updatePages(updatablePage, [pageId], trx);
   }
 
+  async saveYdocState(pageId: string, ydoc: Buffer, trx?: KyselyTransaction) {
+    await dbOrTx(this.db, trx)
+      .updateTable('pages')
+      .set({ ydoc })
+      .where(isValidUUID(pageId) ? 'id' : 'slugId', '=', pageId)
+      .where('ydoc', 'is distinct from', ydoc)
+      .executeTakeFirst();
+  }
+
   async updatePages(
     updatePageData: UpdatablePage,
     pageIds: string[],
@@ -145,7 +161,8 @@ export class PageRepo {
   ) {
     const result = await dbOrTx(this.db, trx)
       .updateTable('pages')
-      .set({ ...updatePageData, updatedAt: new Date() })
+      // a caller's updatedAt wins, so saves that aren't edits can keep it
+      .set({ updatedAt: new Date(), ...updatePageData })
       .where(
         pageIds.some((pageId) => !isValidUUID(pageId)) ? 'slugId' : 'id',
         'in',
@@ -249,6 +266,16 @@ export class PageRepo {
           .execute();
 
         await trx.deleteFrom('shares').where('pageId', 'in', pageIds).execute();
+        await trx
+          .deleteFrom('baseViewShares')
+          .where('pageId', 'in', pageIds)
+          .execute();
+
+        await trx
+          .updateTable('spaces')
+          .set({ homePageId: null })
+          .where('homePageId', 'in', pageIds)
+          .execute();
       });
 
       this.eventEmitter.emit(EventName.PAGE_SOFT_DELETED, {
@@ -262,7 +289,7 @@ export class PageRepo {
     // First, check if the page being restored has a deleted parent
     const pageToRestore = await this.db
       .selectFrom('pages')
-      .select(['id', 'parentPageId'])
+      .select(['id', 'parentPageId', 'spaceId'])
       .where('id', '=', pageId)
       .executeTakeFirst();
 
@@ -275,12 +302,15 @@ export class PageRepo {
     if (pageToRestore.parentPageId) {
       const parent = await this.db
         .selectFrom('pages')
-        .select(['id', 'deletedAt'])
+        .select(['id', 'deletedAt', 'spaceId'])
         .where('id', '=', pageToRestore.parentPageId)
         .executeTakeFirst();
 
-      // If parent is deleted, we should detach this page from it
-      shouldDetachFromParent = parent?.deletedAt !== null;
+      // If parent is deleted or in another space, we should detach this page from it
+      shouldDetachFromParent =
+        !parent ||
+        parent.deletedAt !== null ||
+        parent.spaceId !== pageToRestore.spaceId;
     }
 
     // Find all descendants to restore
@@ -288,13 +318,14 @@ export class PageRepo {
       .withRecursive('page_descendants', (db) =>
         db
           .selectFrom('pages')
-          .select(['id'])
+          .select(['id', 'spaceId'])
           .where('id', '=', pageId)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
-              .select(['p.id'])
-              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId'),
+              .select(['p.id', 'p.spaceId'])
+              .innerJoin('page_descendants as pd', 'pd.id', 'p.parentPageId')
+              .whereRef('p.spaceId', '=', 'pd.spaceId'),
           ),
       )
       .selectFrom('page_descendants')
@@ -312,11 +343,14 @@ export class PageRepo {
 
     // If we need to detach the restored page from its deleted parent
     if (shouldDetachFromParent) {
-      await this.db
-        .updateTable('pages')
-        .set({ parentPageId: null })
-        .where('id', '=', pageId)
-        .execute();
+      await executeTx(this.db, async (trx) => {
+        await this.pagePermissionRepo.copyInheritedRestriction([pageId], trx);
+        await trx
+          .updateTable('pages')
+          .set({ parentPageId: null })
+          .where('id', '=', pageId)
+          .execute();
+      });
     }
     this.eventEmitter.emit(EventName.PAGE_RESTORED, {
       pageIds: pageIds,
@@ -328,7 +362,7 @@ export class PageRepo {
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
-      .select((eb) => this.withSpace(eb))
+      .select((eb) => [this.withSpace(eb), this.withLastUpdatedBy(eb)])
       .where('spaceId', '=', spaceId)
       .where('deletedAt', 'is', null);
 
@@ -347,12 +381,49 @@ export class PageRepo {
     });
   }
 
+  async getRecentlyUpdatedPages(userId: string, workspaceId: string, options: RecentlyUpdatedDto) {
+    const hasNamedSpaces = options.spaceIds.length > 0;
+    if ((options.scope === 'spaces') !== hasNamedSpaces) return [];
+
+    return this.db
+      .selectFrom('pages')
+      .innerJoin('spaces', 'spaces.id', 'pages.spaceId')
+      .leftJoin('users', (join) => join
+        .onRef('users.id', '=', 'pages.lastUpdatedById')
+        .onRef('users.workspaceId', '=', 'pages.workspaceId'))
+      .select([
+        'pages.id', 'pages.slugId', 'pages.title', 'pages.icon', 'pages.isBase',
+        'pages.updatedAt', 'spaces.slug as spaceSlug', 'spaces.name as spaceName',
+        'users.name as lastEditorName', 'users.avatarUrl as lastEditorAvatarUrl',
+      ])
+      .where('pages.workspaceId', '=', workspaceId)
+      .whereRef('spaces.workspaceId', '=', 'pages.workspaceId')
+      .where('pages.deletedAt', 'is', null)
+      .where('spaces.deletedAt', 'is', null)
+      .where('pages.spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId, {
+        excludeArchived: true,
+        keepArchivedSpaceId: options.spaceId,
+      }))
+      .where(this.pagePermissionRepo.canUserAccessPageExpression(userId))
+      .where((eb) => recentlyUpdatedFilter(eb, options))
+      .orderBy('pages.updatedAt', 'desc')
+      .orderBy('pages.id', 'desc')
+      .limit(options.limit)
+      .execute();
+  }
+
   async getRecentPages(userId: string, pagination: PaginationOptions) {
     const query = this.db
       .selectFrom('pages')
       .select(this.baseFields)
-      .select((eb) => this.withSpace(eb))
-      .where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(userId))
+      .select((eb) => [this.withSpace(eb), this.withLastUpdatedBy(eb)])
+      .where(
+        'spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(userId, {
+          excludeArchived: true,
+        }),
+      )
       .where('deletedAt', 'is', null);
 
     return executeWithCursorPagination(query, {
@@ -381,7 +452,13 @@ export class PageRepo {
     if (spaceId) {
       query = query.where('spaceId', '=', spaceId);
     } else {
-      query = query.where('spaceId', 'in', this.spaceMemberRepo.getUserSpaceIdsQuery(requestingUserId));
+      query = query.where(
+        'spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(requestingUserId, {
+          excludeArchived: true,
+        }),
+      );
     }
 
     return executeWithCursorPagination(query, {
@@ -394,6 +471,70 @@ export class PageRepo {
       ],
       parseCursor: (cursor) => ({
         updatedAt: new Date(cursor.updatedAt),
+        id: cursor.id,
+      }),
+    });
+  }
+
+  async getRecentPagesByUser(
+    userId: string,
+    viewerId: string,
+    workspaceId: string,
+    pagination: PaginationOptions,
+  ) {
+    const editedByUser = sql`pages.last_updated_by_id = ${userId} and (pages.creator_id is distinct from ${userId} or pages.updated_at > pages.created_at)`;
+
+    const baseQuery = this.db
+      .selectFrom('pages')
+      .select(['id', 'slugId', 'title', 'icon', 'isBase', 'spaceId'])
+      .select((eb) =>
+        jsonObjectFrom(
+          eb
+            .selectFrom('spaces')
+            .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo'])
+            .whereRef('spaces.id', '=', 'pages.spaceId'),
+        ).as('space'),
+      )
+      .select(
+        sql<UserRecentPageActivity>`case when ${editedByUser} then 'edited' else 'created' end`.as(
+          'activity',
+        ),
+      )
+      // truncated to the millisecond precision cursors carry
+      .select(
+        sql<Date>`date_trunc('milliseconds', case when ${editedByUser} then pages.updated_at else pages.created_at end)`.as(
+          'activityAt',
+        ),
+      )
+      .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null)
+      .where((eb) =>
+        eb.or([
+          eb('creatorId', '=', userId),
+          eb('lastUpdatedById', '=', userId),
+        ]),
+      )
+      .where(
+        'spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(viewerId, {
+          excludeArchived: true,
+        }),
+      )
+      .where(this.pagePermissionRepo.canUserAccessPageExpression(viewerId));
+
+    const query = this.db.selectFrom(baseQuery.as('sub')).selectAll('sub');
+
+    return executeWithCursorPagination(query, {
+      perPage: pagination.limit,
+      cursor: pagination.cursor,
+      beforeCursor: pagination.beforeCursor,
+      fields: [
+        { expression: 'sub.activityAt', direction: 'desc', key: 'activityAt' },
+        { expression: 'sub.id', direction: 'desc', key: 'id' },
+      ],
+      parseCursor: (cursor) => ({
+        activityAt: new Date(cursor.activityAt),
         id: cursor.id,
       }),
     });
@@ -440,11 +581,17 @@ export class PageRepo {
     });
   }
 
-  withSpace(eb: ExpressionBuilder<DB, 'pages'>) {
+  withSpace(
+    eb: ExpressionBuilder<DB, 'pages'>,
+    opts?: { includeArchivedAt?: boolean },
+  ) {
     return jsonObjectFrom(
       eb
         .selectFrom('spaces')
         .select(['spaces.id', 'spaces.name', 'spaces.slug'])
+        .$if(Boolean(opts?.includeArchivedAt), (qb) =>
+          qb.select('spaces.archivedAt'),
+        )
         .whereRef('spaces.id', '=', 'pages.spaceId'),
     ).as('space');
   }
@@ -516,6 +663,9 @@ export class PageRepo {
             'slugId',
             'title',
             'icon',
+            'coverPhoto',
+            'coverPosition',
+            'coverAttribution',
             'position',
             'parentPageId',
             'spaceId',
@@ -534,6 +684,9 @@ export class PageRepo {
                 'p.slugId',
                 'p.title',
                 'p.icon',
+                'p.coverPhoto',
+                'p.coverPosition',
+                'p.coverAttribution',
                 'p.position',
                 'p.parentPageId',
                 'p.spaceId',
@@ -543,7 +696,8 @@ export class PageRepo {
               ])
               .$if(opts?.includeContent, (qb) => qb.select('p.content'))
               .innerJoin('page_hierarchy as ph', 'p.parentPageId', 'ph.id')
-              .where('p.deletedAt', 'is', null),
+              .where('p.deletedAt', 'is', null)
+              .whereRef('p.spaceId', '=', 'ph.spaceId'),
           ),
       )
       .selectFrom('page_hierarchy')
@@ -632,6 +786,7 @@ export class PageRepo {
                 ])
                 .$if(opts?.includeContent, (qb) => qb.select('p.content'))
                 .where('p.deletedAt', 'is', null)
+                .whereRef('p.spaceId', '=', 'ph.spaceId')
                 // Only recurse into children of non-restricted pages
                 .where('ph.isRestricted', '=', false),
             ),
@@ -698,6 +853,7 @@ export class PageRepo {
                 sql<boolean>`page_access.id IS NOT NULL`.as('isRestricted'),
               ])
               .where('p.deletedAt', 'is', null)
+              .whereRef('p.spaceId', '=', 'ph.spaceId')
               .where('ph.isRestricted', '=', false),
           ),
       )

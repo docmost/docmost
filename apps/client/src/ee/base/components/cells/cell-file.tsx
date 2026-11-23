@@ -81,7 +81,7 @@ export function CellFile({
       // access check as any other page attachment.
       for (const file of Array.from(fileList)) {
         try {
-          const attachment = await uploadFile(file, property.pageId);
+          const attachment = await uploadFile(file, { pageId: property.pageId });
           newFiles.push({
             id: attachment.id,
             fileName: attachment.fileName,

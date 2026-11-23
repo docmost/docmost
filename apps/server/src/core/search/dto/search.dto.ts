@@ -38,6 +38,11 @@ export class SearchDTO {
   @IsBoolean()
   titleOnly?: boolean;
 
+  // searches without a spaceId leave archived spaces out unless this is set
+  @IsOptional()
+  @IsBoolean()
+  includeArchived?: boolean;
+
   @IsOptional()
   @IsNumber()
   limit?: number;
@@ -71,6 +76,11 @@ export class SearchSuggestionDTO {
   @IsOptional()
   @IsBoolean()
   includeUsers?: boolean;
+
+  // Only applies when includeUsers is true; defaults to false.
+  @IsOptional()
+  @IsBoolean()
+  includeDeactivatedUsers?: boolean;
 
   @IsOptional()
   @IsBoolean()

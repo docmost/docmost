@@ -18,7 +18,7 @@ import { publicSpaceSearchSpotlight } from "@/features/search/constants";
 
 export default function PublicSpaceLayout() {
   const { spaceSlug } = useParams();
-  const { data } = usePublicSpaceTreeQuery(spaceSlug);
+  const { data, isPlaceholderData } = usePublicSpaceTreeQuery(spaceSlug);
 
   useDocsAccent(data?.appearance);
 
@@ -26,9 +26,9 @@ export default function PublicSpaceLayout() {
   const setPublicSpaceTreeData = useSetAtom(publicSpaceTreeDataAtom);
 
   const treeData = useMemo(() => {
-    if (!data?.pageTree) return null;
+    if (isPlaceholderData || !data?.pageTree) return null;
     return buildSharedPageTree(data.pageTree);
-  }, [data?.pageTree]);
+  }, [data?.pageTree, isPlaceholderData]);
 
   useEffect(() => {
     setPublicSpaceTree(data || null);

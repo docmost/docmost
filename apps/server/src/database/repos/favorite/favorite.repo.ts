@@ -86,7 +86,7 @@ export class FavoriteRepo {
       .where('favorites.workspaceId', '=', workspaceId)
       .where('favorites.type', '=', type);
 
-    query = this.applyMembershipFilter(query, userId);
+    query = this.applyVisibilityFilter(query, userId);
 
     if (spaceId) {
       query = this.applySpaceFilter(query, type, spaceId);
@@ -119,7 +119,7 @@ export class FavoriteRepo {
       .where('favorites.userId', '=', userId)
       .where('favorites.workspaceId', '=', workspaceId);
 
-    query = this.applyMembershipFilter(query, userId);
+    query = this.applyVisibilityFilter(query, userId);
 
     if (type) {
       query = query.where('favorites.type', '=', type);
@@ -220,11 +220,19 @@ export class FavoriteRepo {
       .execute();
   }
 
-  private applyMembershipFilter<Q extends SelectQueryBuilder<any, any, any>>(
+  private applyVisibilityFilter<Q extends SelectQueryBuilder<any, any, any>>(
     query: Q,
     userId: string,
   ): Q {
-    const spaceIds = this.spaceMemberRepo.getUserSpaceIdsQuery(userId);
+    const spaceIds = this.db
+      .selectFrom('spaces')
+      .select('spaces.id')
+      .where('spaces.deletedAt', 'is', null)
+      .where(
+        'spaces.id',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+      );
     return query.where((eb: any) =>
       eb.or([
         eb.and([
@@ -238,6 +246,7 @@ export class FavoriteRepo {
               .selectFrom('pages')
               .select(sql`1`.as('one'))
               .whereRef('pages.id', '=', 'favorites.pageId')
+              .where('pages.deletedAt', 'is', null)
               .where('pages.spaceId', 'in', spaceIds),
           ),
         ]),
@@ -248,6 +257,7 @@ export class FavoriteRepo {
               .selectFrom('templates')
               .select(sql`1`.as('one'))
               .whereRef('templates.id', '=', 'favorites.templateId')
+              .where('templates.deletedAt', 'is', null)
               .where((e: any) =>
                 e.or([
                   e('templates.spaceId', 'is', null),
@@ -314,7 +324,13 @@ export class FavoriteRepo {
     return jsonObjectFrom(
       eb
         .selectFrom('spaces')
-        .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo'])
+        .select([
+          'spaces.id',
+          'spaces.name',
+          'spaces.slug',
+          'spaces.logo',
+          'spaces.archivedAt',
+        ])
         .whereRef('spaces.id', '=', 'favorites.spaceId'),
     ).as('space');
   }
@@ -324,7 +340,13 @@ export class FavoriteRepo {
       eb
         .selectFrom('spaces')
         .innerJoin('pages', 'pages.spaceId', 'spaces.id')
-        .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo'])
+        .select([
+          'spaces.id',
+          'spaces.name',
+          'spaces.slug',
+          'spaces.logo',
+          'spaces.archivedAt',
+        ])
         .whereRef('pages.id', '=', 'favorites.pageId'),
     ).as('space');
   }
@@ -333,7 +355,13 @@ export class FavoriteRepo {
     return jsonObjectFrom(
       eb
         .selectFrom('spaces')
-        .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo'])
+        .select([
+          'spaces.id',
+          'spaces.name',
+          'spaces.slug',
+          'spaces.logo',
+          'spaces.archivedAt',
+        ])
         .where(({ or, ref }) =>
           or([
             sql<boolean>`${ref('favorites.type')} = ${FavoriteType.SPACE} and ${ref('spaces.id')} = ${ref('favorites.spaceId')}`,

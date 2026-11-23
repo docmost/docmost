@@ -60,6 +60,70 @@ export const integrationLinkPatterns: IntegrationLinkPattern[] = [
     regex:
       /^https:\/\/(?![^?#]*(?:\/(?:\.|%2[eE]){1,2}(?:[\/?#]|$)|\\))([A-Za-z0-9-]+)\.visualstudio\.com(?:\/DefaultCollection)?\/((?!_)[^\/?#]+)\/_(?:boards|backlogs|sprints)\/[^?#]*\?(?:[^#]*&)?workitem=(\d{1,10})(?=[&#]|$)/,
   },
+  // Must stay ahead of the sharing links, which also match Office address-bar links.
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-doc",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:[^?#]*\/)?_layouts\/15\/[Dd]oc\.aspx\?(?:[^#]*&)?sourcedoc=(?:%7B|\{)?([0-9a-fA-F-]{36})/,
+  },
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-folder",
+    regex: /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/:f:\/[a-z]\/([^?#]+)/,
+  },
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-file",
+    regex: /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/:[a-z]:\/[a-z]\/([^?#]+)/,
+  },
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-list",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams|personal)\/[^\/?#]+\/)?Lists\/([^\/?#]+)(?:\/[^?#]*)?(?:\?[^#]*)?$/,
+  },
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-library-item",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams|personal)\/[^\/?#]+\/)?[^\/?#]+\/Forms\/[^\/?#]+\.aspx\?(?:[^#]*&)?(?:id|RootFolder)=((?:%2[Ff]|\/)[^&#]+)/,
+  },
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-library-item",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:(?:sites|teams|personal)\/[^\/?#]+\/)?_layouts\/15\/onedrive\.aspx|my)\?(?:[^#]*&)?id=((?:%2[Ff]|\/)(?:personal|sites|teams)(?:%2[Ff]|\/)[^&#]+)/,
+  },
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-library-item",
+    regex: /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/shared\?(?:[^#]*&)?id=((?:%2[Ff]|\/)(?!%2[Ff]|\/)[^&#]+)/,
+  },
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-shared-library",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/shared\?(?:[^#]*&)?listurl=https(?:%3[Aa]|:)(?:%2[Ff]|\/){2}[a-z0-9-]+(?:%2[Ee]|\.)sharepoint(?:%2[Ee]|\.)com((?:%2[Ff]|\/)[^&#]+)/,
+  },
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-library",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:(?:sites|teams|personal)\/[^\/?#]+\/)?([^\/?#]+)\/Forms\/[^\/?#]+\.aspx(?:\?[^#]*)?$/,
+  },
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-file",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?!:)(?:[^?#\/]+\/)*([^\/?#]+\.(?!aspx(?:[?#]|$))[A-Za-z0-9]{1,8})(?:\?[^#]*)?$/,
+  },
+  {
+    provider: "microsoft_365",
+    type: "sharepoint-site",
+    regex:
+      /^https:\/\/([a-z0-9-]+)\.sharepoint\.com\/(?:sites|teams)\/([^\/?#]+)\/?(?:\?[^#]*)?$/,
+  },
   // Jira issue (cloud + self-hosted): /browse/KEY-123 (must precede the GitHub repo pattern)
   {
     provider: "jira",
@@ -457,6 +521,29 @@ export function describeIntegrationLink(
     case "google-drive-file":
       return describe("Google Drive file");
 
+    case "sharepoint-file": {
+      const name = match[2]?.split("/").filter(Boolean).pop();
+      return describe(
+        name?.includes(".") ? safeDecode(name) : "SharePoint file",
+        hostOf(url),
+      );
+    }
+    case "sharepoint-doc":
+      return describe(fileParamOf(url) ?? "SharePoint document", hostOf(url));
+    case "sharepoint-folder":
+      return describe("SharePoint folder", hostOf(url));
+    case "sharepoint-list":
+    case "sharepoint-library":
+    case "sharepoint-site":
+      return describe(safeDecode(match[2]), hostOf(url));
+    case "sharepoint-shared-library":
+    case "sharepoint-library-item":
+      return describe(
+        safeDecode(match[2].split(/\/|%2F/i).filter(Boolean).pop() ?? "") ||
+          "SharePoint item",
+        hostOf(url),
+      );
+
     default:
       return null;
   }
@@ -485,6 +572,15 @@ function safeDecode(value: string): string {
     return encodeUnsafe(value);
   }
   return encodeUnsafe(decoded) === decoded ? decoded : encodeUnsafe(value);
+}
+
+function fileParamOf(url: string): string | undefined {
+  try {
+    const file = new URL(url).searchParams.get("file");
+    return file ? encodeUnsafe(file) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 // "mobile-app-1b9607f47174" -> "Mobile app": slugs end in a hex id segment.

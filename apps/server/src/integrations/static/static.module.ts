@@ -40,6 +40,9 @@ export class StaticModule implements OnModuleInit {
         FILE_IMPORT_SIZE_LIMIT:
           this.environmentService.getFileImportSizeLimit(),
         DRAWIO_URL: this.environmentService.getDrawioUrl(),
+        UNSPLASH_ENABLED: Boolean(
+          this.environmentService.getUnsplashAccessKey(),
+        ),
         SUBDOMAIN_HOST: this.environmentService.isCloud()
           ? this.environmentService.getSubdomainHost()
           : undefined,
@@ -48,6 +51,7 @@ export class StaticModule implements OnModuleInit {
           ? this.environmentService.getBillingTrialDays()
           : undefined,
         BETA_PUBLIC_SPACES: this.environmentService.isBetaPublicSpaces(),
+        BETA_BASE_FORMS: this.environmentService.isBetaBaseForms(),
         POSTHOG_HOST: this.environmentService.getPostHogHost(),
         POSTHOG_KEY: this.environmentService.getPostHogKey(),
         AI_VECTOR_DRIVER:

@@ -4,7 +4,16 @@
   overflow-x: auto;
   & table {
     overflow-x: hidden;
-    min-width: 700px !important;
+  }
+}
+
+/* Let a single-cell image table fit its layout column. */
+[data-type="column"] .tableWrapper > table:has(> tbody > tr:only-child > :is(td, th):only-child img) {
+  min-width: min(700px, 100%) !important;
+  max-width: 100%;
+
+  & > colgroup > col:only-child {
+    width: auto !important;
   }
 }
 
@@ -24,7 +33,7 @@
     border-collapse: collapse;
     margin: 0;
     table-layout: fixed;
-    width: 100%;
+    width: max(100%, var(--table-preferred-width, 0px));
 
     td,
     th {
@@ -86,6 +95,16 @@
 .ProseMirror {
   table {
     @mixin dark {
+      /* Arbitrary (imported) colors: derive a dark variant; the hand-tuned
+         palette rules below override this for native colors. */
+      td[data-background-color],
+      th[data-background-color] {
+        background-color: oklch(
+          from var(--cell-bg, #fff) min(l, clamp(0.28, calc(1.22 - l), 0.45))
+            min(calc(c * 1.8), 0.09) h
+        ) !important;
+      }
+
       /* Blue */
       td[data-background-color="#b4d5ff"],
       th[data-background-color="#b4d5ff"] {

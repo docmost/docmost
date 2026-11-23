@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { ResponsiveSettingsRow, ResponsiveSettingsContent, ResponsiveSettingsControl } from "@/components/ui/responsive-settings-row";
-import { currentPageEditModeAtom } from "@/features/editor/atoms/editor-atoms.ts";
+import { usePageEditMode } from "@/ee/page-verification/hooks/use-page-edit-mode";
 
 export default function PageStatePref() {
   const { t } = useTranslation();
@@ -75,17 +75,21 @@ export function PageStateSegmentedControl({
 
 // Header variant: updates the current page's mode locally without persisting
 // the preference to the server.
-export function PageEditModeToggle({ size }: { size?: MantineSize }) {
+export function PageEditModeToggle({
+  size,
+  pageId,
+}: {
+  size?: MantineSize;
+  pageId?: string;
+}) {
   const { t } = useTranslation();
-  const [currentPageEditMode, setCurrentPageEditMode] = useAtom(
-    currentPageEditModeAtom,
-  );
+  const { editMode, changeEditMode } = usePageEditMode(pageId);
 
   return (
     <SegmentedControl
       size={size}
-      value={currentPageEditMode}
-      onChange={(v) => setCurrentPageEditMode(v as PageEditMode)}
+      value={editMode}
+      onChange={(v) => changeEditMode(v as PageEditMode)}
       data={[
         { label: t("Edit"), value: PageEditMode.Edit },
         { label: t("Read"), value: PageEditMode.Read },

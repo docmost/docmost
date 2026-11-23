@@ -20,6 +20,9 @@ function makeService(handleYjsEvent: jest.Mock) {
     {} as any,
     {} as any,
     {} as any,
+    {} as any,
+    {} as any,
+    {} as any,
   );
 }
 

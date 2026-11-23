@@ -51,6 +51,8 @@
     cursor: default;
     user-select: none;
     background-color: var(--mantine-color-body);
+    opacity: 0;
+    transition: opacity 0.2s ease;
 
     @mixin light {
       border: 1px solid var(--mantine-color-gray-3);
@@ -90,6 +92,11 @@
     &:hover::after {
       display: block;
     }
+  }
+
+  [data-resize-wrapper]:hover > .media-alt-badge,
+  .ProseMirror-selectednode > [data-resize-wrapper] > .media-alt-badge {
+    opacity: 1;
   }
 
   .media-pulse {

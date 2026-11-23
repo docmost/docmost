@@ -1,4 +1,5 @@
 import { ISpace } from "@/features/space/types/space.types.ts";
+import { CoverAttribution } from "@/features/page-cover/page-cover.types.ts";
 
 export interface IPage {
   id: string;
@@ -6,14 +7,16 @@ export interface IPage {
   title: string;
   content: string;
   icon: string;
-  coverPhoto: string;
+  coverPhoto: string | null;
+  coverPosition?: number | null;
+  coverAttribution?: CoverAttribution | null;
   parentPageId: string;
   creatorId: string;
   spaceId: string;
   workspaceId: string;
   isLocked: boolean;
   isBase: boolean;
-  lastUpdatedById: string;
+  lastUpdatedById: string | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date;
@@ -21,7 +24,7 @@ export interface IPage {
   hasChildren: boolean;
   canEdit?: boolean;
   creator: ICreator;
-  lastUpdatedBy: ILastUpdatedBy;
+  lastUpdatedBy: ILastUpdatedBy | null;
   deletedBy: IDeletedBy;
   contributors?: IContributor[];
   space: Partial<ISpace>;
@@ -84,7 +87,8 @@ export interface IPageInput {
   title: string;
   parentPageId: string;
   icon: string;
-  coverPhoto: string;
+  coverPhoto: string | null;
+  coverPosition: number | null;
   position: string;
   isLocked: boolean;
 }

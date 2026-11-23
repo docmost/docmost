@@ -1,6 +1,6 @@
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { Node, mergeAttributes } from "@tiptap/core";
-import { sanitizeUrl, isInternalFileUrl } from "../utils";
+import { sanitizeUrl, isInternalFileUrl, renderableFileUrl } from "../utils";
 
 export type PdfOptions = {
   view: any;
@@ -54,7 +54,7 @@ export const TiptapPdf = Node.create<PdfOptions>({
           return isInternalFileUrl(sanitized) ? sanitized : "";
         },
         renderHTML: (attributes) => ({
-          src: isInternalFileUrl(attributes.src) ? sanitizeUrl(attributes.src) : "",
+          src: renderableFileUrl(attributes.src),
         }),
       },
       name: {
@@ -128,7 +128,7 @@ export const TiptapPdf = Node.create<PdfOptions>({
       [
         "iframe",
         {
-          src: isInternalFileUrl(HTMLAttributes.src) ? sanitizeUrl(HTMLAttributes.src) : "",
+          src: renderableFileUrl(HTMLAttributes.src),
           width: HTMLAttributes.width || 800,
           height: HTMLAttributes.height || 600,
         },

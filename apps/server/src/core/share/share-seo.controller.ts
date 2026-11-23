@@ -70,6 +70,13 @@ export class ShareSeoController {
           workspace.id,
           { includeContent: false },
         );
+        const sharingAllowed = await this.shareService.isSharingAllowed(
+          workspace.id,
+          shared.share.spaceId,
+        );
+        if (!sharingAllowed) {
+          return this.sendIndex(indexFilePath, res);
+        }
         title = shared.page.title;
         searchIndexing = shared.share.searchIndexing;
       } catch (err) {

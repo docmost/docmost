@@ -26,6 +26,7 @@ describe('CollaborationHandler applyBlockEdits', () => {
     const view = jsonToNode(TiptapTransformer.fromYdoc(ydoc, 'default'));
     const lastRef = [...computeBlockRefs(view).byRef.values()].pop().ref;
     const hocuspocus = {
+      documents: new Map(),
       openDirectConnection: async () => ({
         transact: async (fn: (doc: Y.Doc) => void) => fn(ydoc),
         disconnect: async () => undefined,

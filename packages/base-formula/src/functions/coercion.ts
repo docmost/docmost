@@ -12,6 +12,6 @@ register({
 });
 register({
   name: "toString", arity: { min: 1, max: 1 }, paramTypes: "any", returnType: "string",
-  eval: ([v]) => valueToString(v),
+  eval: ([v], ctx) => valueToString(v, ctx.zone),
   doc: "Converts the value to a string.", category: "coercion",
 });

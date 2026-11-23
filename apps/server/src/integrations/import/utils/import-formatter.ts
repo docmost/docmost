@@ -3,7 +3,10 @@ import { Logger } from '@nestjs/common';
 import * as path from 'path';
 import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
-import { Cheerio, CheerioAPI, load } from 'cheerio';
+import { Cheerio, CheerioAPI } from 'cheerio';
+import { loadImportHtml, normalizeImportDates } from './import-dates';
+import { applyConfluenceMarginLeftIndent } from './confluence-indent';
+import { formatConfluenceRecentUpdates } from './confluence-recently-updated';
 import slugify from '@sindresorhus/slugify';
 import { normalizeTableColumnWidths } from './table-utils';
 
@@ -25,6 +28,7 @@ export async function formatImportHtml(opts: {
   pageDir?: string;
   attachmentCandidates?: string[];
   spaceSlug?: string;
+  spaceId?: string;
 }): Promise<{
   html: string;
   backlinks: InsertableBacklink[];
@@ -38,7 +42,7 @@ export async function formatImportHtml(opts: {
     sourcePageId,
     workspaceId,
   } = opts;
-  const $: CheerioAPI = load(html);
+  const $: CheerioAPI = loadImportHtml(html);
   const $root: Cheerio<any> = $.root();
 
   let pageIcon: string | null = null;
@@ -52,7 +56,7 @@ export async function formatImportHtml(opts: {
     }
   }
 
-  normalizeImportHtml($, $root);
+  normalizeImportHtml($, $root, opts.spaceId);
 
   const backlinks = await rewriteInternalLinksToMentionHtml(
     $,
@@ -83,7 +87,10 @@ export async function formatImportHtml(opts: {
 export function normalizeImportHtml(
   $: CheerioAPI,
   $root: Cheerio<any>,
+  spaceId?: string,
 ): void {
+  normalizeImportDates($, $root);
+  formatConfluenceRecentUpdates($, $root, spaceId);
   notionFormatter($, $root);
   xwikiFormatter($, $root);
   defaultHtmlFormatter($, $root);
@@ -97,25 +104,38 @@ export function xwikiFormatter($: CheerioAPI, $root: Cheerio<any>) {
   }
 }
 
+const sectionAnchorSelector = 'span[data-type="section-anchor"]';
+
 function isBareLink($el: Cheerio<any>): boolean {
-  const href = $el.attr("href")?.trim();
+  const href = $el.attr('href')?.trim();
   const text = $el.text().trim();
-
-  if(!text || !href) return false
-
-  return text === href;
+  return !!href && text === href && !$el.find(sectionAnchorSelector).length;
 }
 
 export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
   normalizeTableColumnWidths($, $root);
+  applyConfluenceMarginLeftIndent($, $root);
 
+  // Auto-embed only bare links (text equals href) that are the sole meaningful
+  // child of their parent block. Anything else stays an inline link.
   $root.find('a[href]').each((_, el) => {
     const $el = $(el);
-    const url = $el.attr('href')!;
-    const { provider } = getEmbedUrlAndProvider(url);
-    if (provider === 'iframe' || !isBareLink($el)) {
+    if ($el.find('img').length) {
+      const paragraph = $el.parent('p:not([id], [data-id])');
+      // A block image in its own paragraph would otherwise create a blank line.
+      if (
+        paragraph.length &&
+        !paragraph.children('br').length &&
+        isStandaloneLink($el)
+      ) {
+        paragraph.replaceWith($el);
+      }
       return;
     }
+    const url = $el.attr('href')!;
+    const { provider } = getEmbedUrlAndProvider(url);
+    if (provider === 'iframe' || !isBareLink($el)) return;
+    if (!isStandaloneLink($el)) return;
 
     const embed = `<div data-type=\"embed\" data-src=\"${url}\" data-provider=\"${provider}\" data-align=\"center\" data-width=\"640\" data-height=\"480\"></div>`;
     $el.replaceWith(embed);
@@ -129,6 +149,24 @@ export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
     const embed = `<div data-type=\"embed\" data-src=\"${url}\" data-provider=\"${provider}\" data-align=\"center\" data-width=\"640\" data-height=\"480\"></div>`;
     $el.replaceWith(embed);
   });
+}
+
+function isStandaloneLink($link: Cheerio<any>): boolean {
+  const block = $link.closest(
+    'p, li, td, th, h1, h2, h3, h4, h5, h6, blockquote, div, figcaption, section, article, body',
+  ).get(0);
+  let current = $link;
+  while (current.length && current.get(0) !== block) {
+    const parent = current.parent();
+    const hasSibling = parent.contents().toArray().some((node) => {
+      if (node === current.get(0)) return false;
+      if (node.type === 'text') return !!node.data.trim();
+      return node.type === 'tag' && node.name !== 'br';
+    });
+    if (hasSibling) return false;
+    current = parent;
+  }
+  return true;
 }
 
 const COLUMN_LAYOUTS = [
@@ -378,7 +416,10 @@ export async function rewriteInternalLinksToMentionHtml(
       linkText === meta.title ||
       linkText === meta.title?.trim();
 
-    if (titleMatch) {
+    if (
+      titleMatch &&
+      !$a.find(`img, time[data-type="date"], ${sectionAnchorSelector}`).length
+    ) {
       const mentionId = v7();
       const $mention = $('<span>')
         .attr({

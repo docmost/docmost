@@ -1,6 +1,8 @@
 import { modals } from "@mantine/modals";
 import { Text } from "@mantine/core";
+import { useAtomValue } from "jotai";
 import { useTranslation } from "react-i18next";
+import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 type UseDeleteModalProps = {
   onConfirm: () => void;
@@ -9,6 +11,8 @@ type UseDeleteModalProps = {
 
 export function useDeletePageModal() {
   const { t } = useTranslation();
+  const workspace = useAtomValue(workspaceAtom);
+  const retentionDays = workspace?.trashRetentionDays ?? 30;
   const openDeleteModal = ({
     onConfirm,
     isPermanent = false,
@@ -23,7 +27,10 @@ export function useDeletePageModal() {
             ? t(
                 "Are you sure you want to delete this page? This will delete its children and page history. This action is irreversible.",
               )
-            : t("Pages in trash will be permanently deleted after 30 days.")}
+            : t(
+                "Pages in trash are permanently deleted after {{count}} days.",
+                { count: retentionDays },
+              )}
         </Text>
       ),
       centered: true,

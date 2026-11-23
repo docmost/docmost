@@ -3,7 +3,6 @@ export const Feature = {
   SSO_GOOGLE: 'sso:google',
   MFA: 'mfa',
   API_KEYS: 'api:keys',
-  COMMENT_RESOLUTION: 'comment:resolution',
   PAGE_PERMISSIONS: 'page:permissions',
   AI: 'ai',
   CONFLUENCE_IMPORT: 'import:confluence',
@@ -27,6 +26,8 @@ export const Feature = {
   OAUTH: 'oauth',
   AI_CONTROLS: 'ai:controls',
   MCP_CONTROLS: 'mcp:controls',
+  EXPORT_CONTROLS: 'export:controls',
   PUBLIC_SPACE_APPEARANCE: 'public-space:appearance',
   SIEM: 'siem',
+  ANNOUNCEMENTS: 'announcements',
 } as const;

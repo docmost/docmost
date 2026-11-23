@@ -24,7 +24,7 @@ import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
 import InvitationAcceptedEmail from '@docmost/transactional/emails/invitation-accepted-email';
 import { TokenService } from '../../auth/services/token.service';
 import { SessionService } from '../../session/session.service';
-import { nanoIdGen } from '../../../common/helpers';
+import { nanoIdGen, stripLinks } from '../../../common/helpers';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { DomainService } from 'src/integrations/environment/domain.service';
@@ -45,6 +45,7 @@ import {
   getWorkspaceDefaultLocale,
   getWorkspaceDefaultPageEditMode,
   isAdminActingOnOwner,
+  normalizeInvitationMessage,
 } from '../workspace.util';
 import { INVITATION_EXPIRY_DAYS } from '../workspace.constants';
 import { addDays } from 'date-fns';
@@ -130,6 +131,7 @@ export class WorkspaceInvitationService {
     authUser: User,
   ): Promise<void> {
     const { emails, role, groupIds } = inviteUserDto;
+    const message = normalizeInvitationMessage(inviteUserDto.message);
 
     if (isAdminActingOnOwner(authUser.role, role)) {
       throw new ForbiddenException();
@@ -175,6 +177,7 @@ export class WorkspaceInvitationService {
           invitedById: authUser.id,
           groupIds: validGroups?.map((group: Partial<Group>) => group.id),
           expiresAt: addDays(new Date(), INVITATION_EXPIRY_DAYS),
+          message,
         }));
 
         if (invitesToInsert.length < 1) {
@@ -194,6 +197,7 @@ export class WorkspaceInvitationService {
                 groupIds: eb.ref('excluded.groupIds'),
                 invitedById: eb.ref('excluded.invitedById'),
                 expiresAt: eb.ref('excluded.expiresAt'),
+                message: eb.ref('excluded.message'),
                 updatedAt: new Date(),
               }))
               .where('workspaceInvitations.expiresAt', '<', new Date()),
@@ -217,6 +221,7 @@ export class WorkspaceInvitationService {
           invitation.token,
           authUser.name,
           workspace.hostname,
+          invitation.message,
         );
       });
 
@@ -230,6 +235,7 @@ export class WorkspaceInvitationService {
             after: {
               email: invitation.email,
               role: invitation.role,
+              ...(invitation.message ? { message: invitation.message } : {}),
             },
           },
           metadata: {
@@ -422,6 +428,7 @@ export class WorkspaceInvitationService {
       token,
       invitedByUser.name,
       workspace.hostname,
+      invitation.message,
     );
 
     this.auditService.log({
@@ -461,7 +468,7 @@ export class WorkspaceInvitationService {
   ): Promise<void> {
     const invitation = await this.db
       .selectFrom('workspaceInvitations')
-      .select(['id', 'email', 'role'])
+      .select(['id', 'email', 'role', 'message'])
       .where('id', '=', invitationId)
       .where('workspaceId', '=', workspaceId)
       .executeTakeFirst();
@@ -481,6 +488,7 @@ export class WorkspaceInvitationService {
           before: {
             email: invitation.email,
             role: invitation.role,
+            ...(invitation.message ? { message: invitation.message } : {}),
           },
         },
       });
@@ -535,6 +543,7 @@ export class WorkspaceInvitationService {
     inviteToken: string,
     invitedByName: string,
     hostname?: string,
+    message?: string | null,
   ): Promise<void> {
     const inviteLink = await this.buildInviteLink({
       invitationId,
@@ -545,6 +554,8 @@ export class WorkspaceInvitationService {
     const emailTemplate = InvitationEmail({
       inviteLink,
       expiresInDays: INVITATION_EXPIRY_DAYS,
+      invitedByName: stripLinks(invitedByName).replace(/\s+/g, ' ').trim(),
+      message,
     });
 
     await this.mailService.sendToQueue({

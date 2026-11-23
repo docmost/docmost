@@ -1,6 +1,7 @@
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import { IPage } from "@/features/page/types/page.types";
 import { IComment } from "@/features/comment/types/comment.types";
+import { ISpace } from "@/features/space/types/space.types";
 
 export type InvalidateEvent = {
   operation: "invalidate";
@@ -56,6 +57,7 @@ export type AddTreeNodeEvent = {
     parentId: string;
     index: number;
     data: SpaceTreeNode;
+    restored?: boolean;
   };
 };
 
@@ -90,6 +92,13 @@ export type VerificationUpdatedEvent = {
   pageId: string;
 };
 
+export type SpaceArchiveUpdatedEvent = {
+  operation: "spaceArchiveUpdated";
+  spaceId: string;
+  archivedAt: Date | null;
+  archivedBy: ISpace["archivedBy"];
+};
+
 export type WebSocketEvent =
   | InvalidateEvent
   | CommentCreatedEvent
@@ -102,4 +111,5 @@ export type WebSocketEvent =
   | MoveTreeNodeEvent
   | DeleteTreeNodeEvent
   | RefetchRootTreeNodeEvent
-  | VerificationUpdatedEvent;
+  | VerificationUpdatedEvent
+  | SpaceArchiveUpdatedEvent;

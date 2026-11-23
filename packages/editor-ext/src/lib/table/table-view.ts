@@ -1,6 +1,10 @@
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import type { NodeView, ViewMutationRecord } from '@tiptap/pm/view';
 import { getColStyleDeclaration } from './utils/col-style';
+import {
+  getPreferredTableWidth,
+  getTableColumnWidths,
+} from './utils/column-widths';
 
 export function updateColumns(
   node: ProseMirrorNode,
@@ -11,70 +15,33 @@ export function updateColumns(
   overrideValue?: number,
 ) {
   let totalWidth = 0;
-  let fixedWidth = true;
-  let nextDOM = colgroup.firstChild;
-  const row = node.firstChild;
+  const widths = getTableColumnWidths(node);
+  if (overrideCol !== undefined && overrideCol >= 0 && overrideCol < widths.length) {
+    widths[overrideCol] = overrideValue || 0;
+  }
 
-  if (row !== null) {
-    for (let i = 0, col = 0; i < row.childCount; i += 1) {
-      const { colspan, colwidth } = row.child(i).attrs;
-
-      for (let j = 0; j < colspan; j += 1, col += 1) {
-        const hasWidth =
-          overrideCol === col
-            ? overrideValue
-            : ((colwidth && colwidth[j]) as number | undefined);
-        const cssWidth = hasWidth ? `${hasWidth}px` : '';
-
-        totalWidth += hasWidth || cellMinWidth;
-
-        if (!hasWidth) {
-          fixedWidth = false;
-        }
-
-        if (!nextDOM) {
-          const colElement = document.createElement('col');
-
-          const [propertyKey, propertyValue] = getColStyleDeclaration(
-            cellMinWidth,
-            hasWidth,
-          );
-
-          colElement.style.setProperty(propertyKey, propertyValue);
-
-          colgroup.appendChild(colElement);
-        } else {
-          if ((nextDOM as HTMLTableColElement).style.width !== cssWidth) {
-            const [propertyKey, propertyValue] = getColStyleDeclaration(
-              cellMinWidth,
-              hasWidth,
-            );
-
-            (nextDOM as HTMLTableColElement).style.setProperty(
-              propertyKey,
-              propertyValue,
-            );
-          }
-
-          nextDOM = nextDOM.nextSibling;
-        }
-      }
+  for (const [index, width] of widths.entries()) {
+    totalWidth += width || cellMinWidth;
+    const existing = colgroup.children.item(index) as HTMLTableColElement | null;
+    const col = existing ?? colgroup.appendChild(document.createElement('col'));
+    const [property, value] = getColStyleDeclaration(cellMinWidth, width);
+    col.style.removeProperty(width ? 'min-width' : 'width');
+    if (col.style.getPropertyValue(property) !== value) {
+      col.style.setProperty(property, value);
     }
   }
-
-  while (nextDOM) {
-    const after = nextDOM.nextSibling;
-
-    nextDOM.parentNode?.removeChild(nextDOM);
-    nextDOM = after;
+  while (colgroup.children.length > widths.length) {
+    colgroup.lastElementChild!.remove();
   }
+  const preferredWidth = getPreferredTableWidth(widths);
+  table.style.setProperty('--table-preferred-width', preferredWidth);
 
   const hasUserWidth =
     node.attrs.style &&
     typeof node.attrs.style === 'string' &&
     /\bwidth\s*:/i.test(node.attrs.style);
 
-  if (fixedWidth && !hasUserWidth) {
+  if (!preferredWidth && !hasUserWidth) {
     table.style.width = `${totalWidth}px`;
     table.style.minWidth = '';
   } else {

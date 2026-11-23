@@ -5,7 +5,6 @@ export { GithubIcon } from "./github-icon.tsx";
 export { GitlabIcon } from "./gitlab-icon.tsx";
 export { GoogleDocsIcon } from "./google-docs-icon.tsx";
 export { GoogleDriveIcon } from "./google-drive-icon.tsx";
-export { GoogleSheetsIcon } from "./google-sheets-icon.tsx";
 export { JiraIcon } from "./jira-icon.tsx";
 export { LinearIcon } from "./linear-icon.tsx";
 export { TypeformIcon } from "./typeform-icon.tsx";
@@ -15,4 +14,7 @@ export { SlackIcon } from "./slack-icon.tsx";
 export { FramerIcon } from "./framer-icon.tsx";
 export { LoomIcon } from "./loom-icon.tsx";
 export { YoutubeIcon } from "./youtube-icon.tsx";
+export { Microsoft365Icon } from "./microsoft-365-icon.tsx";
+export { SharePointIcon } from "./sharepoint-icon.tsx";
+export { OneDriveIcon } from "./onedrive-icon.tsx";
 

@@ -1,4 +1,14 @@
-import { Modal, Tabs, rem, Group, ScrollArea, Text } from "@mantine/core";
+import {
+  Modal,
+  Tabs,
+  rem,
+  Group,
+  ScrollArea,
+  Text,
+  Button,
+} from "@mantine/core";
+import { Link } from "react-router-dom";
+import { getSpaceUrl } from "@/lib/config.ts";
 import SpaceMembersList from "@/features/space/components/space-members.tsx";
 import AddSpaceMembersModal from "@/features/space/components/add-space-members-modal.tsx";
 import React from "react";
@@ -20,12 +30,14 @@ interface SpaceSettingsModalProps {
   spaceId: string;
   opened: boolean;
   onClose: () => void;
+  showOpenSpace?: boolean;
 }
 
 export default function SpaceSettingsModal({
   spaceId,
   opened,
   onClose,
+  showOpenSpace,
 }: SpaceSettingsModalProps) {
   const { t } = useTranslation();
   const { data: space, isLoading } = useSpaceQuery(spaceId);
@@ -59,7 +71,19 @@ export default function SpaceSettingsModal({
                 {space?.name}
               </Text>
             </Modal.Title>
-            <Modal.CloseButton aria-label={t("Close")} />
+            <Group gap="sm" wrap="nowrap">
+              {showOpenSpace && space?.slug && (
+                <Button
+                  component={Link}
+                  to={getSpaceUrl(space.slug)}
+                  size="xs"
+                  variant="default"
+                >
+                  {t("Open space")}
+                </Button>
+              )}
+              <Modal.CloseButton aria-label={t("Close")} />
+            </Group>
           </Modal.Header>
           <Modal.Body>
             <div style={{ height: rem(600) }}>

@@ -3,11 +3,8 @@ import { useMediaQuery } from "@mantine/hooks";
 import {
   useReactTable,
   getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
   createColumnHelper,
   ColumnDef,
-  SortingState,
   ColumnSizingState,
   VisibilityState,
   ColumnOrderState,
@@ -40,7 +37,6 @@ function buildColumns(properties: IBaseProperty[]): ColumnDef<IBaseRow, unknown>
     minSize: ROW_NUMBER_COLUMN_WIDTH,
     maxSize: ROW_NUMBER_COLUMN_WIDTH,
     enableResizing: false,
-    enableSorting: false,
     enableHiding: false,
   });
 
@@ -54,7 +50,6 @@ function buildColumns(properties: IBaseProperty[]): ColumnDef<IBaseRow, unknown>
         minSize: MIN_COLUMN_WIDTH,
         maxSize: MAX_COLUMN_WIDTH,
         enableResizing: true,
-        enableSorting: false,
         enableHiding: !property.isPrimary,
         meta: { property },
       });
@@ -67,21 +62,12 @@ function buildColumns(properties: IBaseProperty[]): ColumnDef<IBaseRow, unknown>
       minSize: MIN_COLUMN_WIDTH,
       maxSize: MAX_COLUMN_WIDTH,
       enableResizing: true,
-      enableSorting: true,
       enableHiding: !property.isPrimary,
       meta: { property },
     });
   });
 
   return [rowNumberColumn, ...propertyColumns];
-}
-
-function buildSortingState(config: ViewConfig | undefined): SortingState {
-  if (!config?.sorts?.length) return [];
-  return config.sorts.map((sort) => ({
-    id: sort.propertyId,
-    desc: sort.direction === "desc",
-  }));
 }
 
 function buildColumnSizing(
@@ -211,11 +197,6 @@ export function useBaseTable(
     [properties],
   );
 
-  const initialSorting = useMemo(
-    () => buildSortingState(viewConfig),
-    [viewConfig],
-  );
-
   const derivedColumnSizing = useMemo(
     () => buildColumnSizing(viewConfig),
     [viewConfig],
@@ -333,15 +314,10 @@ export function useBaseTable(
     onColumnOrderChange: setColumnOrder,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
-    initialState: {
-      sorting: initialSorting,
-    },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     columnResizeMode: "onChange",
     enableColumnResizing: true,
-    enableSorting: true,
+    enableSorting: false,
     enableHiding: true,
     getRowId: (row) => row.id,
   });

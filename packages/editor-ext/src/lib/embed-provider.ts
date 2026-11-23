@@ -3,6 +3,71 @@ export interface IEmbedProvider {
   name: string;
   regex: RegExp;
   getEmbedUrl: (match: RegExpMatchArray, url?: string) => string;
+  getLinkUrl?: (match: RegExpMatchArray, url: string) => string;
+  getLabel?: (match: RegExpMatchArray) => string;
+}
+
+const GOOGLE_EDITOR_LABELS: Record<string, string> = {
+  document: "Google Docs",
+  spreadsheets: "Google Sheets",
+  presentation: "Google Slides",
+};
+
+const googleDrive: Pick<IEmbedProvider, "regex" | "getEmbedUrl" | "getLabel"> = {
+  regex:
+    /^(?:(?:https?:)?\/\/)?(?:(?:www|m)\.)?(?:drive\.google\.com\/file|docs\.google\.com\/(document|spreadsheets|presentation))(?:\/u\/\d+)?\/d\/(e\/)?([\w-]+)(?:\/(\w+))?/,
+  getEmbedUrl: (match, url: string) => {
+    const [, editor, published, id, page] = match;
+    // Google refuses to frame a published presentation's /pub page.
+    if (editor === "presentation" && page === "pub") {
+      return url.replace(`${id}/pub`, `${id}/embed`);
+    }
+    if (published || ["pub", "pubhtml", "embed"].includes(page)) {
+      return url;
+    }
+
+    const { searchParams, hash } = new URL(url, "https://docs.google.com");
+    const resourceKey = searchParams.get("resourcekey");
+    const previewUrl = editor
+      ? `https://docs.google.com/${editor}/d/${id}/preview`
+      : `https://drive.google.com/file/d/${id}/preview`;
+    return resourceKey
+      ? `${previewUrl}?resourcekey=${encodeURIComponent(resourceKey)}${hash}`
+      : `${previewUrl}${hash}`;
+  },
+  getLabel: (match) => GOOGLE_EDITOR_LABELS[match[1]] ?? "Google Drive",
+};
+
+function getYoutubeLinkUrl(
+  [, playerPath, videoId]: RegExpMatchArray,
+  url: string,
+): string {
+  if (!playerPath) return url;
+
+  const { searchParams, hash } = new URL(url, "https://www.youtube.com");
+  const list = searchParams.get("list");
+  if (videoId === "videoseries") {
+    return list
+      ? `https://www.youtube.com/playlist?${new URLSearchParams({ list })}`
+      : url;
+  }
+  if (videoId === "live_stream") {
+    const channel = searchParams.get("channel");
+    return channel
+      ? `https://www.youtube.com/channel/${encodeURIComponent(channel)}/live`
+      : url;
+  }
+
+  const params = new URLSearchParams({ v: videoId });
+  if (list) params.set("list", list);
+  const index = searchParams.get("index");
+  if (index) params.set("index", index);
+  const start =
+    searchParams.get("start") ||
+    searchParams.get("t") ||
+    new URLSearchParams(hash.slice(1)).get("t");
+  if (start) params.set("t", start);
+  return `https://www.youtube.com/watch?${params}`;
 }
 
 export const embedProviders: IEmbedProvider[] = [
@@ -61,13 +126,10 @@ export const embedProviders: IEmbedProvider[] = [
     id: "youtube",
     name: "YouTube",
     regex:
-      /^((?:https?:)?\/\/)?((?:www|m|music)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/,
-    getEmbedUrl: (match, url) => {
-      if (url.includes("/embed/")) {
-        return url;
-      }
-      return `https://www.youtube-nocookie.com/embed/${match[5]}`;
-    },
+      /^(?:(?:https?:)?\/\/)?(?:(?:www|m|music)\.)?(?:youtube(?:-nocookie)?\.com\/(embed)\/|(?:youtube\.com|youtu\.be)\/(?:[\w-]+\?v=|v\/)?)([\w-]+)\S*$/i,
+    getEmbedUrl: ([, playerPath, videoId], url) =>
+      playerPath ? url : `https://www.youtube-nocookie.com/embed/${videoId}`,
+    getLinkUrl: getYoutubeLinkUrl,
   },
   {
     id: "vimeo",
@@ -90,24 +152,9 @@ export const embedProviders: IEmbedProvider[] = [
       return url;
     },
   },
-  {
-    id: "gdrive",
-    name: "Google Drive",
-    regex:
-      /^((?:https?:)?\/\/)?((?:www|m)\.)?(drive\.google\.com)\/file\/d\/([a-zA-Z0-9_-]+)\/.*$/,
-    getEmbedUrl: (match) => {
-      return `https://drive.google.com/file/d/${match[4]}/preview`;
-    },
-  },
-  {
-    id: "gsheets",
-    name: "Google Sheets",
-    regex:
-      /^((?:https?:)?\/\/)?((?:www|m)\.)?(docs\.google\.com)\/spreadsheets\/d\/([a-zA-Z0-9_-]+)\/.*$/,
-    getEmbedUrl: (match, url: string) => {
-      return url;
-    },
-  },
+  { id: "gdrive", name: "Google Drive", ...googleDrive },
+  // Embeds saved with the old Google Sheets option still use this id.
+  { id: "gsheets", name: "Google Sheets", ...googleDrive },
   {
     id: "iframe",
     name: "Iframe",
@@ -126,7 +173,10 @@ export function getEmbedProviderById(id: string) {
 
 export interface IEmbedResult {
   embedUrl: string;
+  linkUrl: string;
   provider: string;
+  providerId: string;
+  label: string;
 }
 
 export function getEmbedUrlAndProvider(url: string): IEmbedResult {
@@ -135,12 +185,26 @@ export function getEmbedUrlAndProvider(url: string): IEmbedResult {
     if (match) {
       return {
         embedUrl: provider.getEmbedUrl(match, url),
+        linkUrl: provider.getLinkUrl?.(match, url) ?? url,
         provider: provider.name.toLowerCase(),
+        providerId: provider.id,
+        label: provider.getLabel?.(match) ?? provider.name,
       };
     }
   }
   return {
     embedUrl: url,
+    linkUrl: url,
     provider: "iframe",
+    providerId: "iframe",
+    label: getIframeLabel(url),
   };
+}
+
+function getIframeLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "") || "Iframe";
+  } catch {
+    return "Iframe";
+  }
 }

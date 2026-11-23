@@ -3,10 +3,18 @@ import {
   createTheme,
   CSSVariablesResolver,
   MantineColorsTuple,
+  Portal,
   Tabs,
   Tooltip,
   v8CssVariablesResolver,
 } from "@mantine/core";
+
+// Without a target every Portal finds the shared node with a document-wide
+// querySelector, and each closed tooltip and popover on a page mounts one.
+const sharedPortalNode = document.createElement("div");
+sharedPortalNode.setAttribute("data-portal", "true");
+sharedPortalNode.setAttribute("data-mantine-shared-portal-node", "true");
+document.body.appendChild(sharedPortalNode);
 
 const blue: MantineColorsTuple = [
   "#e7f3ff",
@@ -41,6 +49,9 @@ export const theme = createTheme({
   },
   defaultRadius: 'sm',
   components: {
+    Portal: Portal.extend({
+      defaultProps: { target: sharedPortalNode },
+    }),
     Tooltip: Tooltip.extend({
       defaultProps: {
         events: { hover: true, focus: true, touch: false },

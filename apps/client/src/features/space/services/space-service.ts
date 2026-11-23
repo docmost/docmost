@@ -36,6 +36,16 @@ export async function deleteSpace(spaceId: string): Promise<void> {
   await api.post<void>("/spaces/delete", { spaceId });
 }
 
+export async function archiveSpace(spaceId: string): Promise<ISpace> {
+  const req = await api.post<ISpace>("/spaces/archive", { spaceId });
+  return req.data;
+}
+
+export async function unarchiveSpace(spaceId: string): Promise<ISpace> {
+  const req = await api.post<ISpace>("/spaces/unarchive", { spaceId });
+  return req.data;
+}
+
 export async function getSpaceMembers(
   spaceId: string,
   params?: QueryParams,

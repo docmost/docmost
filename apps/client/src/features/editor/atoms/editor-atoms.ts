@@ -1,8 +1,20 @@
 import { atom } from "jotai";
-import { Editor } from "@tiptap/core";
+import { atomWithDefault } from "jotai/utils";
+import type { Editor } from "@tiptap/core";
+import { userAtom } from "@/features/user/atoms/current-user-atom";
 import { PageEditMode } from "@/features/user/types/user.types.ts";
 
-export const pageEditorAtom = atom<Editor | null>(null);
+type PageEditorBinding = {
+  pageId: string;
+  editor: Editor;
+  editable: boolean;
+};
+
+export const pageEditorBindingAtom = atom(null as PageEditorBinding | null);
+
+export const pageEditorAtom = atom(
+  (get) => get(pageEditorBindingAtom)?.editor ?? null,
+);
 
 export const titleEditorAtom = atom<Editor | null>(null);
 
@@ -26,4 +38,8 @@ export const lightboxRequestAtom = atom(initialLightboxRequest);
 
 // Current page's edit mode — initialized from the user's saved preference on
 // first load, can be toggled locally without persisting to the server.
-export const currentPageEditModeAtom = atom<PageEditMode>(PageEditMode.Edit);
+export const currentPageEditModeAtom = atomWithDefault<PageEditMode>((get) =>
+  get(userAtom)?.settings?.preferences?.pageEditMode === PageEditMode.Read
+    ? PageEditMode.Read
+    : PageEditMode.Edit,
+);

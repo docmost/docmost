@@ -17,6 +17,7 @@ type TemplateCardProps = {
   onEdit?: (template: ITemplate) => void;
   onDelete?: (template: ITemplate) => void;
   canManage?: boolean;
+  useLoading?: boolean;
 };
 
 export default function TemplateCard({
@@ -27,6 +28,7 @@ export default function TemplateCard({
   onEdit,
   onDelete,
   canManage,
+  useLoading,
 }: TemplateCardProps) {
   const { t } = useTranslation();
 
@@ -61,6 +63,7 @@ export default function TemplateCard({
           <Group gap={6} wrap="nowrap">
             <Button
               size="compact-xs"
+              loading={useLoading}
               variant="filled"
               className={classes.menuTarget}
               onClick={(e) => {

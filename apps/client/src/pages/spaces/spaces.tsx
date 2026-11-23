@@ -1,23 +1,45 @@
+import { useState } from "react";
 import { Container, Title, Text, Group, Box } from "@mantine/core";
 import { useTranslation } from "react-i18next";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import {
+  SPACES_PAGE_SIZE,
+  useGetSpacesQuery,
+  useHasArchivedSpaces,
+} from "@/features/space/queries/space-query";
 import CreateSpaceModal from "@/features/space/components/create-space-modal";
 import { AllSpacesList } from "@/features/space/components/spaces-page";
 import FavoriteSpacesGrid from "@/features/space/components/spaces-page/favorite-spaces-grid";
 import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search";
 import useUserRole from "@/hooks/use-user-role";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import { SpaceListStatus } from "@/features/space/types/space.types";
 
 export default function Spaces() {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
-  const { search, cursor, goNext, goPrev, handleSearch } = usePaginateAndSearch();
+  const { search, cursor, goNext, goPrev, handleSearch, resetPagination } =
+    usePaginateAndSearch();
+  const [status, setStatus] = useState<SpaceListStatus>("active");
 
-  const { data, isLoading } = useGetSpacesQuery({
+  const { data, isPlaceholderData } = useGetSpacesQuery({
     cursor,
-    limit: 30,
+    limit: SPACES_PAGE_SIZE,
     query: search,
+    status,
   });
+
+  const handleStatusChange = (value: SpaceListStatus) => {
+    setStatus(value);
+    resetPagination();
+  };
+
+  const activeListEmpty =
+    status === "active" &&
+    !search &&
+    !isPlaceholderData &&
+    data?.items.length === 0;
+  const hasArchivedSpaces = useHasArchivedSpaces(activeListEmpty);
+  const noActiveSpaces = activeListEmpty && hasArchivedSpaces;
 
   return (
     <>
@@ -38,6 +60,13 @@ export default function Spaces() {
 
           <AllSpacesList
             spaces={data?.items || []}
+            status={status}
+            onStatusChange={handleStatusChange}
+            emptyText={
+              noActiveSpaces
+                ? t("No active spaces. Archived spaces are under Archived.")
+                : undefined
+            }
             onSearch={handleSearch}
             hasPrevPage={data?.meta?.hasPrevPage}
             hasNextPage={data?.meta?.hasNextPage}

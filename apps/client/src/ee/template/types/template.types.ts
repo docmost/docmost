@@ -16,3 +16,5 @@ export interface ITemplate {
   createdAt: string;
   updatedAt: string;
 }
+
+export type TemplateVariableValues = Record<string, string>;

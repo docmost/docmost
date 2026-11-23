@@ -7,11 +7,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { IndexeddbPersistence } from "y-indexeddb";
 import {
+  MessageType,
   WebSocketStatus,
   onStatelessParameters,
 } from "@hocuspocus/provider";
+import type { Doc as YDoc } from "yjs";
+import type { PageDraftCache } from "./hooks/page-draft-cache";
+import { notifications } from "@mantine/notifications";
 import {
   HocuspocusProviderWebsocketComponent,
   HocuspocusRoom,
@@ -21,20 +24,21 @@ import {
 import {
   Editor,
   EditorContent,
-  EditorProvider,
   useEditor,
   useEditorState,
 } from "@tiptap/react";
+import { createDocument } from "@tiptap/core";
+import { EditorState } from "@tiptap/pm/state";
+import { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import {
   collabExtensions,
   mainExtensions,
 } from "@/features/editor/extensions/extensions";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
+import { useAtom, useSetAtom } from "jotai";
+import useCurrentUser from "@/features/user/hooks/use-current-user";
 import {
-  currentPageEditModeAtom,
   lightboxRequestAtom,
-  pageEditorAtom,
+  pageEditorBindingAtom,
   yjsConnectionStatusAtom,
   yjsSyncedAtom,
 } from "@/features/editor/atoms/editor-atoms";
@@ -75,15 +79,22 @@ import { IPage } from "@/features/page/types/page.types.ts";
 import { useParams, useSearchParams } from "react-router-dom";
 import { extractPageSlugId, platformModifierKey } from "@/lib";
 import { FIVE_MINUTES } from "@/lib/constants.ts";
-import { PageEditMode } from "@/features/user/types/user.types.ts";
+import { PageEditMode, type IUser } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
+import { usePageYdoc } from "./hooks/use-page-ydoc";
+import { useDestroyEditorBeforeChildren } from "./hooks/use-destroy-editor-before-children";
 import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
+import { usePageEditMode, usePageSyncPermission } from "@/ee/page-verification/hooks/use-page-edit-mode";
+import { unlockedVerifiedPageIdAtom } from "@/ee/page-verification/atoms/page-edit-lock-atom";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 import { IntegrationPasteMenu } from "@/features/editor/components/integration-link/integration-paste-menu.tsx";
 import { BasePasteMenu } from "@/features/editor/components/base-embed/base-paste-menu.tsx";
+import MicrosoftFileMenu from "@/features/editor/components/microsoft/microsoft-file-menu.tsx";
+import MicrosoftFolderMenu from "@/features/editor/components/microsoft/microsoft-folder-menu.tsx";
+import { MicrosoftFullscreenModal } from "@/features/editor/components/microsoft/microsoft-fullscreen-modal.tsx";
 import { getInstalledIntegrations } from "@/features/integration/services/integration-service";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 import { useTranslation } from "react-i18next";
@@ -107,11 +118,36 @@ export default function PageEditor({
   canComment,
 }: PageEditorProps) {
   const { t } = useTranslation();
-  const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken();
+  const { data: session } = useCurrentUser();
+  const user = session?.user;
+  const { data: collabQuery, refetch: refetchCollabToken } = useCollabToken(user);
   const { pageSlug } = useParams();
   const slugId = extractPageSlugId(pageSlug);
   const [socket] = useState(getCollabSocket);
   const hasCollabToken = !!collabQuery?.token;
+  const [syncedDocument, setSyncedDocument] = useState<YDoc | null>(null);
+  const [roomDeniedWrite, setRoomDeniedWrite] = useState(false);
+  const handledWriteRefusal = useRef(false);
+  const reconnecting = useRef(false);
+  const setUnlockedPage = useSetAtom(unlockedVerifiedPageIdAtom);
+  const onStorageError = useCallback(() => {
+    notifications.show({
+      id: "page-local-save-error",
+      color: "yellow",
+      autoClose: false,
+      message: t(
+        "Local saving is unavailable. Keep this tab open until your changes sync.",
+      ),
+    });
+  }, [t]);
+  const { editMode, isCheckingLock, isLocked } = usePageEditMode(pageId);
+  const verifiedReadOnly = isLocked && editMode === PageEditMode.Read;
+  const canReplayDrafts = editable && !roomDeniedWrite && !isCheckingLock && editMode === PageEditMode.Edit;
+  const localDoc = usePageYdoc(pageId, user?.id, onStorageError, canReplayDrafts, verifiedReadOnly);
+  const canMountEditor = Boolean(hasCollabToken && user && localDoc);
+  const showStatic =
+    !canMountEditor ||
+    !(localDoc.hasCachedDocument || syncedDocument === localDoc.ydoc);
 
   useEffect(() => {
     if (!hasCollabToken) return;
@@ -119,32 +155,33 @@ export default function PageEditor({
     return () => releaseCollabSocket();
   }, [hasCollabToken]);
 
+  const restrictPage = (access: "read" | "none") => {
+    setRoomDeniedWrite(true);
+    // A refetch can still read old permissions from the server cache.
+    for (const key of [slugId, pageId]) {
+      queryClient.setQueryData<IPage>(["pages", key], (page) =>
+        page?.permissions?.canEdit
+          ? { ...page, permissions: { ...page.permissions, canEdit: false } }
+          : page,
+      );
+      if (access !== "none") continue;
+      queryClient.getQueryCache()
+        .find({ queryKey: ["pages", key], exact: true })
+        ?.setState({
+          status: "error",
+          fetchStatus: "idle",
+          data: undefined,
+          error: Object.assign(new Error("Forbidden"), { status: 403 }),
+        });
+    }
+    if (access === "none") localDoc?.discardRejectedChanges(true);
+  };
+
   const handleStateless = ({ payload }: onStatelessParameters) => {
     try {
       const message = JSON.parse(payload);
       if (message?.type === "page.permissions") {
-        // applied locally, a refetch can still read the old access from the server cache
-        for (const key of [slugId, pageId]) {
-          queryClient.setQueryData<IPage>(
-            ["pages", key],
-            (page) =>
-              page && {
-                ...page,
-                permissions: { ...page.permissions, canEdit: false },
-              },
-          );
-        }
-        if (message.access === "none") {
-          queryClient
-            .getQueryCache()
-            .find({ queryKey: ["pages", slugId], exact: true })
-            ?.setState({
-              status: "error",
-              fetchStatus: "idle",
-              data: undefined,
-              error: Object.assign(new Error("Forbidden"), { status: 403 }),
-            });
-        }
+        restrictPage(message.access);
         return;
       }
       if (message?.type !== "page.updated" || !message.updatedAt) return;
@@ -169,59 +206,118 @@ export default function PageEditor({
     const isTokenExpired = now >= payload.exp;
     if (isTokenExpired) {
       refetchCollabToken();
+    } else {
+      setRoomDeniedWrite(true);
+      void queryClient.invalidateQueries({ queryKey: ["pages", slugId], exact: true }).then(() => {
+        const error = queryClient.getQueryState<IPage, { status?: number }>(["pages", slugId])?.error;
+        if (error?.status === 403 || error?.status === 404) localDoc?.discardRejectedChanges(true);
+      });
     }
   };
 
   return (
     <TransclusionLookupProvider>
-      {collabQuery?.token ? (
+      {showStatic && (
+        <StaticPageEditor content={content} ariaLabel={t("Page content")} />
+      )}
+      {canMountEditor && (
         <HocuspocusProviderWebsocketComponent websocketProvider={socket}>
           <HocuspocusRoom
             name={`page.${pageId}`}
+            document={localDoc.ydoc}
             token={collabQuery.token}
             flushDelay={500}
+            onOpen={() => {
+              if (!reconnecting.current) return;
+              reconnecting.current = false;
+              setUnlockedPage((current) => current === pageId ? null : current);
+              void queryClient.invalidateQueries({ queryKey: ["entitlements"], exact: true });
+              void queryClient.invalidateQueries({ queryKey: ["page-verification-info", pageId], exact: true });
+            }}
             onStateless={handleStateless}
             onAuthenticationFailed={handleAuthenticationFailed}
+            onAuthenticated={({ scope }) => {
+              void localDoc.cache
+                ?.authenticated(scope === "read-write")
+                .catch(onStorageError);
+              if (scope === "readonly") {
+                restrictPage("read");
+              } else {
+                handledWriteRefusal.current = false;
+                if (roomDeniedWrite) void queryClient.invalidateQueries({ queryKey: ["pages", slugId], exact: true });
+                setRoomDeniedWrite(false);
+              }
+            }}
+            onSynced={({ state }) => {
+              if (state && syncedDocument !== localDoc.ydoc) {
+                localDoc.cache?.markSynced();
+                setSyncedDocument(localDoc.ydoc);
+              }
+            }}
+            onDisconnect={() => {
+              reconnecting.current = true;
+              localDoc.cache?.disconnected();
+            }}
+            onMessage={({ message }) => {
+              // Hocuspocus sends SyncStatus(0) when it rejects a Yjs update.
+              // The event has its own decoder, separate from the provider's.
+              message.readVarString();
+              const type = message.readVarUint();
+              if (type !== MessageType.SyncStatus || message.readVarUint() !== 0) {
+                localDoc.cache?.incoming(message, type);
+                return;
+              }
+              // Both the handshake and a buffered update can be refused. One
+              // server-only rejoin recovers the page until write access returns.
+              if (handledWriteRefusal.current) return;
+              if (!localDoc.discardRejectedChanges()) return;
+              handledWriteRefusal.current = true;
+              restrictPage("read");
+            }}
           >
             <CollabPageEditor
               pageId={pageId}
-              editable={editable}
-              content={content}
+              user={user}
+              editable={editable && !roomDeniedWrite}
               canComment={canComment}
+              requiresConnection={!localDoc.cache?.opened}
+              cache={localDoc.cache}
+              showStatic={showStatic}
             />
           </HocuspocusRoom>
         </HocuspocusProviderWebsocketComponent>
-      ) : (
-        <StaticPageEditor content={content} ariaLabel={t("Page content")} />
       )}
     </TransclusionLookupProvider>
   );
 }
 
+type CollabPageEditorProps = Omit<PageEditorProps, "content"> & {
+  user: IUser;
+  showStatic: boolean;
+  requiresConnection: boolean;
+  cache?: PageDraftCache;
+};
+
 function CollabPageEditor({
   pageId,
   editable,
-  content,
   canComment,
-}: PageEditorProps) {
+  user,
+  showStatic,
+  requiresConnection,
+  cache,
+}: CollabPageEditorProps) {
   const { t } = useTranslation();
   const provider = useHocuspocusProvider();
-  const isComponentMounted = useRef(false);
   const editorRef = useRef<Editor | null>(null);
 
-  useEffect(() => {
-    isComponentMounted.current = true;
-  }, []);
-
-  const [currentUser] = useAtom(currentUserAtom);
-  const [, setEditor] = useAtom(pageEditorAtom);
+  const setPageEditor = useSetAtom(pageEditorBindingAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const setCommentPanelTab = useSetAtom(commentPanelTabAtom);
   const [showCommentPopup, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [showReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
   const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
-  const [isLocalSynced, setIsLocalSynced] = useState(false);
   const [isRemoteSynced, setIsRemoteSynced] = useState(false);
   const [yjsConnectionStatus, setYjsConnectionStatus] = useAtom(
     yjsConnectionStatusAtom,
@@ -233,26 +329,22 @@ function CollabPageEditor({
   const { pageSlug } = useParams();
   const [searchParams] = useSearchParams();
   const slugId = extractPageSlugId(pageSlug);
-  const currentPageEditMode = useAtomValue(currentPageEditModeAtom);
-  const canScroll = useCallback(
-    () => Boolean(isComponentMounted.current && editorRef.current),
-    [isComponentMounted],
-  );
-  const { handleScrollTo } = useEditorScroll({ canScroll });
-
+  const { editMode, isCheckingLock, retryingVerification } = usePageEditMode(pageId);
+  const canPublish = usePageSyncPermission(pageId);
+  useLayoutEffect(() => getCollabSocket().bindRoom(provider, canPublish, cache), [pageId, provider, cache]);
+  // Edits held back during a lock check go out as soon as it settles.
   useEffect(() => {
-    const local = new IndexeddbPersistence(
-      provider.configuration.name,
-      provider.document,
-    );
-    local.on("synced", () => setIsLocalSynced(true));
-    return () => {
-      local.destroy();
-    };
-  }, [provider]);
+    getCollabSocket().resume(provider);
+  }, [provider, isCheckingLock, retryingVerification, editMode, isRemoteSynced]);
+  const canType =
+    !showStatic && editable && editMode === PageEditMode.Edit &&
+    !isCheckingLock && (!requiresConnection || isRemoteSynced);
 
   useHocuspocusEvent("synced", ({ state }) => setIsRemoteSynced(state));
-  useHocuspocusEvent("status", ({ status }) => setYjsConnectionStatus(status));
+  useHocuspocusEvent("status", ({ status }) => {
+    setYjsConnectionStatus(status);
+    if (status === WebSocketStatus.Disconnected) setIsRemoteSynced(false);
+  });
 
   // Only connect/disconnect on tab/idle, not destroy
   useEffect(() => {
@@ -275,21 +367,19 @@ function CollabPageEditor({
     }
   }, [isIdle, documentState, provider, resetIdle]);
 
-  const extensions = useMemo(() => {
-    if (!currentUser?.user) {
-      return mainExtensions;
-    }
+  const extensions = useMemo(
+    () => [...mainExtensions, ...collabExtensions(provider, user)],
+    [provider, user],
+  );
 
-    return [...mainExtensions, ...collabExtensions(provider, currentUser.user)];
-  }, [provider, currentUser?.user]);
-
-  const debouncedUpdateContent = useDebouncedCallback((newContent: any) => {
+  const debouncedUpdateContent = useDebouncedCallback((doc: ProseMirrorNode) => {
     const pageData = queryClient.getQueryData<IPage>(["pages", slugId]);
 
     if (pageData) {
       queryClient.setQueryData(["pages", slugId], {
         ...pageData,
-        content: newContent,
+        // serialized once typing pauses: on a long page this is too slow for every keystroke
+        content: doc.toJSON(),
       });
     }
   }, 3000);
@@ -297,10 +387,12 @@ function CollabPageEditor({
   const editor = useEditor(
     {
       extensions,
-      editable,
+      editable: canType,
       textDirection: "auto",
       immediatelyRender: true,
       shouldRerenderOnTransaction: false,
+      // nothing listens for the delete event, and tiptap maps every changed range on each update to emit it
+      enableCoreExtensions: { delete: false },
       editorProps: {
         scrollThreshold: 80,
         scrollMargin: 80,
@@ -345,14 +437,14 @@ function CollabPageEditor({
           return handlePaste(
             editorRef.current,
             event,
-            pageId,
-            currentUser?.user.id,
+            { pageId },
+            user.id,
           );
         },
         handleDrop: (_view, event, _slice, moved) => {
           if (!editorRef.current) return false;
 
-          return handleFileDrop(editorRef.current, event, moved, pageId);
+          return handleFileDrop(editorRef.current, event, moved, { pageId });
         },
         handleClickOn: (view, _pos, node) => {
           if (view.editable) return false;
@@ -374,22 +466,19 @@ function CollabPageEditor({
       onCreate({ editor }) {
         if (editor) {
           // @ts-ignore
-          setEditor(editor);
-          // @ts-ignore
           editor.storage.pageId = pageId;
-          handleScrollTo(editor);
           editorRef.current = editor;
         }
       },
       onUpdate({ editor }) {
-        if (editor.isEmpty) return;
-        const editorJson = editor.getJSON();
+        if (editor.isEmpty || !provider.isAuthenticated) return;
         //update local page cache to reduce flickers
-        debouncedUpdateContent(editorJson);
+        debouncedUpdateContent(editor.state.doc);
       },
     },
-    [pageId, editable, extensions],
+    [pageId, extensions],
   );
+  useEditorScroll(editor, !showStatic);
 
   useEffect(() => {
     // Read by the paste handler with no observer, so it must not be garbage collected.
@@ -400,15 +489,21 @@ function CollabPageEditor({
     });
   }, []);
 
+  useDestroyEditorBeforeChildren(editor);
+
   useLayoutEffect(() => {
-    if (editor && !editor.isDestroyed) {
-      // @ts-ignore
-      setEditor(editor);
-      // @ts-ignore
-      editor.storage.pageId = pageId;
-      editorRef.current = editor;
-    }
-  }, [editor, pageId, setEditor]);
+    if (!editor || editor.isDestroyed) return;
+    if (editor.isEditable !== canType) editor.setEditable(canType, false);
+    if (showStatic) return;
+
+    Object.assign(editor.storage, { pageId });
+    editorRef.current = editor;
+    const binding = { pageId, editor, editable: canType };
+    setPageEditor(binding);
+    return () => {
+      setPageEditor((current) => (current === binding ? null : current));
+    };
+  }, [editor, pageId, setPageEditor, showStatic, canType]);
 
   const editorIsEditable = useEditorState({
     editor,
@@ -452,7 +547,7 @@ function CollabPageEditor({
     setLightboxRequest(null);
   }, [pageId]);
 
-  const isSynced = isLocalSynced && isRemoteSynced;
+  const isSynced = isRemoteSynced;
 
   useEffect(() => {
     setYjsSynced(isSynced);
@@ -471,13 +566,6 @@ function CollabPageEditor({
 
     return () => clearTimeout(timeout);
   }, [yjsConnectionStatus, isSynced]);
-  useEffect(() => {
-    if (!editor) return;
-    editor.setEditable(editable && currentPageEditMode === PageEditMode.Edit);
-  }, [currentPageEditMode, editor, editable]);
-
-  const hasConnectedOnceRef = useRef(false);
-  const [showStatic, setShowStatic] = useState(true);
 
   useSearchNavigationParams({
     editor,
@@ -487,19 +575,8 @@ function CollabPageEditor({
     showStatic,
   });
 
-  useEffect(() => {
-    if (
-      !hasConnectedOnceRef.current &&
-      yjsConnectionStatus === WebSocketStatus.Connected &&
-      isSynced
-    ) {
-      hasConnectedOnceRef.current = true;
-      setShowStatic(false);
-    }
-  }, [yjsConnectionStatus, isSynced]);
-
   if (showStatic) {
-    return <StaticPageEditor content={content} ariaLabel={t("Page content")} />;
+    return null;
   }
 
   return (
@@ -508,11 +585,15 @@ function CollabPageEditor({
         <EditorContent editor={editor} />
 
         {editor && (
-          <SearchAndReplaceDialog editor={editor} editable={editable} />
+          <SearchAndReplaceDialog
+            editor={editor}
+            editable={canType}
+          />
         )}
         {editor && <SearchNavigationDialog editor={editor} />}
 
-        {editor && editorIsEditable && (
+        <MicrosoftFullscreenModal />
+        {editor && canType && editorIsEditable && (
           <div>
             <EditorAiMenu editor={editor} />
             <EditorLinkMenu editor={editor} />
@@ -529,9 +610,11 @@ function CollabPageEditor({
             <ColumnsMenu editor={editor} />
             <IntegrationPasteMenu editor={editor} />
             <BasePasteMenu editor={editor} />
+            <MicrosoftFileMenu editor={editor} />
+            <MicrosoftFolderMenu editor={editor} />
           </div>
         )}
-        {editor && !editorIsEditable && (editable || canComment) && (
+        {editor && (!canType || !editorIsEditable) && (editable || canComment) && (
           <ReadonlyBubbleMenu editor={editor} />
         )}
         {editor && (
@@ -565,18 +648,34 @@ function StaticPageEditor({
   content: any;
   ariaLabel: string;
 }) {
-  return (
-    <EditorProvider
-      editable={false}
-      immediatelyRender={true}
-      textDirection="auto"
-      extensions={mainExtensions}
-      content={content}
-      editorProps={{
-        attributes: {
-          "aria-label": ariaLabel,
-        },
-      }}
-    />
-  );
+  const editor = useEditor({
+    editable: false,
+    immediatelyRender: true,
+    shouldRerenderOnTransaction: false,
+    textDirection: "auto",
+    extensions: mainExtensions,
+    editorProps: {
+      attributes: {
+        "aria-label": ariaLabel,
+      },
+    },
+  });
+  useDestroyEditorBeforeChildren(editor);
+
+  // EditorContent redraws the whole document when it adds the React node views,
+  // so the content goes in after that and is drawn once.
+  useLayoutEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    const doc = createDocument(
+      content,
+      editor.schema,
+      editor.options.parseOptions,
+    );
+    editor.view.updateState(
+      EditorState.create({ doc, plugins: editor.state.plugins }),
+    );
+  }, [editor]);
+
+  useEditorScroll(editor);
+  return <EditorContent editor={editor} />;
 }

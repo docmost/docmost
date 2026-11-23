@@ -1,5 +1,6 @@
 import type { Editor } from "@tiptap/react";
 import type { Node as PMNode } from "@tiptap/pm/model";
+import { sanitizeUrl } from "@docmost/editor-ext";
 import Lightbox, { type Slide } from "yet-another-react-lightbox";
 import type { LightboxRequest } from "@/features/editor/atoms/editor-atoms";
 import { getFileUrl } from "@/lib/config.ts";
@@ -80,6 +81,7 @@ const CLICK_TO_EXPAND_NODE_TYPES = new Set(["image", "drawio", "excalidraw"]);
 
 export function getLightboxClickRequest(node: PMNode): LightboxRequest {
   if (!CLICK_TO_EXPAND_NODE_TYPES.has(node.type.name)) return null;
+  if (node.type.name === "image" && sanitizeUrl(node.attrs.href)) return null;
 
   const src = typeof node.attrs.src === "string" ? node.attrs.src : "";
   if (!src) return null;

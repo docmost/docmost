@@ -29,7 +29,7 @@ const Picker = lazyWithPrefetch(async () => {
 export interface EmojiPickerInterface {
   onEmojiSelect: (emoji: any) => void;
   icon: ReactNode;
-  removeEmojiAction: () => void;
+  removeEmojiAction?: () => void;
   readOnly: boolean;
   actionIconProps?: {
     size?: string;
@@ -105,7 +105,7 @@ function EmojiPicker({
   };
 
   const handleRemoveEmoji = () => {
-    removeEmojiAction();
+    removeEmojiAction?.();
     handlers.close();
   };
 
@@ -140,20 +140,22 @@ function EmojiPicker({
             skinTonePosition="search"
             theme={colorScheme}
           />
-          <Button
-            variant="default"
-            c="gray"
-            size="xs"
-            style={{
-              position: "absolute",
-              zIndex: 2,
-              bottom: "1rem",
-              right: "1rem",
-            }}
-            onClick={handleRemoveEmoji}
-          >
-            {t("Remove")}
-          </Button>
+          {removeEmojiAction && (
+            <Button
+              variant="default"
+              c="gray"
+              size="xs"
+              style={{
+                position: "absolute",
+                zIndex: 2,
+                bottom: "1rem",
+                right: "1rem",
+              }}
+              onClick={handleRemoveEmoji}
+            >
+              {t("Remove")}
+            </Button>
+          )}
         </Popover.Dropdown>
       </Suspense>
     </Popover>

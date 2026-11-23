@@ -30,7 +30,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueueJob, QueueName } from '../../queue/constants';
 import { ModuleRef } from '@nestjs/core';
-import { load } from 'cheerio';
+import { loadImportHtml } from '../utils/import-dates';
 import { normalizeImportHtml } from '../utils/import-formatter';
 
 @Injectable()
@@ -73,7 +73,7 @@ export class ImportService {
       if (fileExtension.endsWith('.md')) {
         prosemirrorState = await this.processMarkdown(fileContent);
       } else if (fileExtension.endsWith('.html')) {
-        prosemirrorState = await this.processHTML(fileContent);
+        prosemirrorState = await this.processHTML(fileContent, spaceId);
       } else if (fileExtension.endsWith('.docx')) {
         prosemirrorState = await this.processDocx(
           fileBuffer,
@@ -150,10 +150,10 @@ export class ImportService {
     }
   }
 
-  async processHTML(htmlInput: string): Promise<any> {
+  async processHTML(htmlInput: string, spaceId?: string): Promise<any> {
     try {
-      const $ = load(htmlInput);
-      normalizeImportHtml($, $.root());
+      const $ = loadImportHtml(htmlInput);
+      normalizeImportHtml($, $.root(), spaceId);
       return htmlToJson($.html() || '');
     } catch (err) {
       throw err;
@@ -258,9 +258,13 @@ export class ImportService {
     const content = prosemirrorState.content ?? [];
     const firstNode = content[0];
 
+    // Keep headings with inline dates or bookmarks in the editable body.
     const isTitleHeading =
       firstNode?.type === 'heading' &&
-      (opts?.anyHeadingLevel || firstNode.attrs?.level === 1);
+      (opts?.anyHeadingLevel || firstNode.attrs?.level === 1) &&
+      !firstNode.content?.some(
+        (node) => node.type === 'date' || node.type === 'sectionAnchor',
+      );
 
     if (isTitleHeading) {
       const headingText = (firstNode.content ?? [])

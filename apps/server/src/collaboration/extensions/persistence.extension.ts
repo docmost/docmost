@@ -1,4 +1,5 @@
 import {
+  afterLoadDocumentPayload,
   afterUnloadDocumentPayload,
   beforeHandleAwarenessPayload,
   Extension,
@@ -9,6 +10,7 @@ import {
 import * as Y from 'yjs';
 import { Injectable, Logger } from '@nestjs/common';
 import { TiptapTransformer } from '@hocuspocus/transformer';
+import type { JSONContent } from '@tiptap/core';
 import {
   getPageId,
   isRenderableObject,
@@ -33,17 +35,21 @@ import {
 } from '../../integrations/queue/constants/queue.interface';
 import { Page } from '@docmost/db/types/entity.types';
 import { CollabHistoryService } from '../services/collab-history.service';
-import {
-  HISTORY_FAST_INTERVAL,
-  HISTORY_FAST_THRESHOLD,
-  HISTORY_INTERVAL,
-} from '../constants';
+import { HISTORY_FAST_INTERVAL, HISTORY_FAST_THRESHOLD } from '../constants';
 import { TransclusionService } from '../../core/page/transclusion/transclusion.service';
+import { PageVerificationInvalidationService } from '../../core/page/verification/page-verification-invalidation.service';
+import { PageVerificationInvalidation } from '../../core/page/verification/page-verification-invalidation.types';
+import { isSameDocumentContent } from '../content-comparison.util';
+import { EnvironmentService } from '../../integrations/environment/environment.service';
 
 @Injectable()
 export class PersistenceExtension implements Extension {
   private readonly logger = new Logger(PersistenceExtension.name);
   private contributors: Map<string, Set<string>> = new Map();
+  private readonly lastChanges = new Map<
+    string,
+    { at: Date; context: onChangePayload['context'] }
+  >();
 
   constructor(
     private readonly pageRepo: PageRepo,
@@ -53,6 +59,8 @@ export class PersistenceExtension implements Extension {
     @InjectQueue(QueueName.NOTIFICATION_QUEUE) private notificationQueue: Queue,
     private readonly collabHistory: CollabHistoryService,
     private readonly transclusionService: TransclusionService,
+    private readonly pageVerificationInvalidationService: PageVerificationInvalidationService,
+    private readonly environmentService: EnvironmentService,
   ) {}
 
   async onLoadDocument(data: onLoadDocumentPayload) {
@@ -101,26 +109,47 @@ export class PersistenceExtension implements Extension {
     return new Y.Doc();
   }
 
+  async afterLoadDocument(data: afterLoadDocumentPayload) {
+    // The loaded state is still queued for broadcast; flush it before the first
+    // connection attaches, or every client receives the whole document again.
+    data.document.flush();
+  }
+
   async onStoreDocument(data: onStoreDocumentPayload) {
-    const { documentName, document, lastContext } = data;
+    const { documentName, document, instance } = data;
 
     const pageId = getPageId(documentName);
+    const lastChange = this.lastChanges.get(documentName);
+    // A queued retry can have an older context than the document it now snapshots.
+    const lastContext = lastChange?.context ?? data.lastContext;
 
-    const tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
     const ydocState = Buffer.from(Y.encodeStateAsUpdate(document));
-
-    let textContent = null;
-
-    try {
-      textContent = jsonToText(tiptapJson);
-    } catch (err) {
-      this.logger.warn('jsonToText' + err?.['message']);
-    }
-
+    let tiptapJson: JSONContent;
+    let editingUserIds: string[] = [];
     let page: Page = null;
-    const editingUserIds = this.consumeContributors(documentName);
+    let edited = false;
+    let invalidation: PageVerificationInvalidation | null = null;
 
     try {
+      try {
+        tiptapJson = TiptapTransformer.fromYdoc(document, 'default');
+      } catch (err) {
+        this.logger.error(
+          { err, pageId },
+          'Failed to convert Yjs state to Tiptap JSON',
+        );
+        await this.pageRepo.saveYdocState(pageId, ydocState);
+        return;
+      }
+
+      let textContent = null;
+      try {
+        textContent = jsonToText(tiptapJson);
+      } catch (err) {
+        this.logger.warn('jsonToText' + err?.['message']);
+      }
+
+      editingUserIds = this.consumeContributors(documentName);
       await executeTx(this.db, async (trx) => {
         page = await this.pageRepo.findById(pageId, {
           withLock: true,
@@ -134,9 +163,14 @@ export class PersistenceExtension implements Extension {
         }
 
         if (isDeepStrictEqual(tiptapJson, page.content)) {
+          // Edits can return to the same visible content with a newer Yjs state.
+          await this.pageRepo.saveYdocState(page.id, ydocState, trx);
           page = null;
           return;
         }
+
+        // block ids, defaults and comments are saved too, but only visible changes count as an edit
+        edited = !isSameDocumentContent(page.content, tiptapJson);
 
         let contributorIds = undefined;
         try {
@@ -157,24 +191,53 @@ export class PersistenceExtension implements Extension {
             content: tiptapJson,
             textContent: textContent,
             ydoc: ydocState,
-            lastUpdatedById: lastContext.user.id,
-            contributorIds: contributorIds,
+            ...(edited
+              ? { lastUpdatedById: lastContext?.user?.id ?? null, contributorIds }
+              : { updatedAt: page.updatedAt }),
           },
           pageId,
           trx,
         );
 
+        invalidation =
+          await this.pageVerificationInvalidationService.invalidateForEdit(
+            {
+              pageId: page.id,
+              userId: lastContext?.user?.id ?? null,
+              changedAt: lastChange?.at ?? null,
+              isMeaningfulChange: () => edited,
+              loadPreviousState: async () => page,
+            },
+            trx,
+          );
+
         this.logger.debug(`Page updated: ${pageId} - SlugId: ${page.slugId}`);
       });
     } catch (err) {
       this.logger.error(`Failed to update page ${pageId}`, err);
-      page = null;
       editingUserIds.forEach((userId) =>
         this.trackContributor(documentName, userId),
       );
+      // A rejected store has no timer left. Keep the live document pending so
+      // disconnect and shutdown can flush it, preserving any newer editor's save.
+      if (
+        instance.documents.get(documentName) === document &&
+        !instance.debouncer.isDebounced(`onStoreDocument-${documentName}`)
+      ) {
+        void instance.storeDocumentHooks(document, data);
+      }
+      throw err;
     }
 
-    if (page) {
+    if (invalidation) {
+      await this.pageVerificationInvalidationService.notifyInvalidated(
+        invalidation,
+        lastContext?.user?.id ?? null,
+        'content',
+      );
+    }
+
+    if (page && edited) {
       try {
         await this.collabHistory.addContributors(pageId, editingUserIds);
       } catch (err) {
@@ -198,7 +261,9 @@ export class PersistenceExtension implements Extension {
             : undefined,
         }),
       );
+    }
 
+    if (page) {
       await this.syncTransclusion(pageId, page.workspaceId, tiptapJson);
     }
 
@@ -230,7 +295,7 @@ export class PersistenceExtension implements Extension {
         workspaceId: page.workspaceId,
       });
 
-      await this.enqueuePageHistory(page);
+      if (edited) await this.enqueuePageHistory(page);
     }
   }
 
@@ -267,6 +332,10 @@ export class PersistenceExtension implements Extension {
   }
 
   async onChange(data: onChangePayload) {
+    this.lastChanges.set(data.documentName, {
+      at: new Date(),
+      context: data.context,
+    });
     const userId = data.context?.user?.id;
     if (!userId) return;
     this.trackContributor(data.documentName, userId);
@@ -283,6 +352,7 @@ export class PersistenceExtension implements Extension {
   async afterUnloadDocument(data: afterUnloadDocumentPayload) {
     const documentName = data.documentName;
     this.contributors.delete(documentName);
+    this.lastChanges.delete(documentName);
   }
 
   private consumeContributors(documentName: string): string[] {
@@ -298,7 +368,7 @@ export class PersistenceExtension implements Extension {
     const delay =
       pageAge < HISTORY_FAST_THRESHOLD
         ? HISTORY_FAST_INTERVAL
-        : HISTORY_INTERVAL;
+        : this.environmentService.getPageHistoryInterval();
 
     await this.historyQueue.add(
       QueueJob.PAGE_HISTORY,

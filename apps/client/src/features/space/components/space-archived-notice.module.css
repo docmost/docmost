@@ -1,0 +1,7 @@
+.notice {
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}
+
+.meta {
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+}

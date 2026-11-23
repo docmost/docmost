@@ -25,20 +25,32 @@ api.interceptors.response.use(
 
     return response.data;
   },
-  (error) => {
+  async (error) => {
+    const data = error.response?.data;
+    if (data instanceof Blob && data.type.includes("json")) {
+      try {
+        error.response.data = JSON.parse(await data.text());
+      } catch {
+        // not json, keep the blob
+      }
+    }
+
     if (error.response) {
       switch (error.response.status) {
         case 401: {
           const url = new URL(error.request.responseURL)?.pathname;
           if (url === "/api/auth/collab-token") return;
           if (window.location.pathname.startsWith("/share/")) return;
-          // public docs probe authed endpoints; reject without the login redirect
+          // public docs and forms probe authed endpoints; reject without the login redirect
           if (
             window.location.pathname === "/docs" ||
-            window.location.pathname.startsWith("/docs/")
+            window.location.pathname.startsWith("/docs/") ||
+            window.location.pathname.startsWith("/forms/")
           ) {
             break;
           }
+          // the banner poll runs in the background; an idle reader stays on the page
+          if (url === "/api/announcements/visible") break;
 
           // Handle unauthorized error
           redirectToLogin();

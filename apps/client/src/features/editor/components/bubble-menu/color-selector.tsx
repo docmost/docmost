@@ -199,17 +199,38 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
     },
   });
 
-  if (!editor || !editorState) {
-    return null;
-  }
-
   const activeColorItem = TEXT_COLORS.find(
-    ({ color }) => editorState[`text_${color}`],
+    ({ color }) => editorState?.[`text_${color}`],
   );
 
   const activeHighlightItem = HIGHLIGHT_COLORS.find(
-    ({ color }) => editorState[`highlight_${color}`],
+    ({ color }) => editorState?.[`highlight_${color}`],
   );
+
+  const trigger = (
+    <Tooltip label={t("Text color")} withArrow withinPortal={false}>
+      <Button
+        variant="default"
+        radius="0"
+        rightSection={<IconChevronDown size={16} />}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => editor && setIsOpen(!isOpen)}
+        data-text-color={activeColorItem?.color || ""}
+        data-highlight-color={activeHighlightItem?.color || ""}
+        className={clsx(["color-selector-trigger", classes.buttonRoot])}
+        style={{
+          fontWeight: 500,
+          fontSize: rem(16),
+        }}
+        aria-label={t("Text color")}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+      >
+        A
+      </Button>
+    </Tooltip>
+  );
+  if (!editor || !editorState) return trigger;
 
   return (
     <Popover
@@ -219,29 +240,7 @@ export const ColorSelector: FC<ColorSelectorProps> = ({
       trapFocus
       withArrow
     >
-      <Popover.Target>
-        <Tooltip label={t("Text color")} withArrow withinPortal={false}>
-          <Button
-            variant="default"
-            radius="0"
-            rightSection={<IconChevronDown size={16} />}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setIsOpen(!isOpen)}
-            data-text-color={activeColorItem?.color || ""}
-            data-highlight-color={activeHighlightItem?.color || ""}
-            className={clsx(["color-selector-trigger", classes.buttonRoot])}
-            style={{
-              fontWeight: 500,
-              fontSize: rem(16),
-            }}
-            aria-label={t("Text color")}
-            aria-haspopup="dialog"
-            aria-expanded={isOpen}
-          >
-            A
-          </Button>
-        </Tooltip>
-      </Popover.Target>
+      <Popover.Target>{trigger}</Popover.Target>
 
       <Popover.Dropdown onMouseDown={(e) => e.preventDefault()}>
         <Stack gap="md" p="2px">

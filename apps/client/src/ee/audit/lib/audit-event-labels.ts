@@ -50,6 +50,8 @@ export const auditEventLabels: Record<string, string> = {
   "space.member_removed": "Removed space member",
   "space.member_role_changed": "Changed space member role",
   "space.exported": "Exported space",
+  "space.archived": "Archived space",
+  "space.unarchived": "Unarchived space",
 
   "group.created": "Created group",
   "group.updated": "Updated group",
@@ -77,10 +79,16 @@ export const auditEventLabels: Record<string, string> = {
   "page.verification_created": "Created page verification",
   "page.verification_updated": "Updated page verification",
   "page.verification_removed": "Removed page verification",
+  "page.verifier_added": "Added page verifier",
+  "page.verifier_removed": "Removed page verifier",
+  "page.verification_invalidated": "Invalidated page verification",
   "page.verified": "Verified page",
   "page.approval_requested": "Requested page approval",
   "page.approval_rejected": "Rejected page approval",
   "page.marked_obsolete": "Marked page as obsolete",
+
+  "base.property.updated": "Changed base property type",
+  "base.form_share.updated": "Changed base form sharing",
 
   "share.created": "Created share link",
   "share.deleted": "Deleted share link",
@@ -97,7 +105,14 @@ export const auditEventLabels: Record<string, string> = {
   "siem_destination.deleted": "Deleted SIEM destination",
 
   "template.created": "Created template",
+  "template.updated": "Updated template",
   "template.deleted": "Deleted template",
+
+  "announcement.created": "Created announcement",
+  "announcement.updated": "Updated announcement",
+  "announcement.archived": "Archived announcement",
+  "announcement.unarchived": "Unarchived announcement",
+  "announcement.deleted": "Deleted announcement",
 };
 
 export function getEventLabel(event: string): string {
@@ -140,6 +155,9 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "space.deleted", label: "Deleted space" },
       { value: "space.member_added", label: "Added space member" },
       { value: "space.member_removed", label: "Removed space member" },
+      { value: "space.exported", label: "Exported space" },
+      { value: "space.archived", label: "Archived space" },
+      { value: "space.unarchived", label: "Unarchived space" },
     ],
   },
   {
@@ -186,10 +204,20 @@ export const eventFilterOptions: EventGroup[] = [
       { value: "page.verification_created", label: "Created page verification" },
       { value: "page.verification_updated", label: "Updated page verification" },
       { value: "page.verification_removed", label: "Removed page verification" },
+      { value: "page.verifier_added", label: "Added page verifier" },
+      { value: "page.verifier_removed", label: "Removed page verifier" },
+      { value: "page.verification_invalidated", label: "Invalidated page verification" },
       { value: "page.verified", label: "Verified page" },
       { value: "page.approval_requested", label: "Requested page approval" },
       { value: "page.approval_rejected", label: "Rejected page approval" },
       { value: "page.marked_obsolete", label: "Marked page as obsolete" },
+    ],
+  },
+  {
+    group: "Base",
+    items: [
+      { value: "base.property.updated", label: "Changed base property type" },
+      { value: "base.form_share.updated", label: "Changed base form sharing" },
     ],
   },
   {
@@ -250,7 +278,18 @@ export const eventFilterOptions: EventGroup[] = [
     group: "Template",
     items: [
       { value: "template.created", label: "Created template" },
+      { value: "template.updated", label: "Updated template" },
       { value: "template.deleted", label: "Deleted template" },
+    ],
+  },
+  {
+    group: "Announcement",
+    items: [
+      { value: "announcement.created", label: "Created announcement" },
+      { value: "announcement.updated", label: "Updated announcement" },
+      { value: "announcement.archived", label: "Archived announcement" },
+      { value: "announcement.unarchived", label: "Unarchived announcement" },
+      { value: "announcement.deleted", label: "Deleted announcement" },
     ],
   },
 ];

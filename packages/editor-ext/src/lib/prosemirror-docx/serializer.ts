@@ -31,9 +31,12 @@ import {
 import { imageDimensionsFromData } from 'image-dimensions';
 import { createNumbering, NumberingStyles } from './numbering';
 import {
+  BLANK_PNG,
   buildDoc,
   CELL_MARGIN,
   createShortId,
+  docxImageFromData,
+  getImageWidth,
   getTableCellWidths,
   getTableColumnWidths,
   TEXT_WIDTH,
@@ -545,6 +548,9 @@ export class DocxSerializerStateAsync {
 
   currentNumbering?: { reference: string; level: number };
 
+  // numbered lists around the list being rendered
+  numberedListDepth = 0;
+
   constructor(nodes: NodeSerializerAsync, marks: MarkSerializer, options: OptionsAsync) {
     this.nodes = nodes;
     this.marks = marks;
@@ -653,22 +659,17 @@ export class DocxSerializerStateAsync {
     closeLink();
   }
 
+  // Every list gets its own numbering, so a nested list keeps its kind and restarts its count.
   async renderList(node: Node, style: NumberingStyles) {
-    if (!this.currentNumbering) {
-      const nextId = createShortId();
-      this.numbering.push(createNumbering(nextId, style));
-      this.currentNumbering = { reference: nextId, level: 0 };
-    } else {
-      const { reference, level } = this.currentNumbering;
-      this.currentNumbering = { reference, level: level + 1 };
-    }
+    const parent = this.currentNumbering;
+    const level = parent ? parent.level + 1 : 0;
+    const reference = createShortId();
+    this.numbering.push(createNumbering(reference, style, level, this.numberedListDepth));
+    this.currentNumbering = { reference, level };
+    if (style === 'numbered') this.numberedListDepth += 1;
     await this.renderContent(node);
-    if (this.currentNumbering.level === 0) {
-      delete this.currentNumbering;
-    } else {
-      const { reference, level } = this.currentNumbering;
-      this.currentNumbering = { reference, level: level - 1 };
-    }
+    if (style === 'numbered') this.numberedListDepth -= 1;
+    this.currentNumbering = parent;
   }
 
   // This is a pass through to the paragraphs, etc. underneath they will close the block
@@ -724,36 +725,25 @@ export class DocxSerializerStateAsync {
   // not sure what this actually is, seems to be close for 8.5x11
   maxImageWidth = MAX_IMAGE_WIDTH;
 
-  async image(
-    src: string,
-    widthPercent = 70,
-    align: AlignOptions = 'center',
-    imageRunOpts?: IImageOptions,
-    imageType?: ImageType,
-  ) {
+  async image(src: string, width?: number | string | null, align: AlignOptions = 'center') {
     const buffer = await Promise.resolve(this.options.getImageBuffer(src));
-    const dimensions = imageDimensionsFromData(buffer);
+    const image = docxImageFromData(buffer);
     /* If the image is not a valid image, don't add it */
-    if (!dimensions) return;
-    const aspect = dimensions.height / dimensions.width;
-    const width = this.maxImageWidth * (widthPercent / 100);
-    let it;
-    try {
-      it = imageType || (src.replace(/.*\./, '').toLowerCase() as any);
-    } catch (e) {
-      it = 'png';
-    }
+    if (!image) return;
+    const aspect = image.height / image.width;
+    const imageWidth = getImageWidth(width, image.width, this.maxImageWidth);
+    const transformation = { width: imageWidth, height: imageWidth * aspect };
     this.current.push(
-      new ImageRun({
-        data: buffer,
-        ...imageRunOpts,
-        type: it,
-        transformation: {
-          ...(imageRunOpts?.transformation || {}),
-          width,
-          height: width * aspect,
-        },
-      }),
+      new ImageRun(
+        image.type === 'svg'
+          ? {
+              type: 'svg',
+              data: buffer,
+              fallback: { type: 'png', data: BLANK_PNG },
+              transformation,
+            }
+          : { type: image.type, data: buffer, transformation },
+      ),
     );
     let alignment: string;
     switch (align) {
@@ -886,10 +876,12 @@ export class DocxSerializerStateAsync {
   }
 
   closeBlock(node: Node, props?: IParagraphOptions) {
+    const opts = { ...this.nextParentParagraphOpts, ...props };
     const paragraph = new Paragraph({
       children: this.current,
-      ...this.nextParentParagraphOpts,
-      ...props,
+      ...opts,
+      // a paragraph takes one style, so a heading drops the quote or callout style
+      style: opts.heading ? undefined : opts.style,
     });
     this.current = [];
     delete this.nextParentParagraphOpts;

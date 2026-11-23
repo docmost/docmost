@@ -26,10 +26,3 @@ export const DATE_RANGE_PRESETS: { value: DateFilterRange; labelKey: string }[] 
     { value: "nextMonth", labelKey: "Next month" },
     { value: "nextYear", labelKey: "Next year" },
   ];
-
-export const ANCHOR_VALUES = new Set<string>(
-  DATE_ANCHOR_PRESETS.map((p) => p.value),
-);
-export const RANGE_VALUES = new Set<string>(
-  DATE_RANGE_PRESETS.map((p) => p.value),
-);

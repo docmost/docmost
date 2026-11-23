@@ -12,6 +12,7 @@ import {
 } from "@/features/comment/atoms/comment-atom";
 import CommentEditor from "@/features/comment/components/comment-editor";
 import CommentActions from "@/features/comment/components/comment-actions";
+import { CommentErrorBoundary } from "@/features/comment/components/comment-error-boundary";
 import { currentUserAtom } from "@/features/user/atoms/current-user-atom";
 import { useCreateCommentMutation } from "@/features/comment/queries/comment-query";
 import { asideStateAtom } from "@/components/layouts/global/hooks/atoms/sidebar-atom";
@@ -174,14 +175,16 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
           </div>
         </Group>
 
-        <CommentEditor
-          onUpdate={handleCommentEditorChange}
-          onSave={handleAddComment}
-          placeholder={t("Write a comment")}
-          editable={true}
-          autofocus={true}
-        />
-        <CommentActions onSave={handleAddComment} isLoading={isPending} />
+        <CommentErrorBoundary>
+          <CommentEditor
+            onUpdate={handleCommentEditorChange}
+            onSave={handleAddComment}
+            placeholder={t("Write a comment")}
+            editable={true}
+            autofocus={true}
+          />
+          <CommentActions onSave={handleAddComment} isLoading={isPending} />
+        </CommentErrorBoundary>
       </Stack>
     </Dialog>
   );

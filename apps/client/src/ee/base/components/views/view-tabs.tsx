@@ -15,13 +15,7 @@ import {
   Stack,
   Divider,
 } from "@mantine/core";
-import {
-  IconPencil,
-  IconTrash,
-  IconTable,
-  IconLink,
-  IconLayoutKanban,
-} from "@tabler/icons-react";
+import { IconPencil, IconTrash, IconLink } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import {
@@ -36,6 +30,7 @@ import {
 import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 import { IBase, IBaseView } from "@/ee/base/types/base.types";
 import { ViewCreateMenu } from "@/ee/base/components/views/view-create-menu";
+import { VIEW_TYPE_ICONS } from "@/ee/base/components/views/view-type-icon";
 import {
   useUpdateViewMutation,
   useDeleteViewMutation,
@@ -230,6 +225,7 @@ function ViewTab({
   const [menuOpened, setMenuOpened] = useState(false);
   const editable = useBaseEditable();
   const tabRef = useRef<HTMLDivElement>(null);
+  const ViewIcon = VIEW_TYPE_ICONS[view.type] ?? VIEW_TYPE_ICONS.table;
   const [isDragging, setIsDragging] = useState(false);
   const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
 
@@ -353,11 +349,7 @@ function ViewTab({
             }}
           >
             <Group gap={6} wrap="nowrap">
-              {view.type === "kanban" ? (
-                <IconLayoutKanban size={14} opacity={isActive ? 1 : 0.5} />
-              ) : (
-                <IconTable size={14} opacity={isActive ? 1 : 0.5} />
-              )}
+              <ViewIcon size={14} opacity={isActive ? 1 : 0.5} />
               <Text size="sm" lh={1.2} c={isActive ? undefined : "dimmed"}>
                 {view.name}
               </Text>

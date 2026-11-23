@@ -2,6 +2,8 @@ import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { getCollabToken, verifyUserToken } from "../services/auth-service";
 import { ICollabToken, IVerifyUserToken } from "../types/auth.types";
 import { isAxiosError } from "axios";
+import { jwtDecode } from "jwt-decode";
+import type { IUser } from "@/features/user/types/user.types";
 
 export function useVerifyUserTokenQuery(
   verify: IVerifyUserToken,
@@ -14,20 +16,31 @@ export function useVerifyUserTokenQuery(
   });
 }
 
-export function useCollabToken(): UseQueryResult<ICollabToken, Error> {
+export function useCollabToken(
+  user?: Pick<IUser, "id" | "workspaceId">,
+): UseQueryResult<ICollabToken, Error> {
   return useQuery({
-    queryKey: ["collab-token"],
-    queryFn: () => getCollabToken(),
+    queryKey: ["collab-token", user?.workspaceId, user?.id],
+    enabled: Boolean(user?.workspaceId && user?.id),
+    queryFn: async () => {
+      const response = await getCollabToken();
+      const claims = jwtDecode<{ sub: string; workspaceId: string }>(
+        response.token,
+      );
+      if (claims.sub !== user.id || claims.workspaceId !== user.workspaceId) {
+        throw new Error("Collaboration session changed");
+      }
+      return response;
+    },
     staleTime: 20 * 60 * 60 * 1000, //20hrs
     //refetchInterval: 12 * 60 * 60 * 1000, // 12hrs
     //refetchIntervalInBackground: true,
     refetchOnMount: true,
-    //@ts-ignore
     retry: (failureCount, error) => {
-      if (isAxiosError(error) && error.response.status === 404) {
+      if (isAxiosError(error) && error.response?.status === 404) {
         return false;
       }
-      return 10;
+      return failureCount < 10;
     },
     retryDelay: (retryAttempt) => {
       // Exponential backoff: 5s, 10s, 20s, etc.

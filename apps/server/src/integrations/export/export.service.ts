@@ -4,7 +4,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { jsonToHtml, jsonToNode } from '../../collaboration/collaboration.util';
+import { jsonToNode, templateExtensions } from '../../collaboration/collaboration.util';
+import { generateHTML } from '../../common/helpers/prosemirror/html';
 import { ExportFormat } from './dto/export-dto';
 import { Page } from '@docmost/db/types/entity.types';
 import { InjectKysely } from 'nestjs-kysely';
@@ -27,6 +28,8 @@ import {
 } from '../../common/helpers/types/export-metadata.types';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 import { Node } from '@tiptap/pm/model';
 import { EditorState } from '@tiptap/pm/state';
 import slugify from '@sindresorhus/slugify';
@@ -37,10 +40,22 @@ import { DomainService } from '../environment/domain.service';
 import {
   getAttachmentIds,
   getProsemirrorContent,
+  updateUserMentionLabels,
 } from '../../common/helpers/prosemirror/utils';
-import { htmlToMarkdown } from '@docmost/editor-ext';
+import { htmlToMarkdown, ItemsByLabel } from '@docmost/editor-ext';
+import { validate as isValidUUID } from 'uuid';
 
 type AllowedAttachment = { id: string; fileName: string; filePath: string };
+
+const exportExtensions = templateExtensions.map((extension) =>
+  extension.name === ItemsByLabel.name
+    ? ItemsByLabel.extend({
+        renderHTML({ node }) {
+          return ['p', node.attrs.heading || 'Pages by label'];
+        },
+      })
+    : extension,
+);
 
 @Injectable()
 export class ExportService {
@@ -53,34 +68,24 @@ export class ExportService {
     private readonly storageService: StorageService,
     private readonly environmentService: EnvironmentService,
     private readonly domainService: DomainService,
+    private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly userRepo: UserRepo,
   ) {}
 
-  async exportPage(format: string, page: Page, singlePage?: boolean) {
+  async exportPage(format: string, page: Page) {
     const titleNode = {
       type: 'heading',
       attrs: { level: 1 },
       content: [{ type: 'text', text: getPageTitle(page.title) }],
     };
 
-    let prosemirrorJson: any;
-
-    if (singlePage) {
-      const baseUrl = await this.getWorkspaceBaseUrl(page.workspaceId);
-      prosemirrorJson = await this.turnPageMentionsToLinks(
-        getProsemirrorContent(page.content),
-        page.workspaceId,
-        baseUrl,
-      );
-    } else {
-      // mentions is already turned to links during the zip process
-      prosemirrorJson = getProsemirrorContent(page.content);
-    }
+    const prosemirrorJson = getProsemirrorContent(page.content);
 
     if (page.title) {
       prosemirrorJson.content.unshift(titleNode);
     }
 
-    const pageHtml = jsonToHtml(prosemirrorJson);
+    const pageHtml = generateHTML(prosemirrorJson, exportExtensions);
 
     if (format === ExportFormat.HTML) {
       return `<!DOCTYPE html>
@@ -153,16 +158,27 @@ export class ExportService {
     // set to null to make export of pages with parentId work
     pages[parentPageIndex].parentPageId = null;
 
+    const baseUrl = await this.getWorkspaceBaseUrl(pages[0].workspaceId);
     const isSinglePage = pages.length === 1 && !includeAttachments;
 
     if (isSinglePage) {
-      const pageContent = await this.exportPage(format, pages[0], true);
+      let content = await this.turnPageMentionsToLinks(
+        getProsemirrorContent(pages[0].content),
+        pages[0].workspaceId,
+        baseUrl,
+        userId,
+        ignorePermissions,
+      );
+      content = await this.applyCurrentUserNames(content, pages[0].workspaceId);
+      const pageContent = await this.exportPage(format, {
+        ...pages[0],
+        content,
+      });
       return { type: 'file' as const, content: pageContent, page: pages[0] };
     }
 
     const tree = buildTree(pages as Page[]);
 
-    const baseUrl = await this.getWorkspaceBaseUrl(pages[0].workspaceId);
     const zip = new JSZip();
     await this.zipPages(
       tree,
@@ -292,12 +308,16 @@ export class ExportService {
       for (const page of children) {
         const childPages = tree[page.id] || [];
 
-        const prosemirrorJson = await this.turnPageMentionsToLinks(
+        let prosemirrorJson = await this.turnPageMentionsToLinks(
           getProsemirrorContent(page.content),
           page.workspaceId,
           baseUrl,
           userId,
           ignorePermissions,
+        );
+        prosemirrorJson = await this.applyCurrentUserNames(
+          prosemirrorJson,
+          page.workspaceId,
         );
 
         const currentPagePath = slugIdToPath[page.slugId];
@@ -432,6 +452,12 @@ export class ExportService {
     return new Map(visible.map((a) => [a.id, a]));
   }
 
+  private applyCurrentUserNames(prosemirrorJson: any, workspaceId: string) {
+    return updateUserMentionLabels(prosemirrorJson, (userIds) =>
+      this.userRepo.findActiveNamesByIds(userIds, workspaceId),
+    );
+  }
+
   async turnPageMentionsToLinks(
     prosemirrorJson: any,
     workspaceId: string,
@@ -441,11 +467,11 @@ export class ExportService {
   ) {
     const doc = jsonToNode(prosemirrorJson);
 
-    let pageMentionIds: string[] = [];
+    const pageMentionIds: string[] = [];
 
     doc.descendants((node: Node) => {
       if (node.type.name === 'mention' && node.attrs.entityType === 'page') {
-        if (node.attrs.entityId) {
+        if (isValidUUID(node.attrs.entityId)) {
           pageMentionIds.push(node.attrs.entityId);
         }
       }
@@ -455,31 +481,32 @@ export class ExportService {
       return prosemirrorJson;
     }
 
-    // Filter to only accessible pages if permissions are enforced
-    if (!ignorePermissions && userId) {
-      pageMentionIds = await this.pagePermissionRepo.filterAccessiblePageIds({
-        pageIds: pageMentionIds,
-        userId,
-      });
-    }
+    let pages = await this.db
+      .selectFrom('pages')
+      .select(['id', 'slugId', 'title', 'creatorId', 'spaceId', 'workspaceId'])
+      .select((eb) => this.pageRepo.withSpace(eb))
+      .where('id', 'in', pageMentionIds)
+      .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null)
+      .$if(!ignorePermissions, (qb) =>
+        qb.where(
+          'spaceId',
+          'in',
+          this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+        ),
+      )
+      .execute();
 
-    const pages =
-      pageMentionIds.length > 0
-        ? await this.db
-            .selectFrom('pages')
-            .select([
-              'id',
-              'slugId',
-              'title',
-              'creatorId',
-              'spaceId',
-              'workspaceId',
-            ])
-            .select((eb) => this.pageRepo.withSpace(eb))
-            .where('id', 'in', pageMentionIds)
-            .where('workspaceId', '=', workspaceId)
-            .execute()
-        : [];
+    // Filter to only accessible pages if permissions are enforced
+    if (!ignorePermissions) {
+      const accessibleIds = new Set(
+        await this.pagePermissionRepo.filterAccessiblePageIds({
+          pageIds: pages.map((page) => page.id),
+          userId,
+        }),
+      );
+      pages = pages.filter((page) => accessibleIds.has(page.id));
+    }
 
     const pageMap = new Map(pages.map((page) => [page.id, page]));
 

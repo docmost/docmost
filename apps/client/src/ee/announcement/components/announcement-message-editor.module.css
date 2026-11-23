@@ -1,0 +1,60 @@
+.root {
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-4));
+  border-radius: var(--mantine-radius-sm);
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-6)
+  );
+  transition: border-color 100ms ease;
+
+  &[data-error] {
+    margin-bottom: calc(var(--mantine-spacing-xs) / 2);
+    border-color: var(--mantine-color-error);
+  }
+
+  &:focus-within {
+    border-color: var(--mantine-primary-color-filled);
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-bottom: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.counter {
+  margin-inline-start: auto;
+  padding-inline-end: 6px;
+}
+
+.content :global(.ProseMirror) {
+  min-height: 64px;
+  padding: 8px 12px;
+  outline: none;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.content :global(.ProseMirror p) {
+  margin: 0;
+}
+
+.content :global(.ProseMirror a) {
+  color: var(--mantine-color-anchor);
+  text-decoration: underline;
+}
+
+.content :global(.ProseMirror p.is-editor-empty:first-child::before) {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--mantine-color-placeholder);
+}

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import {
+  infiniteQueryOptions,
   useQuery,
   useInfiniteQuery,
   useMutation,
@@ -13,9 +14,10 @@ import {
   ToggleFavoriteParams,
 } from "../services/favorite-service";
 import { FavoriteType } from "../types/favorite.types";
+import { queryClient as appQueryClient } from "@/main.tsx";
 
-export function useFavoritesQuery(type?: FavoriteType, spaceId?: string) {
-  return useInfiniteQuery({
+const favoritesQuery = (type?: FavoriteType, spaceId?: string) =>
+  infiniteQueryOptions({
     queryKey: ["favorites", type, spaceId],
     queryFn: ({ pageParam }) =>
       getFavorites({ type, spaceId, cursor: pageParam, limit: 15 }),
@@ -24,6 +26,13 @@ export function useFavoritesQuery(type?: FavoriteType, spaceId?: string) {
       lastPage.meta.hasNextPage ? lastPage.meta.nextCursor : undefined,
     refetchOnMount: true,
   });
+
+export function useFavoritesQuery(type?: FavoriteType, spaceId?: string) {
+  return useInfiniteQuery(favoritesQuery(type, spaceId));
+}
+
+export function prefetchFavorites(type?: FavoriteType, spaceId?: string) {
+  void appQueryClient.prefetchInfiniteQuery(favoritesQuery(type, spaceId));
 }
 
 export function useFavoriteIds(type: FavoriteType, spaceId?: string): Set<string> {

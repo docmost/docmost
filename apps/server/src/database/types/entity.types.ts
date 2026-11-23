@@ -2,9 +2,11 @@ import { Insertable, Selectable, Updateable } from 'kysely';
 import {
   AiChats,
   AiChatMessages,
+  Announcements,
   Attachments,
   BaseProperties,
   BaseRows,
+  BaseViewShares,
   BaseViews,
   Comments,
   Groups,
@@ -290,7 +292,17 @@ export type BaseView = Selectable<BaseViews>;
 export type InsertableBaseView = Insertable<BaseViews>;
 export type UpdatableBaseView = Updateable<Omit<BaseViews, 'id'>>;
 
+// Base View Share
+export type BaseViewShare = Selectable<BaseViewShares>;
+export type InsertableBaseViewShare = Insertable<BaseViewShares>;
+export type UpdatableBaseViewShare = Updateable<Omit<BaseViewShares, 'id'>>;
+
 // SIEM destinations
 export type SiemDestination = Selectable<SiemDestinations>;
 export type InsertableSiemDestination = Insertable<SiemDestinations>;
 export type UpdatableSiemDestination = Updateable<Omit<SiemDestinations, 'id'>>;
+
+// Announcements
+export type Announcement = Selectable<Announcements>;
+export type InsertableAnnouncement = Insertable<Announcements>;
+export type UpdatableAnnouncement = Updateable<Omit<Announcements, 'id'>>;

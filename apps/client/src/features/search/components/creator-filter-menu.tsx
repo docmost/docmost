@@ -44,6 +44,7 @@ export function CreatorFilterMenu({
   const { data: suggestion, isLoading } = useSearchSuggestionsQuery({
     query: debouncedQuery,
     includeUsers: true,
+    includeDeactivatedUsers: true,
     includeGroups: false,
     includePages: false,
     preload: true,

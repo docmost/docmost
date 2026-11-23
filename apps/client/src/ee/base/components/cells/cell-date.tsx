@@ -1,96 +1,90 @@
 import { useCallback } from "react";
 import { Popover } from "@mantine/core";
-import { DatePicker } from "@mantine/dates";
+import clsx from "clsx";
 import {
   IBaseProperty,
   DateTypeOptions,
 } from "@/ee/base/types/base.types";
+import { DateValuePicker } from "@/ee/base/components/date-picker/date-value-picker";
+import { useUpdatePropertyMutation } from "@/ee/base/queries/base-property-query";
+import { useBaseEditable } from "@/ee/base/context/base-editable";
+import { useDateCellDisplay } from "@/ee/base/hooks/use-date-cell-display";
+import type { DateCell, DateKind } from "@docmost/base-formula/client";
+import { isPropertyConverting } from "@/ee/base/property-types/property-type.registry";
+import { dateTypeOptionsOf } from "@/ee/base/utils/date-format";
+import { AutoTooltipText } from "@/components/ui/auto-tooltip-text";
 import cellClasses from "@/ee/base/styles/cells.module.css";
+import gridClasses from "@/ee/base/styles/grid.module.css";
 
 type CellDateProps = {
   value: unknown;
   property: IBaseProperty;
   rowId: string;
   isEditing: boolean;
-  onCommit: (value: unknown) => void;
+  onValueChange: (value: unknown) => void;
   onCancel: () => void;
 };
 
-export function formatDateDisplay(
-  dateStr: string | null | undefined,
-  options: DateTypeOptions | undefined,
-): string {
-  if (!dateStr) return "";
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return "";
+type DateCellPickerProps = {
+  property: IBaseProperty;
+  kind: DateKind;
+  value: DateCell | null;
+  onChange: (next: DateCell | null) => void;
+};
 
-    const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-    const month = months[date.getMonth()];
-    const day = date.getDate();
-    const year = date.getFullYear();
+export function DateCellPicker({
+  property,
+  kind,
+  value,
+  onChange,
+}: DateCellPickerProps) {
+  const editable = useBaseEditable();
+  const updatePropertyMutation = useUpdatePropertyMutation();
+  const typeOptions = dateTypeOptionsOf({
+    ...property.typeOptions,
+    ...(updatePropertyMutation.isPending
+      ? updatePropertyMutation.variables.typeOptions
+      : undefined),
+  });
 
-    let result = `${month} ${day}, ${year}`;
+  const canChangeProperty = editable && !isPropertyConverting(property);
 
-    if (options?.includeTime) {
-      if (options.timeFormat === "24h") {
-        const hours = String(date.getHours()).padStart(2, "0");
-        const minutes = String(date.getMinutes()).padStart(2, "0");
-        result += ` ${hours}:${minutes}`;
-      } else {
-        let hours = date.getHours();
-        const ampm = hours >= 12 ? "PM" : "AM";
-        hours = hours % 12 || 12;
-        const minutes = String(date.getMinutes()).padStart(2, "0");
-        result += ` ${hours}:${minutes} ${ampm}`;
+  const updateTypeOptions = (patch: Partial<DateTypeOptions>) =>
+    updatePropertyMutation.mutate({
+      propertyId: property.id,
+      pageId: property.pageId,
+      typeOptions: patch,
+    });
+
+  return (
+    <DateValuePicker
+      value={value}
+      kind={kind}
+      onChange={onChange}
+      dateFormat={typeOptions.dateFormat}
+      timeFormat={typeOptions.timeFormat}
+      onPropertyFormatChange={canChangeProperty ? updateTypeOptions : undefined}
+      includeTimeSwitch={
+        canChangeProperty
+          ? {
+              checked: typeOptions.includeTime === true,
+              propertyName: property.name,
+              onChange: (includeTime) => updateTypeOptions({ includeTime }),
+            }
+          : undefined
       }
-    }
-
-    return result;
-  } catch {
-    return "";
-  }
-}
-
-function toISODateString(dateStr: string | null): string | null {
-  if (!dateStr) return null;
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return null;
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  } catch {
-    return null;
-  }
+    />
+  );
 }
 
 export function CellDate({
   value,
   property,
   isEditing,
-  onCommit,
+  onValueChange,
   onCancel,
 }: CellDateProps) {
-  const typeOptions = property.typeOptions as DateTypeOptions | undefined;
-  const dateStr = typeof value === "string" ? value : null;
-  const pickerValue = toISODateString(dateStr);
-
-  const handleChange = useCallback(
-    (selected: string | null) => {
-      if (selected) {
-        const date = new Date(selected);
-        onCommit(date.toISOString());
-      } else {
-        onCommit(null);
-      }
-    },
-    [onCommit],
-  );
+  const { kind, cell, text: display } = useDateCellDisplay(property, value);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -102,7 +96,7 @@ export function CellDate({
     [onCancel],
   );
 
-  if (isEditing) {
+  if (isEditing && kind && property.type === "date") {
     return (
       <Popover
         opened
@@ -112,35 +106,48 @@ export function CellDate({
         onClose={onCancel}
         position="bottom-start"
         width="auto"
+        middlewares={{ flip: true, shift: { crossAxis: true, padding: 8 } }}
         trapFocus
         closeOnClickOutside
         closeOnEscape
+        hideDetached={false}
       >
         <Popover.Target>
-          <div className={cellClasses.popoverTarget}>
-            <span className={cellClasses.dateValue}>
-              {formatDateDisplay(dateStr, typeOptions)}
+          <div className={cellClasses.popoverTargetFlex}>
+            <span
+              className={clsx(gridClasses.cellContent, cellClasses.dateValue)}
+            >
+              {display}
             </span>
           </div>
         </Popover.Target>
-        <Popover.Dropdown p="xs" onKeyDown={handleKeyDown}>
-          <DatePicker
-            value={pickerValue}
-            onChange={handleChange}
-            size="sm"
+        <Popover.Dropdown
+          p={0}
+          onKeyDown={handleKeyDown}
+          onDoubleClick={(e) => e.stopPropagation()}
+        >
+          <DateCellPicker
+            property={property}
+            kind={kind}
+            value={cell}
+            onChange={onValueChange}
           />
         </Popover.Dropdown>
       </Popover>
     );
   }
 
-  if (!dateStr) {
+  if (!display) {
     return <span className={cellClasses.emptyValue} />;
   }
 
   return (
-    <span className={cellClasses.dateValue}>
-      {formatDateDisplay(dateStr, typeOptions)}
-    </span>
+    <AutoTooltipText
+      className={clsx(gridClasses.cellContent, cellClasses.dateValue)}
+      fz="sm"
+      tooltipProps={{ withinPortal: true }}
+    >
+      {display}
+    </AutoTooltipText>
   );
 }

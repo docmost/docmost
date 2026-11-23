@@ -12,8 +12,13 @@ import {
 import { useDebouncedValue } from "@mantine/hooks";
 import { IconCheck, IconSearch } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { useGetSpacesQuery } from "@/features/space/queries/space-query";
+import {
+  useGetSpacesQuery,
+  useUnlistedSpaceQuery,
+} from "@/features/space/queries/space-query";
+import { includeSpace } from "@/features/space/space.utils";
 import { RadioMenuItem } from "@/components/ui/radio-menu-item";
+import { SpaceAvatar } from "./space-avatar";
 
 type SpaceFilterMenuProps = {
   value: string | null;
@@ -28,6 +33,7 @@ type SpaceFilterMenuProps = {
     | "top-end"
     | "top";
   zIndex?: number;
+  currentSpaceId?: string | null;
 };
 
 export function SpaceFilterMenu({
@@ -37,6 +43,7 @@ export function SpaceFilterMenu({
   width = 280,
   position = "bottom-end",
   zIndex,
+  currentSpaceId,
 }: SpaceFilterMenuProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,16 +53,27 @@ export function SpaceFilterMenu({
     limit: 100,
     query: debouncedQuery,
   });
-  const spaces = spacesData?.items ?? [];
+  const { data: selectedSpace } = useUnlistedSpaceQuery(
+    value,
+    spacesData?.items,
+  );
+  const { data: currentSpace } = useUnlistedSpaceQuery(
+    currentSpaceId,
+    spacesData?.items,
+  );
 
   const orderedSpaces = useMemo(() => {
+    const spaces = includeSpace(
+      includeSpace(spacesData?.items ?? [], currentSpace),
+      selectedSpace,
+    );
     if (!value) return spaces;
     return [...spaces].sort((a, b) => {
       if (a.id === value) return -1;
       if (b.id === value) return 1;
       return 0;
     });
-  }, [spaces, value]);
+  }, [spacesData, currentSpace, selectedSpace, value]);
 
   return (
     <Menu shadow="md" width={width} position={position} zIndex={zIndex}>
@@ -109,12 +127,7 @@ export function SpaceFilterMenu({
               onClick={() => onChange(space.id)}
             >
               <Group flex="1" gap="xs">
-                <Avatar
-                  color="initials"
-                  variant="filled"
-                  name={space.name}
-                  size={20}
-                />
+                <SpaceAvatar name={space.name} logo={space.logo} />
                 <Text size="sm" fw={500} style={{ flex: 1 }} truncate>
                   {space.name}
                 </Text>
