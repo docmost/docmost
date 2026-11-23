@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '@nestjs-labs/nestjs-ioredis';
 import { COLLAB_ACCESS_RECHECK_CHANNEL } from '../constants';
+import { WsService } from '../../ws/ws.service';
 
 export type CollabAccessRecheck = {
   userIds?: string[];
@@ -11,9 +12,15 @@ export type CollabAccessRecheck = {
 export class CollabAccessService {
   private readonly logger = new Logger(CollabAccessService.name);
 
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly wsService: WsService,
+  ) {}
 
-  async recheckAccess(recheck: CollabAccessRecheck): Promise<void> {
+  async recheckAccess({
+    spaceIds = [],
+    ...recheck
+  }: CollabAccessRecheck & { spaceIds?: string[] }): Promise<void> {
     if (!recheck.userIds?.length && !recheck.pageIds?.length) return;
     // not awaited, ioredis queues the command and can hold the reply for minutes while redis reconnects
     try {
@@ -24,6 +31,7 @@ export class CollabAccessService {
     } catch (err) {
       this.logError(err);
     }
+    this.wsService.notifyAccessChanged(recheck.userIds ?? [], spaceIds);
   }
 
   private logError(err: unknown): void {

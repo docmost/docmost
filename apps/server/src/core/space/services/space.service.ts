@@ -369,6 +369,7 @@ export class SpaceService {
     }
 
     await this.spaceRepo.deleteSpace(spaceId, workspaceId);
+    this.wsService.notifyAccessChanged([], [spaceId]);
     await this.attachmentQueue.add(QueueJob.DELETE_SPACE_ATTACHMENTS, space);
 
     this.auditService.log({

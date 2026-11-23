@@ -74,11 +74,15 @@ const fields = [
   ...field,
 })) as PageProperty[];
 
-function panel(pageId = "one", editable = false) {
+function panel(
+  pageId = "one",
+  editable = false,
+  env: "test" | "default" = "test",
+) {
   return (
     <Provider store={store}>
       <QueryClientProvider client={client}>
-        <MantineProvider env="test">
+        <MantineProvider env={env}>
           <PagePropertiesPanel
             pageId={pageId}
             spaceId="space"
@@ -137,6 +141,47 @@ afterEach(() => {
 });
 
 describe("page properties", () => {
+  it("keeps the portalled report and its column picker inside the print exclusion", async () => {
+    vi.mocked(api.post).mockImplementation(async (url) => ({
+      data: url === read ? fields : { items: [], nextCursor: null },
+    }));
+    render(panel("one", false, "default"));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Property actions" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Property report" }),
+    );
+    const report = await screen.findByRole("dialog", {
+      name: "Property report",
+    });
+    expect(report.closest('section[aria-label="Properties"]')).toBeNull();
+    expect(report.closest(".print-hide")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Configure report" }));
+    fireEvent.click(screen.getByLabelText("Properties", { selector: "input" }));
+    const option = await screen.findByRole("option", { name: "Estimate" });
+    expect(option.closest(".print-hide")).toBeTruthy();
+  });
+
+  it("cancels an outstanding report read when the dialog closes", async () => {
+    let signal: AbortSignal | undefined;
+    vi.mocked(api.post).mockImplementation(async (url, _body, config) => {
+      if (url === read) return { data: fields };
+      signal = config?.signal as AbortSignal;
+      return new Promise(() => {});
+    });
+    render(panel());
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Property actions" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Property report" }),
+    );
+    await waitFor(() => expect(signal?.aborted).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(signal?.aborted).toBe(true));
+  });
+
   it("only fetches for an entitled, signed-in account and keeps view-only fields static", async () => {
     store.set(entitlementAtom, { ...license, features: [] });
     render(panel());

@@ -21,12 +21,17 @@ export const useQuerySubscription = () => {
   const [socket] = useAtom(socketAtom);
 
   React.useEffect(() => {
-    socket?.on("message", (event) => {
-      const data: WebSocketEvent = event;
-
+    const refreshPageProperties = () => {
+      void queryClient.invalidateQueries({ queryKey: ["page-properties"] });
+      void queryClient.resetQueries({ queryKey: ["page-property-report"] });
+    };
+    const onMessage = (data: WebSocketEvent) => {
       let entity = null;
 
       switch (data.operation) {
+        case "accessChanged":
+          refreshPageProperties();
+          break;
         case "invalidate":
           queryClient.invalidateQueries({
             queryKey: [...data.entity, data.id].filter(Boolean),
@@ -161,8 +166,15 @@ export const useQuerySubscription = () => {
             data.archivedAt,
             data.archivedBy ?? null,
           );
+          void queryClient.resetQueries({ queryKey: ["page-property-report"] });
           break;
       }
-    });
+    };
+    socket?.on("message", onMessage);
+    socket?.on("connect", refreshPageProperties);
+    return () => {
+      socket?.off("message", onMessage);
+      socket?.off("connect", refreshPageProperties);
+    };
   }, [queryClient, socket]);
 };

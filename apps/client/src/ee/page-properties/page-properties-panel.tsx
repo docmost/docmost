@@ -1,5 +1,5 @@
-import { useId, useState } from "react";
-import { ActionIcon, Menu } from "@mantine/core";
+import { useId, useMemo, useState } from "react";
+import { ActionIcon, MantineThemeProvider, Menu, Portal } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import {
   IconChevronDown,
@@ -35,13 +35,32 @@ type PanelProps = {
 export function PagePropertiesPanel(props: PanelProps) {
   const user = useAtomValue(userAtom);
   const enabled = useHasFeature(Feature.PAGE_PROPERTIES);
+  const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
+  const portalTheme = useMemo(
+    () => ({
+      components: {
+        Portal: { defaultProps: () => ({ target: portalTarget }) },
+      },
+    }),
+    [portalTarget],
+  );
   if (!enabled || !user?.id) return null;
   return (
-    <Properties
-      key={`${user.id}/${props.pageId}`}
-      {...props}
-      userId={user.id}
-    />
+    <>
+      {/* Menus, dialogs and their nested pickers render outside the panel. */}
+      <Portal>
+        <div className="print-hide" ref={setPortalTarget} />
+      </Portal>
+      {portalTarget && (
+        <MantineThemeProvider theme={portalTheme}>
+          <Properties
+            key={`${user.id}/${props.pageId}`}
+            {...props}
+            userId={user.id}
+          />
+        </MantineThemeProvider>
+      )}
+    </>
   );
 }
 

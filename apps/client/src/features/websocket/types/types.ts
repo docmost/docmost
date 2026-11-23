@@ -100,6 +100,7 @@ export type SpaceArchiveUpdatedEvent = {
 };
 
 export type WebSocketEvent =
+  | { operation: "accessChanged" }
   | InvalidateEvent
   | CommentCreatedEvent
   | CommentUpdatedEvent

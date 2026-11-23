@@ -1,19 +1,31 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { SpaceService } from './space.service';
 
-describe('SpaceService', () => {
-  let service: SpaceService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [SpaceService],
-    }).compile();
-
-    service = module.get<SpaceService>(SpaceService);
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+describe('SpaceService deleteSpace', () => {
+  it('rechecks access for viewers of the deleted space', async () => {
+    const spaceRepo = {
+      findById: jest.fn().mockResolvedValue({ id: 'space-1' }),
+      deleteSpace: jest.fn(),
+    };
+    const ws = { notifyAccessChanged: jest.fn() };
+    const service = new SpaceService(
+      spaceRepo as any,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { add: jest.fn() } as any,
+      { log: jest.fn() } as any,
+      ws as any,
+      undefined,
+      undefined,
+    );
+    await service.deleteSpace('space-1', 'workspace-1');
+    expect(spaceRepo.deleteSpace).toHaveBeenCalledWith(
+      'space-1',
+      'workspace-1',
+    );
+    expect(ws.notifyAccessChanged).toHaveBeenCalledWith([], ['space-1']);
   });
 });
 

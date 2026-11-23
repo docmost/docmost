@@ -777,7 +777,10 @@ export class PageService {
       return { childPageIds, deletedShares };
     });
 
-    await this.collabAccessService.recheckAccess({ pageIds: [rootPage.id] });
+    await this.collabAccessService.recheckAccess({
+      pageIds: [rootPage.id],
+      spaceIds: [rootPage.spaceId, spaceId],
+    });
     await this.wsService.invalidateSpaceRestrictionCache(spaceId);
     await this.wsService.removeBaseSubscribersWithoutAccess([rootPage.id]);
 
@@ -1194,7 +1197,10 @@ export class PageService {
     });
 
     if (mayLoseAccess) {
-      await this.collabAccessService.recheckAccess({ pageIds: [movedPage.id] });
+      await this.collabAccessService.recheckAccess({
+        pageIds: [movedPage.id],
+        spaceIds: [movedPage.spaceId],
+      });
       await this.wsService.removeBaseSubscribersWithoutAccess([movedPage.id]);
     }
   }
@@ -1351,14 +1357,17 @@ export class PageService {
     return result;
   }
 
-  async forceDelete(pageId: string, workspaceId: string): Promise<void> {
+  async forceDelete(
+    page: Pick<Page, 'id' | 'spaceId'>,
+    workspaceId: string,
+  ): Promise<void> {
     // Get all descendant IDs (including the page itself) using recursive CTE
     const descendants = await this.db
       .withRecursive('page_descendants', (db) =>
         db
           .selectFrom('pages')
           .select(['id'])
-          .where('id', '=', pageId)
+          .where('id', '=', page.id)
           .unionAll((exp) =>
             exp
               .selectFrom('pages as p')
@@ -1392,6 +1401,7 @@ export class PageService {
 
     if (pageIds.length > 0) {
       await this.db.deleteFrom('pages').where('id', 'in', pageIds).execute();
+      this.wsService.notifyAccessChanged([], [page.spaceId]);
       this.eventEmitter.emit(EventName.PAGE_DELETED, {
         pageIds: pageIds,
         workspaceId,
@@ -1400,11 +1410,12 @@ export class PageService {
   }
 
   async removePage(
-    pageId: string,
+    page: Pick<Page, 'id' | 'spaceId'>,
     userId: string,
     workspaceId: string,
   ): Promise<void> {
-    await this.pageRepo.removePage(pageId, userId, workspaceId);
+    await this.pageRepo.removePage(page.id, userId, workspaceId);
+    this.wsService.notifyAccessChanged([], [page.spaceId]);
   }
 
   async parseProsemirrorContent(

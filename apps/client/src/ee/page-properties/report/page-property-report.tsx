@@ -70,6 +70,7 @@ export function PagePropertyReport(props: Props) {
       opened={props.opened}
       onClose={props.onClose}
       title={t("Property report")}
+      closeButtonProps={{ "aria-label": t("Close") }}
       size="min(72rem, 96vw)"
       centered
     >
@@ -128,13 +129,17 @@ function ReportContent({ pageId, spaceId, properties, onClose }: Props) {
       timeZone,
       cursor,
     ],
-    queryFn: async () =>
+    queryFn: async ({ signal }) =>
       (
-        await api.post<ReportResponse>("/pages/query", {
-          ...query,
-          timeZone,
-          cursor: cursor ?? undefined,
-        })
+        await api.post<ReportResponse>(
+          "/pages/query",
+          {
+            ...query,
+            timeZone,
+            cursor: cursor ?? undefined,
+          },
+          { signal },
+        )
       ).data,
     enabled: !!user?.id && query.fields.length > 0,
     retry: false,
@@ -142,6 +147,8 @@ function ReportContent({ pageId, spaceId, properties, onClose }: Props) {
     staleTime: 0,
     refetchOnMount: "always",
     refetchOnWindowFocus: "always",
+    // A foreground report can miss a socket event during a membership change.
+    refetchInterval: 60_000,
   });
   const spaceOptions = useQuery({
     queryKey: ["page-property-report-spaces", user?.id, debouncedSpaceSearch],
@@ -284,7 +291,9 @@ function ReportContent({ pageId, spaceId, properties, onClose }: Props) {
           </Group>
         </Stack>
       )}
-      {result.isPending || (!result.isError && !result.isFetchedAfterMount) ? (
+      {result.isPending ||
+      result.isFetching ||
+      (!result.isError && !result.isFetchedAfterMount) ? (
         <Group justify="center" py="xl">
           <Loader size="sm" />
         </Group>

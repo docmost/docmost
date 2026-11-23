@@ -154,6 +154,20 @@ export class WsService {
     this.server.to(rooms).emit('message', data);
   }
 
+  notifyAccessChanged(userIds: string[], spaceIds: string[]): void {
+    const rooms = [
+      ...userIds.map(getUserRoomName),
+      ...spaceIds.map(getSpaceRoomName),
+    ];
+    // Clients recheck their own queries. A recipient may have just lost access.
+    if (rooms.length === 0) return;
+    try {
+      this.server?.to(rooms).emit('message', { operation: 'accessChanged' });
+    } catch (err) {
+      this.logger.error({ err }, 'Failed to notify clients of access changes');
+    }
+  }
+
   disconnectUser(userId: string): void {
     this.server.in(getUserRoomName(userId)).disconnectSockets(true);
   }

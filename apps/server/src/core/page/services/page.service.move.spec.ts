@@ -120,6 +120,7 @@ describe('PageService movePage', () => {
 
     expect(collabAccessService.recheckAccess).toHaveBeenCalledWith({
       pageIds: [MOVED_ID],
+      spaceIds: [SPACE_ID],
     });
     expect(wsService.removeBaseSubscribersWithoutAccess).toHaveBeenCalledWith([
       MOVED_ID,

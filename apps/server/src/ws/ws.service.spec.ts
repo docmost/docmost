@@ -11,7 +11,11 @@ function makeService(accessBySpace: Record<string, string[]>) {
     removeUsersFromSpaceBases: jest.fn(async () => undefined),
   };
   const socketsLeave = jest.fn();
-  const server = { in: jest.fn(() => ({ socketsLeave })) };
+  const emit = jest.fn();
+  const server = {
+    in: jest.fn(() => ({ socketsLeave })),
+    to: jest.fn(() => ({ emit })),
+  };
 
   const service = new WsService(
     {} as any,
@@ -23,8 +27,18 @@ function makeService(accessBySpace: Record<string, string[]>) {
   );
   service.setServer(server as any);
 
-  return { service, server, socketsLeave, baseRealtime };
+  return { service, server, socketsLeave, baseRealtime, emit };
 }
+
+it('rechecks only the affected user and space rooms', () => {
+  const { service, server, emit } = makeService({});
+  service.notifyAccessChanged([], []);
+  service.notifyAccessChanged(['1'], ['2', '3']);
+  expect(server.to.mock.calls).toEqual([[['user-1', 'space-2', 'space-3']]]);
+  expect(emit.mock.calls).toEqual([
+    ['message', { operation: 'accessChanged' }],
+  ]);
+});
 
 describe('WsService.removeUsersWithoutSpaceAccess', () => {
   it('removes users who lost access from the space room and its bases', async () => {
