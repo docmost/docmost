@@ -3,7 +3,11 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { QueueJob, QueueName } from 'src/integrations/queue/constants';
 import { FileImportTaskService } from '../services/file-import-task.service';
-import { FileTaskStatus } from '../utils/file.utils';
+import {
+  FileImportSource,
+  FileTaskStatus,
+  FileTaskType,
+} from '../utils/file.utils';
 import { StorageService } from '../../storage/storage.service';
 import { ModuleRef } from '@nestjs/core';
 import { InjectKysely } from 'nestjs-kysely';
@@ -82,10 +86,11 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
 
     if (job.name === QueueJob.IMPORT_TASK) {
       await this.handleFailedImportJob(job);
-    } else if (job.name === QueueJob.PDF_EXPORT_TASK) {
-      await this.handleFailedExportJob(job);
-    } else if (job.name === QueueJob.CONFLUENCE_API_IMPORT) {
-      await this.handleFailedExportJob(job);
+    } else if (
+      job.name === QueueJob.PDF_EXPORT_TASK ||
+      job.name === QueueJob.CONFLUENCE_API_IMPORT
+    ) {
+      await this.markFileTaskFailed(job);
     }
   }
 
@@ -134,7 +139,7 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
     }
   }
 
-  private async handleFailedExportJob(job: Job) {
+  private async markFileTaskFailed(job: Job) {
     try {
       const fileTaskId = job.data.fileTaskId;
       const reason = job.failedReason || 'Unknown error';
@@ -147,6 +152,15 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
           updatedAt: new Date(),
         })
         .where('id', '=', fileTaskId)
+        .$if(job.name === QueueJob.CONFLUENCE_API_IMPORT, (query) =>
+          query
+            .where('type', '=', FileTaskType.Import)
+            .where('source', '=', FileImportSource.ConfluenceApi)
+            .where('status', 'not in', [
+              FileTaskStatus.Success,
+              FileTaskStatus.Failed,
+            ]),
+        )
         .execute();
     } catch (err) {
       this.logger.error(err);
