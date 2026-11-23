@@ -66,6 +66,12 @@
         margin-block-end: 0;
     }
 
+    .ProseMirror :global(.comment-image) {
+        display: block;
+        max-width: min(250px, 100%);
+        height: auto;
+    }
+
     .actions {
 
     }

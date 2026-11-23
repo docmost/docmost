@@ -3,7 +3,7 @@ import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import React, { useCallback, useRef } from "react";
 import { useSetAtom } from "jotai";
 import { Node as PMNode } from "@tiptap/pm/model";
-import { isEditorReady } from "@docmost/editor-ext";
+import { isEditorReady, sanitizeUrl } from "@docmost/editor-ext";
 import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
 import {
   EditorMenuProps,
@@ -16,6 +16,7 @@ import {
   IconLayoutAlignLeft,
   IconLayoutAlignRight,
   IconDownload,
+  IconExternalLink,
   IconRefresh,
   IconTrash,
   IconZoomIn,
@@ -26,9 +27,11 @@ import { uploadImageAction } from "@/features/editor/components/image/upload-ima
 import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
 import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
 import classes from "../common/toolbar-menu.module.css";
+import { useImageLinkNavigation } from "./use-image-link-navigation";
 
 export function ImageMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
+  const handleImageLink = useImageLinkNavigation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const setLightboxRequest = useSetAtom(lightboxRequestAtom);
 
@@ -47,6 +50,7 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         isAlignCenter: ctx.editor.isActive("image", { align: "center" }),
         isAlignRight: ctx.editor.isActive("image", { align: "right" }),
         src: imageAttrs?.src || null,
+        href: sanitizeUrl(imageAttrs?.href),
         alt: imageAttrs?.alt || "",
       };
     },
@@ -213,6 +217,21 @@ export function ImageMenu({ editor }: EditorMenuProps) {
         {altTextButton}
 
         <div className={classes.divider} />
+
+        {editorState?.href && (
+          <Tooltip position="top" label={t("Open link")} withinPortal={false}>
+            <ActionIcon
+              component="a"
+              href={editorState.href}
+              onClick={handleImageLink}
+              size="lg"
+              aria-label={t("Open link")}
+              variant="subtle"
+            >
+              <IconExternalLink size={18} />
+            </ActionIcon>
+          </Tooltip>
+        )}
 
         <Tooltip position="top" label={t("Expand")} withinPortal={false}>
           <ActionIcon

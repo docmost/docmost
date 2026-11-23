@@ -34,6 +34,7 @@ import { Link, useParams } from "react-router-dom";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import { EditorSpaceContext } from "@/features/editor/components/recently-updated/editor-space-context";
 import { getTemplateExtensions } from "@/features/editor/extensions/extensions";
+import { PagesByLabelContext } from "@/features/editor/components/pages-by-label/pages-by-label-context";
 import { TemplatePlaceholderPopover } from "@/ee/template/components/template-placeholder-popover";
 import {
   useUpdateTemplateMutation,
@@ -497,12 +498,14 @@ export default function TemplateEditor() {
             <TemplateMeta template={existingTemplate} />
           )}
         </div>
-        <EditorSpaceContext.Provider value={spaceId ?? undefined}>
-          <EditorContent
-            editor={editor}
-            data-editing-placeholder={placeholderOpened || undefined}
-          />
-        </EditorSpaceContext.Provider>
+        <PagesByLabelContext.Provider value={{ spaceId }}>
+          <EditorSpaceContext.Provider value={spaceId ?? undefined}>
+            <EditorContent
+              editor={editor}
+              data-editing-placeholder={placeholderOpened || undefined}
+            />
+          </EditorSpaceContext.Provider>
+        </PagesByLabelContext.Provider>
         {editor && (
           <>
             {placeholderOpened ? (

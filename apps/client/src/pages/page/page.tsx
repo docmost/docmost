@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import { FullEditor } from "@/features/editor/full-editor";
+import { PagesByLabelContext } from "@/features/editor/components/pages-by-label/pages-by-label-context";
 import { TitleEditor } from "@/features/editor/title-editor";
 import HistoryModal from "@/features/page-history/components/history-modal";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
@@ -178,39 +179,41 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
   return (
     page && (
-      <div>
-        {toolbar}
-        <DocumentTitle
-          title={`${page?.icon || ""}  ${getPageTitle(page?.title, page?.isBase, t)}`}
-          withAppName={false}
-        />
+      <PagesByLabelContext.Provider value={{ pageId: page.id, spaceId: page.spaceId }}>
+        <div>
+          {toolbar}
+          <DocumentTitle
+            title={`${page?.icon || ""}  ${getPageTitle(page?.title, page?.isBase, t)}`}
+            withAppName={false}
+          />
 
-        <MemoizedPageHeader readOnly={!canEdit} />
+          <MemoizedPageHeader readOnly={!canEdit} />
 
-        <PageCover
-          key={`cover-${page.id}`}
-          page={page}
-          editable={canEdit}
-          belowToolbar={layout.showToolbar}
-        />
+          <PageCover
+            key={`cover-${page.id}`}
+            page={page}
+            editable={canEdit}
+            belowToolbar={layout.showToolbar}
+          />
 
-        <MemoizedFullEditor
-          key={page.id}
-          pageId={page.id}
-          title={page.title}
-          content={page.content}
-          slugId={page.slugId}
-          spaceId={page.spaceId}
-          spaceSlug={page?.space?.slug}
-          editable={canEdit}
-          creator={page.creator}
-          contributors={page.contributors}
-          canComment={canComment}
-          hasCover={layout.hasCover}
-          showToolbar={layout.showToolbar}
-        />
-        <MemoizedHistoryModal pageId={page.id} />
-      </div>
+          <MemoizedFullEditor
+            key={page.id}
+            pageId={page.id}
+            title={page.title}
+            content={page.content}
+            slugId={page.slugId}
+            spaceId={page.spaceId}
+            spaceSlug={page?.space?.slug}
+            editable={canEdit}
+            creator={page.creator}
+            contributors={page.contributors}
+            canComment={canComment}
+            hasCover={layout.hasCover}
+            showToolbar={layout.showToolbar}
+          />
+          <MemoizedHistoryModal pageId={page.id} />
+        </div>
+      </PagesByLabelContext.Provider>
     )
   );
 }

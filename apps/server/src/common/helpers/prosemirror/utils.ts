@@ -113,24 +113,29 @@ function setUserMentionLabels(node: any, names: Map<string, string>): any {
 }
 
 export function extractInternalLinkSlugIds(prosemirrorJson: any): string[] {
-  const slugIds: string[] = [];
+  const slugIds = new Set<string>();
   const doc = jsonToNode(prosemirrorJson);
 
+  const addHref = (href: string) => {
+    const path = href.split(/[?#]/, 1)[0];
+    const match = INTERNAL_LINK_REGEX.exec(
+      path.startsWith('/p/') ? path.slice(1) : path,
+    );
+    const slugId = match && extractPageSlugId(match[5]);
+    if (slugId) slugIds.add(slugId);
+  };
   doc.descendants((node: Node) => {
+    if (node.type.name === 'image' && /^\/(?:s\/|p\/)/.test(node.attrs.href)) {
+      addHref(node.attrs.href);
+    }
     for (const mark of node.marks) {
       if (mark.type.name === 'link' && mark.attrs.internal && mark.attrs.href) {
-        const match = mark.attrs.href.match(INTERNAL_LINK_REGEX);
-        if (match) {
-          const slugId = extractPageSlugId(match[5]);
-          if (slugId && !slugIds.includes(slugId)) {
-            slugIds.push(slugId);
-          }
-        }
+        addHref(mark.attrs.href);
       }
     }
   });
 
-  return slugIds;
+  return [...slugIds];
 }
 
 export function extractUserMentionIdsFromJson(json: any): string[] {

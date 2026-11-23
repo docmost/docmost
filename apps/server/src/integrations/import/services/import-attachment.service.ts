@@ -15,7 +15,7 @@ import { AttachmentType } from '../../../core/attachment/attachment.constants';
 import { unwrapFromParagraph } from '../utils/import-formatter';
 import { resolveRelativeAttachmentPath } from '../utils/import.utils';
 import { imageDimensionsFromData } from 'image-dimensions';
-import { load } from 'cheerio';
+import { loadImportHtml } from '../utils/import-dates';
 import pLimit from 'p-limit';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -268,7 +268,7 @@ export class ImportAttachmentService {
       return fresh;
     };
 
-    const $ = load(html);
+    const $ = loadImportHtml(html);
 
     // image
     for (const imgEl of $('img').toArray()) {
@@ -332,7 +332,7 @@ export class ImportAttachmentService {
         .attr('height', height)
         .attr('data-align', align);
 
-      unwrapFromParagraph($, $img);
+      if (!$img.closest('a[href]').length) unwrapFromParagraph($, $img);
     }
 
     // video
@@ -427,6 +427,16 @@ export class ImportAttachmentService {
 
       // Check if this is a Draw.io file
       const drawioSvg = drawioSvgMap.get(relPath);
+      if ($a.find('img').length) {
+        if (drawioSvg) {
+          $a.attr('href', drawioSvg.apiFilePath);
+        } else if (skipFiles.has(relPath)) {
+          $a.replaceWith($a.contents());
+        } else {
+          $a.attr('href', processFile(relPath).apiFilePath);
+        }
+        continue;
+      }
       if (drawioSvg) {
         const $drawio = $('<div>')
           .attr('data-type', 'drawio')

@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import ReadonlyPageEditor from "@/features/editor/readonly-page-editor.tsx";
+import { PagesByLabelContext } from "@/features/editor/components/pages-by-label/pages-by-label-context";
 import { BaseView } from "@/ee/base/components/base-view";
 import { usePageQuery } from "@/features/page/queries/page-query.ts";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
@@ -88,22 +89,24 @@ export default function SpaceHomePageView({
         />
       )}
 
-      <Container fluid={fluid} size={!fluid && 900} pb="xl">
-        <SpacePublicNotice space={space} />
-        {page.isBase ? (
-          <BaseView pageId={page.id} embedded editable={false} />
-        ) : (
-          <EditorSpaceContext.Provider value={space.id}>
-            <ReadonlyPageEditor
-              key={`${page.id}:${page.updatedAt}`}
-              title={page.title}
-              content={page.content}
-              pageId={page.id}
-              withLightbox
-            />
-          </EditorSpaceContext.Provider>
-        )}
-      </Container>
+      <PagesByLabelContext.Provider value={{ pageId: page.id, spaceId: space.id }}>
+        <Container fluid={fluid} size={!fluid && 900} pb="xl">
+          <SpacePublicNotice space={space} />
+          {page.isBase ? (
+            <BaseView pageId={page.id} embedded editable={false} />
+          ) : (
+            <EditorSpaceContext.Provider value={space.id}>
+              <ReadonlyPageEditor
+                key={`${page.id}:${page.updatedAt}`}
+                title={page.title}
+                content={page.content}
+                pageId={page.id}
+                withLightbox
+              />
+            </EditorSpaceContext.Provider>
+          )}
+        </Container>
+      </PagesByLabelContext.Provider>
     </>
   );
 }

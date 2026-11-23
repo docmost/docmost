@@ -36,7 +36,7 @@ import { DocumentTitle } from "@/components/ui/document-title.tsx";
 export default function LabelPage() {
   const { t } = useTranslation();
   const { labelName: rawName } = useParams<{ labelName: string }>();
-  const labelName = normalizeLabelName(decodeURIComponent(rawName ?? ""));
+  const labelName = normalizeLabelName(rawName ?? "");
   const scheme = useComputedColorScheme("light");
   const c = getLabelColor(labelName, scheme);
 

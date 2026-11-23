@@ -491,7 +491,8 @@ export class ShareService {
    *    content, the source page for transcluded source-block content
    *    (attachments in a sync block were uploaded onto the source page).
    *
-   * 2. Remove template instructions, comment marks and Recently updated blocks.
+   * 2. Remove private page queries, template instructions and `comment` marks from the
+   *    surrounding page content.
    *
    * Both share-content paths — the host page (`updatePublicAttachments`) and
    * the share-scoped transclusion lookup (`lookupTransclusionForShare`) —
@@ -521,7 +522,10 @@ export class ShareService {
     const doc = jsonToNode(pmJson);
     const tr = new Transform(doc);
     doc.descendants((node: Node, pos: number) => {
-      if (node.type.name === 'recentlyUpdated') {
+      if (
+        node.type.name === 'recentlyUpdated' ||
+        node.type.name === 'itemsByLabel'
+      ) {
         const from = tr.mapping.map(pos);
         tr.delete(from, from + node.nodeSize);
         return false;

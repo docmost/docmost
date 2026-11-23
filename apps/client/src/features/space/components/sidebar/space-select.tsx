@@ -46,7 +46,7 @@ interface MultipleSpaceSelectProps extends Pick<
   value: string[];
   onChange: (values: string[]) => void;
   unavailableLabel?: string;
-  scopes?: (ComboboxItem & { logo?: string })[];
+  scopes?: (ComboboxItem & { spaceId?: string; logo?: string })[];
   placeholderSpace?: SpaceIcon;
   maxValues: number;
   withinPortal?: boolean;
@@ -160,13 +160,32 @@ export function SpaceSelect(
   };
 
   if (props.multiple === true) {
-    const additional = props.scopes ?? [];
+    const scopes = (props.scopes ?? []).map(
+      ({ value, label, spaceId, logo }) => {
+        const listed = spaceId ? knownSpaces.get(spaceId) : undefined;
+        return {
+          id: value,
+          name: listed?.name ?? label,
+          logo: listed?.logo ?? logo,
+          spaceId,
+        };
+      },
+    );
+    // A relative scope and the space it resolves to share one choice.
     const choices = [
-      ...additional,
-      ...(spaces?.items ?? [])
-        .filter(({ id }) => !additional.some(({ value }) => value === id))
-        .map(({ id, name, logo }) => ({ value: id, label: name, logo })),
-    ];
+      ...scopes.filter(
+        ({ spaceId }) => !spaceId || !props.value.includes(spaceId),
+      ),
+      ...(spaces?.items ?? []).filter(
+        ({ id }) =>
+          !scopes.some((scope) => scope.id === id || scope.spaceId === id),
+      ),
+    ].map(({ id, name, logo }) => ({
+      value: id,
+      label: name,
+      name,
+      logo,
+    }));
 
     return (
       <MultiSelect
@@ -198,10 +217,11 @@ export function SpaceSelect(
           )
         }
         renderPill={({ value, onRemove }) => {
-          const option = additional.find((item) => item.value === value);
           const space =
             knownSpaces.get(value) ??
-            (option && { name: option.label, logo: option.logo });
+            scopes.find(
+              (scope) => scope.id === value || scope.spaceId === value,
+            );
           const pill = {
             token: value,
             space,

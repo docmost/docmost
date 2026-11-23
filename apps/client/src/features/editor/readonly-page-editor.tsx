@@ -1,11 +1,5 @@
 import "@/features/editor/styles/index.css";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Editor, EditorProvider } from "@tiptap/react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { Document } from "@tiptap/extension-document";
@@ -23,6 +17,8 @@ import LightboxView, {
   getLightboxClickRequest,
 } from "@/features/editor/components/common/lightbox-view";
 import { MicrosoftFullscreenModal } from "@/features/editor/components/microsoft/microsoft-fullscreen-modal.tsx";
+import { publicImageLink } from "./components/image/public-image-link";
+import { useImageLinkNavigation } from "./components/image/use-image-link-navigation";
 
 interface PageEditorProps {
   title: string;
@@ -64,22 +60,9 @@ export default function ReadonlyPageEditor({
   const [, setReadOnlyEditor] = useAtom(readOnlyEditorAtom);
   const [lightboxRequest, setLightboxRequest] = useAtom(lightboxRequestAtom);
   const [contentEditor, setContentEditor] = useState<Editor | null>(null);
-  const isComponentMounted = useRef(false);
-  const editorCreated = useRef(false);
+  const handleImageLink = useImageLinkNavigation();
   const lightboxEnabled = withLightbox || Boolean(shareId || spaceSlug);
-
-  const canScroll = useCallback(
-    () => isComponentMounted.current && editorCreated.current,
-    [isComponentMounted, editorCreated],
-  );
-  const initialScrollTo = window.location.hash
-    ? window.location.hash.slice(1)
-    : "";
-  const { handleScrollTo } = useEditorScroll({ canScroll, initialScrollTo });
-
-  useEffect(() => {
-    isComponentMounted.current = true;
-  }, []);
+  useEditorScroll(contentEditor);
 
   useEffect(() => {
     if (!lightboxEnabled) return;
@@ -93,9 +76,15 @@ export default function ReadonlyPageEditor({
         ? ["tableHeaderPin", "tableReadonlySort", RecentlyUpdated.name]
         : []),
     ]);
-    const filteredExtensions = mainExtensions.filter(
-      (ext) => !excludedExtensions.has(ext.name),
-    );
+    const filteredExtensions = mainExtensions
+      .filter((ext) => !excludedExtensions.has(ext.name))
+      .map((ext) =>
+        ext.name === "image" && (shareId || spaceSlug)
+          ? ext.configure({
+              resolveLink: (href: string) => publicImageLink(href, shareId, spaceSlug),
+            })
+          : ext,
+      );
 
     return [
       ...filteredExtensions,
@@ -105,7 +94,7 @@ export default function ReadonlyPageEditor({
         updateDocument: false,
       }),
     ];
-  }, [printMode]);
+  }, [printMode, shareId, spaceSlug]);
 
   const titleExtensions = [
     Document.extend({
@@ -139,6 +128,7 @@ export default function ReadonlyPageEditor({
         textDirection="auto"
         extensions={extensions}
         content={content}
+        editorContainerProps={{ onClick: handleImageLink }}
         editorProps={
           lightboxEnabled
             ? {
@@ -161,9 +151,6 @@ export default function ReadonlyPageEditor({
             // @ts-ignore
             setReadOnlyEditor(editor);
             setContentEditor(editor);
-
-            handleScrollTo(editor);
-            editorCreated.current = true;
           }
         }}
       ></EditorProvider>

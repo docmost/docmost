@@ -6,6 +6,7 @@ export type SubpageListItem = {
   slugId: string;
   title: string;
   icon?: string;
+  isBase?: boolean;
   position: string;
   hasChildren: boolean;
   updatedAt?: Date | string;

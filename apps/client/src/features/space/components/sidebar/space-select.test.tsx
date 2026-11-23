@@ -117,7 +117,7 @@ function Filter({
     <SpaceSelect
       multiple
       label="Spaces"
-      scopes={[{ value: "current", label: "Current space" }]}
+      scopes={[{ value: "@self", label: "Current space" }]}
       value={value}
       maxValues={maxValues}
       withinPortal={false}
@@ -143,7 +143,7 @@ function pill(label: string) {
 }
 
 it("restores a saved space beyond the first page and keeps selections and their icons while searching", async () => {
-  const saved = [research.id, "current"];
+  const saved = [research.id, "@self", "?legacy"];
   const onChange = vi.fn();
   const view = show(<Filter saved={saved} onChange={onChange} />);
   await screen.findByRole("button", { name: "Remove Research" });
@@ -185,8 +185,8 @@ it("restores a saved space beyond the first page and keeps selections and their 
     "/space-icon/research.png",
   );
   expect(getSpaceById).toHaveBeenCalledExactlyOnceWith(research.id);
-  fireEvent.click(screen.getByRole("button", { name: "Remove Current space" }));
-  const updated = [research.id, team.id, design.id];
+  fireEvent.click(screen.getByRole("button", { name: "Remove ?legacy" }));
+  const updated = [research.id, "@self", team.id, design.id];
   expect(onChange).toHaveBeenLastCalledWith(updated);
 
   view.unmount();
@@ -205,7 +205,7 @@ it("waits for an oversized filter to be repaired and keeps inaccessible spaces r
   const onChange = vi.fn();
   show(
     <Filter
-      saved={[research.id, design.id]}
+      saved={[research.id, "?legacy"]}
       maxValues={1}
       onChange={onChange}
     />,

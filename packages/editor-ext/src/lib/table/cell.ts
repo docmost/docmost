@@ -3,7 +3,7 @@ import { TableCell as TiptapTableCell } from "@tiptap/extension-table";
 export const TableCell = TiptapTableCell.extend({
   name: "tableCell",
   content:
-    "(paragraph | heading | bulletList | orderedList | taskList | blockquote | callout | image | video | audio | subpages | recentlyUpdated | attachment | mathBlock | details | codeBlock)+",
+    "(paragraph | heading | bulletList | orderedList | taskList | blockquote | callout | image | video | audio | subpages | recentlyUpdated | itemsByLabel | attachment | mathBlock | details | codeBlock)+",
 
   addAttributes() {
     return {
@@ -19,7 +19,7 @@ export const TableCell = TiptapTableCell.extend({
             return {};
           }
           return {
-            style: `background-color: ${attributes.backgroundColor}`,
+            style: `background-color: ${attributes.backgroundColor}; --cell-bg: ${attributes.backgroundColor}`,
             "data-background-color": attributes.backgroundColor,
           };
         },

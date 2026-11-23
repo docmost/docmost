@@ -1,10 +1,6 @@
 import { ActionIcon, Collapse } from "@mantine/core";
-import {
-  IconChevronRight,
-  IconFileDescription,
-  IconPointFilled,
-} from "@tabler/icons-react";
-import { useState } from "react";
+import { IconChevronRight, IconPointFilled } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import clsx from "clsx";
@@ -14,7 +10,9 @@ import {
   buildPublicSpaceUrl,
   buildSharedPageUrl,
 } from "@/features/page/page.utils";
-import { formattedDate, shortTimeAgo } from "@/lib/time";
+import { DefaultPageIcon } from "@/components/common/page-list-icon";
+import { PageListTime } from "@/components/common/page-list-time";
+import listStyles from "../common/page-list.module.css";
 import { useSubpages } from "./use-subpages";
 import type { SubpageListItem } from "./subpages.utils";
 import classes from "./subpages.module.css";
@@ -23,16 +21,22 @@ type SubpageItemProps = {
   page: SubpageListItem;
   depth: number;
   sortBy: SubpagesSortBy;
+  expandedBranches: Set<() => Promise<unknown>>;
   showUpdatedAt: boolean;
   isPublicSpaceRoute: boolean;
   shareId?: string;
   spaceSlug?: string;
 };
 
+function subpageIndent(depth: number) {
+  return `min(${8 + depth * 20}px, 30%)`;
+}
+
 export default function SubpageItem({
   page,
   depth,
   sortBy,
+  expandedBranches,
   showUpdatedAt,
   isPublicSpaceRoute,
   shareId,
@@ -40,15 +44,20 @@ export default function SubpageItem({
 }: SubpageItemProps) {
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
-  const { subpages: children, isLoading } = useSubpages(
-    page.id,
-    sortBy,
-    opened,
-  );
+  const {
+    subpages: children,
+    isLoading,
+    refetch,
+  } = useSubpages(page.id, sortBy, opened && page.hasChildren);
+  useEffect(() => {
+    if (!refetch) return;
+    expandedBranches.add(refetch);
+    return () => {
+      expandedBranches.delete(refetch);
+    };
+  }, [expandedBranches, refetch]);
 
   const title = page.title || t("untitled");
-  const updatedAt =
-    showUpdatedAt && page.updatedAt ? new Date(page.updatedAt) : null;
 
   const pageUrl = shareId
     ? buildSharedPageUrl({
@@ -67,14 +76,14 @@ export default function SubpageItem({
   return (
     <div role="listitem">
       <div
-        className={classes.row}
-        style={{ paddingInlineStart: 8 + depth * 24 }}
+        className={classes.treeRow}
+        style={{ paddingInlineStart: subpageIndent(depth) }}
       >
         {page.hasChildren ? (
           <ActionIcon
             variant="subtle"
             color="gray"
-            size={22}
+            size={24}
             className={classes.toggle}
             onClick={() => setOpened((value) => !value)}
             aria-label={
@@ -90,25 +99,28 @@ export default function SubpageItem({
             />
           </ActionIcon>
         ) : (
-          <span className={classes.leafDot} aria-hidden>
+          <span className={classes.leaf} aria-hidden>
             <IconPointFilled size={8} />
           </span>
         )}
 
-        <Link to={pageUrl} className={classes.link} draggable={false}>
-          <span className={classes.icon} aria-hidden>
-            {page.icon || <IconFileDescription size={18} stroke={1.5} />}
+        <Link
+          to={pageUrl}
+          className={listStyles.row + " " + classes.link}
+          draggable={false}
+        >
+          <span className={clsx(listStyles.icon, classes.pageIcon)} aria-hidden>
+            {page.icon || <DefaultPageIcon isBase={page.isBase} />}
           </span>
-          <span className={classes.title}>{title}</span>
-          {updatedAt && (
-            <time
-              className={classes.updatedAt}
-              dateTime={updatedAt.toISOString()}
-              title={formattedDate(updatedAt)}
-            >
-              {shortTimeAgo(updatedAt)}
-            </time>
-          )}
+          <span className={classes.details}>
+            <span className={listStyles.title}>{title}</span>
+            {showUpdatedAt && (
+              <PageListTime
+                value={page.updatedAt}
+                className={classes.updatedAt}
+              />
+            )}
+          </span>
         </Link>
       </div>
 
@@ -117,7 +129,7 @@ export default function SubpageItem({
           {isLoading ? (
             <div
               className={classes.loading}
-              style={{ paddingInlineStart: 8 + (depth + 1) * 24 }}
+              style={{ paddingInlineStart: subpageIndent(depth + 1) }}
             >
               {t("Loading…")}
             </div>
@@ -129,6 +141,7 @@ export default function SubpageItem({
                   page={child}
                   depth={depth + 1}
                   sortBy={sortBy}
+                  expandedBranches={expandedBranches}
                   showUpdatedAt={showUpdatedAt}
                   isPublicSpaceRoute={isPublicSpaceRoute}
                   shareId={shareId}

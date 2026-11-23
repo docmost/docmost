@@ -2,12 +2,14 @@ import { EditorProvider } from "@tiptap/react";
 import { useMemo } from "react";
 import { mainExtensions } from "@/features/editor/extensions/extensions";
 import { UniqueID } from "@docmost/editor-ext";
+import { useImageLinkNavigation } from "../image/use-image-link-navigation";
 
 type Props = {
   content: unknown;
 };
 
 export default function TransclusionContent({ content }: Props) {
+  const handleImageLink = useImageLinkNavigation();
   const extensions = useMemo(() => {
     const filtered = mainExtensions.filter(
       (e: any) => e.name !== "uniqueID" && e.name !== "globalDragHandle",
@@ -42,6 +44,7 @@ export default function TransclusionContent({ content }: Props) {
         immediatelyRender={true}
         textDirection="auto"
         extensions={extensions}
+        editorContainerProps={{ onClick: handleImageLink }}
         content={content as any}
       />
     </div>
