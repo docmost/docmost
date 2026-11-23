@@ -12,6 +12,7 @@ export interface EmbedAttributes {
   align?: string;
   width?: number;
   height?: number;
+  widthPercent?: number;
 }
 
 declare module "@tiptap/core" {
@@ -69,6 +70,17 @@ export const Embed = Node.create<EmbedOptions>({
         renderHTML: (attributes: EmbedAttributes) => ({
           "data-width": attributes.width,
         }),
+      },
+      widthPercent: {
+        default: null,
+        parseHTML: (element) => {
+          const percent = Number(element.getAttribute("data-width-percent"));
+          return percent > 0 && percent <= 100 ? percent : null;
+        },
+        renderHTML: (attributes: EmbedAttributes) =>
+          attributes.widthPercent
+            ? { "data-width-percent": attributes.widthPercent }
+            : {},
       },
       height: {
         default: 600,
