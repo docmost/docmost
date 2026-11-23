@@ -3,6 +3,13 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { StaticModule } from './static.module';
 import { EnvironmentService } from '../environment/environment.service';
 
+jest.mock(
+  require.resolve('content-disposition', {
+    paths: [require.resolve('@fastify/static')],
+  }),
+  () => ({ create: jest.fn() }),
+);
+
 jest.mock('node:fs', () => {
   const actual = jest.requireActual<typeof import('node:fs')>('node:fs');
   const { Readable } = jest.requireActual<typeof import('node:stream')>(
@@ -69,5 +76,15 @@ describe('StaticModule', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toContain('text/html');
+  });
+
+  it('returns an API 404 for a route unavailable on the deployment', async () => {
+    const response = await adapter.getInstance().inject({
+      method: 'GET',
+      url: '/api/confluence-import/00000000-0000-4000-8000-000000000001/log',
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.headers['content-type']).toContain('application/json');
   });
 });
