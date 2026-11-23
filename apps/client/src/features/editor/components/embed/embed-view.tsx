@@ -110,7 +110,7 @@ export default function EmbedView(props: NodeViewProps) {
   }
 
   function handleCopyLink() {
-    clipboard.copy(src);
+    clipboard.copy(embed.linkUrl);
     notifications.show({ message: t("Link copied") });
   }
 
@@ -143,7 +143,7 @@ export default function EmbedView(props: NodeViewProps) {
                 >
                   <Button
                     component="a"
-                    href={sanitizeUrl(src)}
+                    href={sanitizeUrl(embed.linkUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     variant="default"

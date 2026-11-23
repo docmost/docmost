@@ -88,6 +88,57 @@ describe("Google Drive embed", () => {
   });
 });
 
+describe("YouTube embed links", () => {
+  const id = "aBcDeFgHiJk";
+  const watch = `https://www.youtube.com/watch?v=${id}`;
+
+  it.each([
+    [`https://www.youtube-nocookie.com/embed/${id}`, watch],
+    [`https://www.youtube.com/embed/${id}`, watch],
+    [`https://www.youtube.com/embed/${id}#t=1m15s`, `${watch}&t=1m15s`],
+    [
+      `https://www.youtube-nocookie.com/embed/${id}?start=75&list=PL123&index=2&controls=0`,
+      `${watch}&list=PL123&index=2&t=75`,
+    ],
+    [
+      "https://www.youtube-nocookie.com/embed/videoseries?list=PL123",
+      "https://www.youtube.com/playlist?list=PL123",
+    ],
+    [
+      "https://www.youtube.com/embed/live_stream?channel=UC123",
+      "https://www.youtube.com/channel/UC123/live",
+    ],
+  ])("keeps %s in the frame and opens its public page", (src, linkUrl) => {
+    expect(getEmbedUrlAndProvider(src)).toMatchObject({
+      embedUrl: src,
+      linkUrl,
+      providerId: "youtube",
+      label: "YouTube",
+    });
+  });
+
+  it.each([`${watch}&t=75s`, `https://youtu.be/${id}?t=75`])(
+    "keeps the original share link for %s",
+    (url) => {
+      expect(getEmbedUrlAndProvider(url)).toMatchObject({
+        providerId: "youtube",
+        embedUrl: `https://www.youtube-nocookie.com/embed/${id}`,
+        linkUrl: url,
+      });
+    },
+  );
+
+  it.each([
+    ["https://www.loom.com/share/abc123", "loom"],
+    [`https://youtube-nocookie.com.example.com/embed/${id}`, "iframe"],
+  ])("keeps the original link for other hosts such as %s", (url, providerId) => {
+    expect(getEmbedUrlAndProvider(url)).toMatchObject({
+      providerId,
+      linkUrl: url,
+    });
+  });
+});
+
 describe("embed label", () => {
   it.each([
     [`https://docs.google.com/document/d/${ID}/edit`, "gdrive", "Google Docs"],
