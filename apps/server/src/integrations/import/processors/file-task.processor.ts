@@ -1,6 +1,6 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 import { QueueJob, QueueName } from 'src/integrations/queue/constants';
 import { FileImportTaskService } from '../services/file-import-task.service';
 import {
@@ -12,6 +12,7 @@ import { StorageService } from '../../storage/storage.service';
 import { ModuleRef } from '@nestjs/core';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
+import { EnvironmentService } from '../../environment/environment.service';
 
 @Processor(QueueName.FILE_TASK_QUEUE)
 export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
@@ -22,6 +23,7 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
     private readonly storageService: StorageService,
     private readonly moduleRef: ModuleRef,
     @InjectKysely() private readonly db: KyselyDB,
+    private readonly environmentService: EnvironmentService,
   ) {
     super();
   }
@@ -34,6 +36,11 @@ export class FileTaskProcessor extends WorkerHost implements OnModuleDestroy {
           break;
         case QueueJob.CONFLUENCE_API_IMPORT: {
           // Drain imports queued before the dedicated queue was introduced.
+          if (!this.environmentService.isBetaConfluenceImporter()) {
+            throw new UnrecoverableError(
+              'Confluence API import is disabled on this deployment.',
+            );
+          }
           // eslint-disable-next-line @typescript-eslint/no-require-imports
           const importWorker = require('../../../ee/confluence-api-import/confluence-import-worker');
           await importWorker.runConfluenceImport(job.data, this.db);

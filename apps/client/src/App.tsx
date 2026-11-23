@@ -5,7 +5,11 @@ import WorkspaceLocaleLayout from "@/features/workspace/components/workspace-loc
 import { Error404 } from "@/components/ui/error-404.tsx";
 import { PageRoute } from "@/pages/page/page-route";
 import { MAIN_CONTENT_ID } from "@/components/ui/skip-to-main.tsx";
-import { isBetaBaseForms, isCloud } from "@/lib/config.ts";
+import {
+  isBetaBaseForms,
+  isBetaConfluenceImporter,
+  isCloud,
+} from "@/lib/config.ts";
 import { lazyWithPrefetch, prefetchLazyComponents } from "@/lib/lazy-prefetch.ts";
 import { useTranslation } from "react-i18next";
 import { useRedirectToCloudSelect } from "@/ee/hooks/use-redirect-to-cloud-select.tsx";
@@ -246,10 +250,12 @@ export default function App() {
             />
             <Route path={"verifications"} element={<VerifiedPages />} />
             <Route path={"integrations"} element={<Integrations />} />
-            <Route
-              path={"import/confluence"}
-              element={<ConfluenceImportPage />}
-            />
+            {isBetaConfluenceImporter() && (
+              <Route
+                path={"import/confluence"}
+                element={<ConfluenceImportPage />}
+              />
+            )}
             <Route path={"announcements"} element={<Announcements />} />
             {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}

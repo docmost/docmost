@@ -60,7 +60,8 @@ export function getAiVectorDriver(): string {
 }
 
 export function isBetaConfluenceImporter(): boolean {
-  return castToBoolean(getConfigValue("BETA_CONFLUENCE_IMPORTER"));
+  const flag = getConfigValue("BETA_CONFLUENCE_IMPORTER");
+  return String(flag).toLowerCase() === "true";
 }
 
 export function getAvatarUrl(
