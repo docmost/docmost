@@ -116,6 +116,74 @@ function blueprintsOption() {
 }
 
 it.each([
+  {
+    switchTo: undefined,
+    edition: "server",
+    credentials: { authType: "basic", username: "admin", password: " pass " },
+  },
+  {
+    switchTo: "Personal Access Token",
+    edition: "server",
+    credentials: { authType: "pat", token: "new-token" },
+  },
+  {
+    switchTo: "Cloud",
+    edition: "cloud",
+    credentials: { authType: "cloud_token", token: "new-token" },
+  },
+] as const)(
+  "sends only $credentials.authType credentials on every request after switching methods",
+  async ({ switchTo, edition, credentials }) => {
+    renderImport();
+    fireEvent.click(screen.getByRole("radio", { name: "Username + password" }));
+    fireEvent.change(screen.getByRole("textbox", { name: /^Username/ }), {
+      target: { value: " admin " },
+    });
+    fireEvent.change(
+      screen.getByLabelText(/^Password/, { selector: "input[type=password]" }),
+      { target: { value: " pass " } },
+    );
+    if (switchTo) {
+      fireEvent.click(screen.getByRole("radio", { name: switchTo }));
+      fireEvent.change(
+        screen.getByLabelText(/^(Personal Access Token|API token)/, {
+          selector: "input[type=password]",
+        }),
+        { target: { value: " new-token " } },
+      );
+    }
+
+    await selectSpaces(edition);
+    post.mockResolvedValueOnce({
+      data: {
+        success: true,
+        spaces: [{ id: "1", key: "ENG", name: "Engineering" }],
+        next: null,
+      },
+    });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Import all spaces" }));
+    fireEvent.click(
+      await screen.findByRole("checkbox", { name: /Engineering/ }),
+    );
+    await startImport();
+
+    const expected = {
+      siteUrl: "https://confluence.example.com",
+      email: "admin@example.com",
+      ...credentials,
+    };
+    expect(post.mock.calls.map(([url, body]) => [url, body])).toStrictEqual([
+      ["/confluence-import/test-connection", expected],
+      ["/confluence-import/spaces", { ...expected, status: "current" }],
+      [
+        "/confluence-import/start",
+        { ...expected, spaceKeys: ["ENG"], includeBlueprints: false },
+      ],
+    ]);
+  },
+);
+
+it.each([
   { code: "ECONNABORTED" },
   { response: { status: 408 } },
 ])("allows another connection check after a timeout (%j)", async (error) => {

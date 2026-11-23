@@ -122,9 +122,9 @@ export default function ConfluenceImportModal({ opened, onClose }: Props) {
       siteUrl: values.siteUrl.trim().replace(/\/+$/, ""),
       authType: values.authType,
       email: values.email?.trim() || undefined,
-      token: values.token?.trim() || undefined,
-      username: values.username?.trim() || undefined,
-      password: values.password || undefined,
+      ...(values.authType === "basic"
+        ? { username: values.username.trim(), password: values.password }
+        : { token: values.token.trim() }),
     };
   }, [form.values]);
 
