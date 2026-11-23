@@ -132,7 +132,7 @@ function ReportContent({ pageId, spaceId, properties, onClose }: Props) {
     queryFn: async ({ signal }) =>
       (
         await api.post<ReportResponse>(
-          "/pages/query",
+          "/pages/properties/report",
           {
             ...query,
             timeZone,

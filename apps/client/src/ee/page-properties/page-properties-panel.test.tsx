@@ -238,6 +238,11 @@ describe("page properties", () => {
       await screen.findByRole("menuitem", { name: "Property report" }),
     );
     await waitFor(() => expect(signal?.aborted).toBe(false));
+    expect(api.post).toHaveBeenCalledWith(
+      "/pages/properties/report",
+      expect.any(Object),
+      { signal },
+    );
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     await waitFor(() => expect(signal?.aborted).toBe(true));
   });
