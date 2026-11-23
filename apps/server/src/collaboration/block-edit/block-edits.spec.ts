@@ -433,12 +433,246 @@ describe('targeted table cell edits', () => {
     content: [{ type: 'tableRow', content: cells }],
   });
   const badge = { type: 'status', attrs: { text: 'Draft', color: 'blue' } };
-  const update = (
-    ...changes: { column: number; oldValue: string; newValue: string }[]
-  ): BlockEdit => ({ type: 'update_cells', ref: 'b2', changes });
+  const update = (...changes: BlockEdit['changes']): BlockEdit => ({
+    type: 'update_cells',
+    ref: 'b2',
+    changes,
+  });
   const owner = { column: 2, oldValue: 'Sam', newValue: 'Lin' };
   const office = { column: 3, oldValue: 'Floor 2', newValue: 'Floor 4' };
   const status = { column: 4, oldValue: 'Draft', newValue: 'Approved' };
+
+  it('recolors both submitted rows without detaching their native badges', () => {
+    const row = (name: string, color: string) => ({
+      type: 'tableRow',
+      content: [
+        cell(text(name, [{ type: 'bold' }])),
+        cell({ type: 'status', attrs: { text: 'Draft', color } }),
+      ],
+    });
+    const names = ['First', 'Second'];
+    const page = livePage(
+      doc({ type: 'table', content: names.map((name) => row(name, 'green')) }),
+    );
+    const element = page.fragment.get(0) as Y.XmlElement;
+    const rows = element.toArray() as Y.XmlElement[];
+    const cells = rows.map((row) => row.get(1) as Y.XmlElement);
+    const paragraphs = cells.map((cell) => cell.get(0) as Y.XmlElement);
+    const badges = paragraphs.map((p) => p.get(0) as Y.XmlElement);
+    const originalAttrs = badges.map((badge) => badge.getAttributes());
+    expect(
+      page.edit(
+        names.map((name, i) => ({
+          type: 'replace',
+          ref: page.refAt(0, i),
+          content: [row(name, 'yellow')],
+        })),
+      ),
+    ).toMatchObject({ ok: true, insertedRefs: [['b2'], ['b3']] });
+    for (const [i, badge] of badges.entries()) {
+      expect(element.get(i)).toBe(rows[i]);
+      expect(rows[i].get(1)).toBe(cells[i]);
+      expect(cells[i].get(0)).toBe(paragraphs[i]);
+      expect(paragraphs[i].get(0)).toBe(badge);
+      expect(badge.getAttributes()).toEqual({
+        ...originalAttrs[i],
+        color: 'yellow',
+      });
+    }
+  });
+
+  it('aligns a changed inline badge after marked text and an unchanged badge', () => {
+    const comment = {
+      type: 'comment',
+      attrs: { commentId: 'a', resolved: false },
+    };
+    const block = (label: string, color: string) => ({
+      type: 'paragraph',
+      content: [
+        text('Note ', [comment]),
+        text('for ', [{ type: 'bold' }]),
+        badge,
+        text(' and '),
+        { type: 'status', attrs: { text: label, color } },
+        text(' here', [comment]),
+      ],
+    });
+    const page = livePage(doc(block('Pending', 'green')));
+    const paragraph = page.fragment.get(0) as Y.XmlElement;
+    const inline = paragraph.toArray();
+    expect(
+      page.edit([
+        { type: 'replace', ref: 'b1', content: [block('Done', 'yellow')] },
+      ]),
+    ).toMatchObject({ ok: true });
+    inline.forEach((node, i) => expect(paragraph.get(i)).toBe(node));
+    expect(page.read().firstChild.child(4).attrs).toMatchObject({
+      text: 'Done',
+      color: 'yellow',
+    });
+    expect(page.read().firstChild.firstChild.marks[0].toJSON()).toEqual(
+      comment,
+    );
+  });
+
+  it('refuses to infer a badge patch for an inline swap, removal or retype', () => {
+    const other = { ...badge, attrs: { ...badge.attrs, color: 'green' } };
+    const block = (...content: JSONContent[]) => ({
+      type: 'paragraph',
+      content,
+    });
+    const page = livePage(doc(block(badge, other)));
+    const original = page.state();
+    const changedDirection = {
+      ...badge,
+      attrs: { ...badge.attrs, dir: 'rtl' },
+    };
+    for (const content of [
+      [other, badge],
+      [other],
+      [text('Draft'), other],
+      [changedDirection, other],
+    ]) {
+      expect(
+        page.edit([
+          { type: 'replace', ref: 'b1', content: [block(...content)] },
+        ]),
+      ).toMatchObject({
+        ok: false,
+        error: expect.stringMatching(
+          /detach.*No edits in this batch were applied/,
+        ),
+      });
+      expect(page.state()).toEqual(original);
+    }
+  });
+
+  it('returns the requested color for badge updates, including a repeated color', () => {
+    const page = livePage(doc(table(cell(badge))));
+    const row = (page.fragment.get(0) as Y.XmlElement).get(0) as Y.XmlElement;
+    const paragraph = (row.get(0) as Y.XmlElement).get(0) as Y.XmlElement;
+    const original = paragraph.get(0) as Y.XmlElement;
+    const value = { column: 1, oldValue: 'Draft', newValue: 'Draft' };
+    for (const color of [
+      'gray',
+      'blue',
+      'green',
+      'yellow',
+      'red',
+      'purple',
+    ] as const) {
+      const change = { ...value, color };
+      const receipt = [{ rowRef: 'b2', column: 1, value: 'Draft', color }];
+      expect(page.edit([update(change)])).toMatchObject({
+        ok: true,
+        updatedCells: receipt,
+      });
+      expect(paragraph.get(0)).toBe(original);
+      expect(original.getAttributes()).toMatchObject({ text: 'Draft', color });
+      const before = page.state();
+      expect(page.edit([update(change)])).toMatchObject({
+        ok: true,
+        updatedCells: receipt,
+      });
+      expect(page.state()).toEqual(before);
+    }
+  });
+
+  it('keeps a legacy color through label edits and accepts an explicit palette color', () => {
+    const colored = (value: string, color: string) => ({
+      type: 'status',
+      attrs: { text: value, color },
+    });
+    const page = livePage(doc(table(cell(colored('Draft', 'orange')))));
+    const change = { column: 1, oldValue: 'Draft', newValue: 'Ready' };
+    const rename = page.edit([update(change)]);
+    if (rename.ok === false) throw new Error(rename.error);
+    expect(rename.updatedCells).toEqual([
+      { rowRef: 'b2', column: 1, value: 'Ready' },
+    ]);
+    const row = () => page.read().firstChild.firstChild;
+    expect(row().firstChild.firstChild.firstChild.attrs).toMatchObject({
+      text: 'Ready',
+      color: 'orange',
+    });
+    const replace = (label: string, color: string): BlockEdit => ({
+      type: 'replace',
+      ref: 'b2',
+      content: [{ type: 'tableRow', content: [cell(colored(label, color))] }],
+    });
+    expect(page.edit([replace('Revised', 'orange')])).toMatchObject({
+      ok: true,
+    });
+    const before = page.state();
+    expect(page.edit([replace('Revised', 'chartreuse')])).toMatchObject({
+      ok: false,
+    });
+    expect(page.state()).toEqual(before);
+    const normalize = {
+      column: 1,
+      oldValue: 'Revised',
+      newValue: 'Done',
+      color: 'green' as const,
+    };
+    expect(page.edit([update(normalize)])).toMatchObject({
+      ok: true,
+      updatedCells: [
+        { rowRef: 'b2', column: 1, value: 'Done', color: 'green' },
+      ],
+    });
+    expect(row().firstChild.firstChild.firstChild.attrs).toMatchObject({
+      text: 'Done',
+      color: 'green',
+    });
+  });
+
+  it('rejects a bad color, stale label or color on a text or mixed cell before any write', () => {
+    const page = livePage(
+      doc(table(cell(text('One')), cell(badge), cell(text('Prefix'), badge))),
+    );
+    const first = { column: 1, oldValue: 'One', newValue: 'Two' };
+    const target = {
+      column: 2,
+      oldValue: 'Draft',
+      newValue: 'Draft',
+      color: 'yellow' as const,
+    };
+    const before = page.state();
+    for (const change of [
+      { ...target, color: 'orange' as never },
+      { ...target, color: null },
+      { ...target, oldValue: 'Old' },
+      { ...target, column: 3 },
+    ]) {
+      expect(page.edit([update(first, change)])).toMatchObject({ ok: false });
+      expect(page.state()).toEqual(before);
+    }
+    const textColor = { ...first, newValue: 'One', color: 'green' as const };
+    expect(page.edit([update(target, textColor)])).toMatchObject({ ok: false });
+    expect(page.state()).toEqual(before);
+  });
+
+  it.each(['yellow', 'blue'] as const)(
+    'preflights the live badge before applying a batch requesting %s',
+    (color) => {
+      const page = livePage(doc(table(cell(text('One')), cell(badge))));
+      const first = { column: 1, oldValue: 'One', newValue: 'Two' };
+      const second = {
+        column: 2,
+        oldValue: 'Draft',
+        newValue: 'Draft',
+        color,
+      };
+      const plan = planBlockEdits(page.read(), [update(first, second)]);
+      if (plan.ok === false) throw new Error(plan.error);
+      const row = (page.fragment.get(0) as Y.XmlElement).get(0) as Y.XmlElement;
+      const paragraph = (row.get(1) as Y.XmlElement).get(0) as Y.XmlElement;
+      (paragraph.get(0) as Y.XmlElement).setAttribute('color', 'red');
+      const before = page.state();
+      expect(applyBlockSplices(page.fragment, plan.splices)).toBe(false);
+      expect(page.state()).toEqual(before);
+    },
+  );
 
   it('edits duplicate text by physical column and changes only the native badge label', () => {
     const comment = {

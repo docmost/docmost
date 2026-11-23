@@ -1,5 +1,6 @@
 import type { JSONContent } from '@tiptap/core';
 import type { Node } from '@tiptap/pm/model';
+import type { StatusColor } from '@docmost/editor-ext';
 
 export type BlockEditType =
   | 'replace'
@@ -26,8 +27,18 @@ export type BlockEdit = {
   changes?: CellEdit[];
 };
 
-export type CellEdit = { column: number; oldValue: string; newValue: string };
-export type UpdatedCell = { rowRef: string; column: number; value: string };
+export type CellEdit = {
+  column: number;
+  oldValue: string;
+  newValue: string;
+  color?: StatusColor;
+};
+export type UpdatedCell = {
+  rowRef: string;
+  column: number;
+  value: string;
+  color?: StatusColor;
+};
 
 export type BlockEditResult =
   | { ok: true; insertedRefs: string[][]; updatedCells?: UpdatedCell[] }
@@ -69,10 +80,14 @@ export type AttributeSplice = {
   attributes: Record<string, unknown>;
   expected: ExpectedNode[];
 };
-export type StatusLabelSplice = {
+export type StatusSplice = {
   path: number[];
+  atomIndex: number;
+  atomTypes: string[];
+  standalone: boolean;
   oldLabel: string;
-  newLabel: string;
+  oldColor?: string;
+  patch: { text?: string; color?: StatusColor };
   expected: ExpectedNode[];
 };
 export type EditSplice =
@@ -80,7 +95,7 @@ export type EditSplice =
   | TextSplice
   | FormatSplice
   | AttributeSplice
-  | StatusLabelSplice;
+  | StatusSplice;
 
 export type BlockEditPlan =
   | {

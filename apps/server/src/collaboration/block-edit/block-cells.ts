@@ -1,11 +1,11 @@
 import { Fragment, type Node } from '@tiptap/pm/model';
-import * as Y from 'yjs';
 import type {
   CellEdit,
   FormatSplice,
-  StatusLabelSplice,
+  StatusSplice,
   TextSplice,
 } from './block-edits.types';
+import { isStatusColor, statusSplice } from './block-status';
 import { applyTextChange, findTextChange } from './block-text';
 
 export function editableCellValue(cell: Node): string | undefined {
@@ -30,7 +30,8 @@ export type CellChange = {
   column: number;
   path: number[];
   cell: Node;
-  splice?: TextSplice | FormatSplice | StatusLabelSplice;
+  color?: CellEdit['color'];
+  splice?: TextSplice | FormatSplice | StatusSplice;
 };
 
 export function resolveCellChanges(
@@ -51,7 +52,7 @@ export function resolveCellChanges(
     if (columns.has(column))
       return `Column ${column} is specified more than once.`;
     columns.add(column);
-    const { oldValue, newValue } = change;
+    const { oldValue, newValue, color } = change;
     if (typeof oldValue !== 'string' || typeof newValue !== 'string')
       return `Column ${column} requires string oldValue and newValue.`;
     if (/\p{Surrogate}/u.test(newValue))
@@ -64,28 +65,30 @@ export function resolveCellChanges(
       return `The oldValue for column ${column} does not match its exact current value. Read the row again.`;
 
     const path = [...rowPath, column - 1];
-    if (newValue === oldValue) {
+    const block = cell.firstChild;
+    const badge =
+      block.firstChild?.type.name === 'status' ? block.firstChild : undefined;
+    if (color !== undefined) {
+      if (!badge)
+        return `Column ${column} needs a single native status badge to set its color.`;
+      if (!isStatusColor(color))
+        return `Column ${column} has an unsupported status color.`;
+    }
+    if (newValue === oldValue && color === undefined) {
       result.push({ column, path, cell });
       continue;
     }
     const blockPath = [...path, 0];
-    const block = cell.firstChild;
     let after: Node;
     let splice: CellChange['splice'];
-    if (block.firstChild?.type.name === 'status') {
-      const badge = block.firstChild;
-      const renamed = badge.type.create(
-        { ...badge.attrs, text: newValue },
+    if (badge) {
+      splice = statusSplice(block, blockPath, 0, newValue, color);
+      const updated = badge.type.create(
+        { ...badge.attrs, ...splice.patch },
         badge.content,
         badge.marks,
       );
-      after = block.copy(Fragment.from(renamed));
-      splice = {
-        path: blockPath,
-        oldLabel: oldValue,
-        newLabel: newValue,
-        expected: [],
-      };
+      after = block.copy(Fragment.from(updated));
     } else if (!oldValue) {
       after = block.copy(Fragment.from(block.type.schema.text(newValue)));
       splice = {
@@ -109,30 +112,11 @@ export function resolveCellChanges(
     }
     result.push({
       column,
+      color,
       path,
       cell: cell.copy(Fragment.from(after)),
       splice,
     });
   }
   return result;
-}
-
-export function prepareStatusLabel(
-  paragraph: Y.XmlFragment,
-  { oldLabel, newLabel }: StatusLabelSplice,
-): (() => void) | null {
-  if (!paragraph) return null;
-  let badge: Y.XmlElement;
-  for (const child of paragraph.toArray()) {
-    if (child instanceof Y.XmlText && child.length === 0) continue;
-    if (
-      badge ||
-      !(child instanceof Y.XmlElement) ||
-      child.nodeName !== 'status'
-    )
-      return null;
-    badge = child;
-  }
-  if (!badge || (badge.getAttribute('text') ?? '') !== oldLabel) return null;
-  return () => badge.setAttribute('text', newLabel);
 }

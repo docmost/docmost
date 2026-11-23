@@ -5,7 +5,6 @@ import { tiptapExtensions } from '../collaboration.util';
 import {
   CellChange,
   editableCellValue,
-  prepareStatusLabel,
   resolveCellChanges,
 } from './block-cells';
 import { documentInsertion } from './block-document';
@@ -29,6 +28,10 @@ import {
   FormatSplice,
   UpdatedCell,
 } from './block-edits.types';
+import {
+  prepareStatusSplice,
+  statusSpliceForReplacement,
+} from './block-status';
 import {
   applyTextChange,
   findTextChange,
@@ -480,6 +483,10 @@ function replacementSplices(
           ? [single]
           : markedTextSplices(before, after, childPath);
         const fill = before.childCount === 0;
+        if (!inline) {
+          const status = statusSpliceForReplacement(before, after, childPath);
+          if (status) inline = [status];
+        }
         if (!inline && (fill || changesOnlyTextMarks(before, after))) {
           inline = [
             {
@@ -730,7 +737,7 @@ export function planBlockEdits(
   const splices: EditSplice[] = [];
   const updatedCells: UpdatedCell[] = [];
   for (const [i, edit] of resolved.entries()) {
-    for (const { cell, column, path, splice } of edit.cells ?? []) {
+    for (const { cell, column, path, splice, color } of edit.cells ?? []) {
       if (splice) {
         textDoc = updateAt(textDoc, path, () => cell);
         splices.push(splice);
@@ -739,6 +746,7 @@ export function planBlockEdits(
         rowRef: edits[i].ref,
         column,
         value: editableCellValue(cell),
+        ...(color !== undefined && { color }),
       });
     }
   }
@@ -764,7 +772,7 @@ export function planBlockEdits(
     ) {
       return {
         ok: false,
-        error: `Edit ${change.removal + 1}: this replacement would detach existing collaborative content and could discard edits still syncing. Keep the block types and use replace_text or smaller edits.`,
+        error: `Edit ${change.removal + 1}: this replacement would detach existing collaborative content. Pending edits to those nodes could disappear from the page. No edits in this batch were applied. Use update_cells for table fields or replace_text for text, keeping the existing nodes in place.`,
       };
     }
     splices.push(...steps);
@@ -820,8 +828,8 @@ export function applyBlockSplices(
   );
   if (textSteps.some((step) => !step)) return false;
   const statusSteps = changes.flatMap((change) =>
-    'oldLabel' in change
-      ? [prepareStatusLabel(yNodeAt(fragment, change.path), change)]
+    'atomIndex' in change
+      ? [prepareStatusSplice(yNodeAt(fragment, change.path), change)]
       : [],
   );
   if (statusSteps.some((step) => !step)) return false;

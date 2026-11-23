@@ -25,6 +25,13 @@ function replica(base: Uint8Array) {
   return doc;
 }
 
+function cellContent(doc: Y.Doc, column: number) {
+  const table = doc.getXmlFragment('default').get(0) as Y.XmlElement;
+  const row = table.get(0) as Y.XmlElement;
+  const cell = row.get(column) as Y.XmlElement;
+  return (cell.get(0) as Y.XmlElement).get(0);
+}
+
 const cases: { name: string; edit: BlockEdit; accepted: boolean }[] = [
   {
     name: 'adjacent move',
@@ -181,11 +188,6 @@ it('merges withheld peer edits to the same badge color, cell formatting and neig
   const clock = Y.encodeStateVector(initial);
   const server = replica(base),
     peer = replica(base);
-  const cellContent = (doc: Y.Doc, column: number) => {
-    const table = doc.getXmlFragment('default').get(0) as Y.XmlElement;
-    const row = table.get(0) as Y.XmlElement;
-    return ((row.get(column) as Y.XmlElement).get(0) as Y.XmlElement).get(0);
-  };
   peer.transact(() => {
     (cellContent(peer, 0) as Y.XmlText).format(0, 4, { bold: {} });
     (cellContent(peer, 1) as Y.XmlElement).setAttribute('color', 'green');
@@ -232,3 +234,90 @@ it('merges withheld peer edits to the same badge color, cell formatting and neig
   expect(row.child(2).textContent).toBe('Note from peer');
   for (const doc of [initial, server, peer, a, b]) doc.destroy();
 });
+
+it.each(['replace', 'update_cells'] as const)(
+  '%s merges a badge recolor with a peer rename and comment-marked typing in both delivery orders',
+  (type) => {
+    const comment = {
+      type: 'comment',
+      attrs: { commentId: 'c1', resolved: false },
+    };
+    const row = (color: string) => ({
+      type: 'tableRow',
+      content: [
+        {
+          type: 'tableCell',
+          content: [
+            paragraph({ type: 'status', attrs: { text: 'Ready', color } }),
+          ],
+        },
+        { type: 'tableCell', content: [paragraph(text('Note', [comment]))] },
+      ],
+    });
+    const initial = TiptapTransformer.toYdoc(
+      { type: 'doc', content: [{ type: 'table', content: [row('green')] }] },
+      'default',
+      tiptapExtensions,
+    );
+    const base = Y.encodeStateAsUpdate(initial);
+    const clock = Y.encodeStateVector(initial);
+    const server = replica(base),
+      peer = replica(base);
+    const badge = cellContent(server, 0) as Y.XmlElement;
+    const note = cellContent(peer, 1) as Y.XmlText;
+    const written: string[] = [];
+    badge.observe((event) => written.push(...event.attributesChanged));
+    peer.transact(() => {
+      (cellContent(peer, 0) as Y.XmlElement).setAttribute('text', 'Finished');
+      note.insert(4, ' added');
+    });
+    const change = {
+      column: 1,
+      oldValue: 'Ready',
+      newValue: 'Ready',
+      color: 'yellow' as const,
+    };
+    const edit: BlockEdit =
+      type === 'replace'
+        ? { type, ref: 'b2', content: [row('yellow')] }
+        : { type, ref: 'b2', changes: [change] };
+    const revision = pageRevision(read(initial));
+    expect(planBlockEdits(read(peer), [edit], revision)).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/changed/),
+    });
+    server.transact(() => {
+      const plan = planBlockEdits(read(server), [edit], revision);
+      if (plan.ok === false) throw new Error(plan.error);
+      expect(
+        applyBlockSplices(server.getXmlFragment('default'), plan.splices),
+      ).toBe(true);
+      expect(cellContent(server, 0)).toBe(badge);
+      expect(badge.getAttribute('color')).toBe('yellow');
+    });
+    expect(written).toEqual(['color']);
+    const serverUpdate = Y.encodeStateAsUpdate(server, clock);
+    const peerUpdate = Y.encodeStateAsUpdate(peer, clock);
+    for (const updates of [
+      [serverUpdate, peerUpdate],
+      [peerUpdate, serverUpdate],
+    ]) {
+      const merged = replica(base);
+      const originalBadge = cellContent(merged, 0);
+      const originalNote = cellContent(merged, 1);
+      for (const update of updates) Y.applyUpdate(merged, update);
+      expect(cellContent(merged, 0)).toBe(originalBadge);
+      expect(cellContent(merged, 1)).toBe(originalNote);
+      const result = read(merged).firstChild.firstChild;
+      expect(result.child(0).firstChild.firstChild.attrs).toMatchObject({
+        text: 'Finished',
+        color: 'yellow',
+      });
+      expect(result.child(1).firstChild.firstChild.toJSON()).toEqual(
+        text('Note added', [comment]),
+      );
+      merged.destroy();
+    }
+    for (const doc of [initial, server, peer]) doc.destroy();
+  },
+);

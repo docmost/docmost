@@ -5,16 +5,7 @@ import { useDebouncedCallback } from "@mantine/hooks";
 import { IconCheck } from "@tabler/icons-react";
 import clsx from "clsx";
 import classes from "./status.module.css";
-import type { StatusColor } from "@docmost/editor-ext";
-
-const STATUS_COLORS: { name: StatusColor; bg: string }[] = [
-  { name: "gray", bg: "var(--mantine-color-gray-4)" },
-  { name: "blue", bg: "var(--mantine-color-blue-4)" },
-  { name: "green", bg: "var(--mantine-color-green-4)" },
-  { name: "yellow", bg: "var(--mantine-color-yellow-4)" },
-  { name: "red", bg: "var(--mantine-color-red-4)" },
-  { name: "purple", bg: "var(--mantine-color-violet-4)" },
-];
+import { STATUS_COLORS, type StatusColor } from "@docmost/editor-ext";
 
 const colorClassMap: Record<StatusColor, string> = {
   gray: classes.colorGray,
@@ -127,14 +118,16 @@ export default function StatusView(props: NodeViewProps) {
           />
 
           <Group gap={6} justify="center">
-            {STATUS_COLORS.map(({ name, bg }) => (
+            {STATUS_COLORS.map((name) => (
               <Box
                 key={name}
                 className={clsx(
                   classes.swatch,
                   color === name && classes.swatchActive,
                 )}
-                style={{ backgroundColor: bg }}
+                style={{
+                  backgroundColor: `var(--mantine-color-${name === "purple" ? "violet" : name}-4)`,
+                }}
                 onClick={() => handleColorChange(name)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
