@@ -11,7 +11,7 @@ import { Editor, EditorContent } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { createStore, Provider } from "jotai";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, beforeAll, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { pageEditorBindingAtom } from "@/features/editor/atoms/editor-atoms";
 import SubpagesView from "./subpages-view";
 
@@ -19,16 +19,16 @@ vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
   useTranslation: () => ({ t: (key: string) => key }),
 }));
-vi.mock("./use-subpages", () => ({
-  useSubpages: () => ({
-    subpages: [
-      { id: "child", slugId: "child", title: "Checklist", hasChildren: false },
-    ],
-    isLoading: false,
-  }),
-}));
+const querySubpages = vi.hoisted(() => vi.fn());
+vi.mock("./use-subpages", () => ({ useSubpages: querySubpages }));
 
 const editors: Editor[] = [];
+const child = {
+  id: "child",
+  slugId: "child",
+  title: "Checklist",
+  hasChildren: false,
+};
 const legacyBlock = '<div data-type="subpages" data-sort-by="recent"></div>';
 const settingsButton = () =>
   screen.getByRole("button", { name: "Subpages settings" });
@@ -71,9 +71,47 @@ beforeAll(() => {
     dispatchEvent: () => false,
   });
 });
+beforeEach(() => {
+  querySubpages
+    .mockReset()
+    .mockReturnValue({ subpages: [child], isLoading: false });
+});
 afterEach(() => {
   cleanup();
   editors.splice(0).forEach((editor) => editor.destroy());
+});
+
+it("refreshes the current page and only its expanded branches", async () => {
+  const refreshRoot = vi.fn();
+  const refreshChild = vi.fn();
+  querySubpages.mockImplementation(({ pageId }, _sortBy, { enabled = true } = {}) => {
+    if (pageId === child.id) {
+      return { subpages: [], refetch: enabled ? refreshChild : undefined };
+    }
+    return {
+      subpages: [{ ...child, hasChildren: true }],
+      refetch: refreshRoot,
+    };
+  });
+  show(legacyBlock);
+  const refresh = screen.getByRole("button", { name: "Refresh subpages" });
+  async function refreshList() {
+    await act(async () => {
+      fireEvent.click(refresh);
+    });
+  }
+
+  await refreshList();
+  expect(refreshRoot).toHaveBeenCalledTimes(1);
+  expect(refreshChild).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: /^Expand/ }));
+  await refreshList();
+  expect(refreshRoot).toHaveBeenCalledTimes(2);
+  expect(refreshChild).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: /^Collapse/ }));
+  await refreshList();
+  expect(refreshRoot).toHaveBeenCalledTimes(3);
+  expect(refreshChild).toHaveBeenCalledTimes(1);
 });
 
 it("nests report headings under the current section and follows heading edits", async () => {
@@ -97,14 +135,14 @@ it("nests report headings under the current section and follows heading edits", 
   await screen.findByRole("heading", { name: "Following", level: 4 });
 });
 
-it("persists the block's name and heading visibility independently across editor and space home", async () => {
+it("preserves the block's name and heading visibility on a space home", async () => {
   const { editor, unmount } = show(legacyBlock);
   expect(screen.getByRole("heading", { name: "Subpages" })).toBeTruthy();
   fireEvent.click(settingsButton());
-  fireEvent.change(screen.getByRole("textbox", { name: "Heading" }), {
+  fireEvent.change(screen.getByRole("textbox", { name: "Heading text" }), {
     target: { value: "  Project guide  " },
   });
-  fireEvent.click(screen.getByLabelText("Show heading"));
+  fireEvent.click(screen.getByLabelText("Show block heading"));
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
   await screen.findByRole("list", { name: "Project guide" });
   expect(screen.queryByRole("heading")).toBeNull();
@@ -116,27 +154,27 @@ it("persists the block's name and heading visibility independently across editor
   const hidden = editor.getHTML();
 
   fireEvent.click(settingsButton());
-  expect((screen.getByLabelText("Heading") as HTMLInputElement).value).toBe(
-    "Project guide",
-  );
-  fireEvent.click(screen.getByLabelText("Show heading"));
+  expect(
+    (screen.getByLabelText("Heading text") as HTMLInputElement).value,
+  ).toBe("Project guide");
+  fireEvent.click(screen.getByLabelText("Show block heading"));
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
   await screen.findByRole("heading", { name: "Project guide" });
   const visible = editor.getHTML();
   unmount();
 
-  const home = show(visible, { editable: false, rootSpaceId: "team" });
+  const readOnly = show(visible, { editable: false, rootSpaceId: "team" });
   expect(screen.getByRole("heading", { name: "Project guide" })).toBeTruthy();
   expect(
     screen.queryByRole("button", { name: "Subpages settings" }),
   ).toBeNull();
   await act(async () => {
-    home.editor.commands.setContent(hidden);
+    readOnly.editor.commands.setContent(hidden);
   });
   expect(screen.queryByRole("heading")).toBeNull();
   expect(screen.getByRole("list", { name: "Project guide" })).toBeTruthy();
   await act(async () => {
-    home.editor.commands.setContent(legacyBlock);
+    readOnly.editor.commands.setContent(legacyBlock);
   });
   await screen.findByRole("heading", { name: "Pages" });
 });
@@ -144,13 +182,15 @@ it("persists the block's name and heading visibility independently across editor
 it("discards drafts on cancellation and on a switch to read mode", () => {
   const { editor, store } = show(legacyBlock);
   fireEvent.click(settingsButton());
-  fireEvent.change(screen.getByLabelText("Heading"), {
+  fireEvent.change(screen.getByLabelText("Heading text"), {
     target: { value: "Draft" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   fireEvent.click(settingsButton());
-  expect((screen.getByLabelText("Heading") as HTMLInputElement).value).toBe("");
-  fireEvent.click(screen.getByLabelText("Show heading"));
+  expect(
+    (screen.getByLabelText("Heading text") as HTMLInputElement).value,
+  ).toBe("");
+  fireEvent.click(screen.getByLabelText("Show block heading"));
   function setEditable(editable: boolean) {
     editor.setEditable(editable, false);
     store.set(pageEditorBindingAtom, { editor, pageId: "host", editable });

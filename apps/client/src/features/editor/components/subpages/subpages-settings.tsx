@@ -44,7 +44,7 @@ export function SubpagesSettings({
       >
         <Stack>
           <TextInput
-            label={t("Heading")}
+            label={t("Heading text")}
             placeholder={defaultHeading}
             value={name}
             onChange={(event) =>
@@ -53,7 +53,7 @@ export function SubpagesSettings({
             data-autofocus
           />
           <Switch
-            label={t("Show heading")}
+            label={t("Show block heading")}
             checked={!hidden}
             onChange={(event) =>
               setDraft({ ...draft, hideHeading: !event.currentTarget.checked })

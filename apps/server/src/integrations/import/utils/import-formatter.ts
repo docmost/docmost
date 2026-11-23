@@ -4,10 +4,13 @@ import * as path from 'path';
 import { v7 } from 'uuid';
 import { InsertableBacklink } from '@docmost/db/types/entity.types';
 import { Cheerio, CheerioAPI } from 'cheerio';
-import { formatConfluenceRecentUpdates } from './confluence-recently-updated';
 import { loadImportHtml, normalizeImportDates } from './import-dates';
+import { applyConfluenceMarginLeftIndent } from './confluence-indent';
+import { formatConfluenceRecentUpdates } from './confluence-recently-updated';
 import slugify from '@sindresorhus/slugify';
 import { normalizeTableColumnWidths } from './table-utils';
+
+export { applyConfluenceMarginLeftIndent };
 
 // Check if text contains Unicode characters (for emojis/icons)
 function isUnicodeCharacter(text: string): boolean {
@@ -76,7 +79,7 @@ export async function formatImportHtml(opts: {
 }
 
 /**
- * HTML cleanup shared by every import path.
+ * Contextless HTML cleanup shared by every import path.
  * - notionFormatter: no-op on non-Notion HTML (class-selector-based).
  * - xwikiFormatter: no-op on non-XWiki HTML (looks for #xwikicontent).
  * - defaultHtmlFormatter: table column widths + provider auto-embeds.
@@ -88,8 +91,8 @@ export function normalizeImportHtml(
   $root: Cheerio<any>,
   spaceId?: string,
 ): void {
-  formatConfluenceRecentUpdates($, $root, spaceId);
   normalizeImportDates($, $root);
+  formatConfluenceRecentUpdates($, $root, spaceId);
   notionFormatter($, $root);
   xwikiFormatter($, $root);
   defaultHtmlFormatter($, $root);
@@ -103,18 +106,12 @@ export function xwikiFormatter($: CheerioAPI, $root: Cheerio<any>) {
   }
 }
 
-import { applyConfluenceMarginLeftIndent } from './confluence-indent';
-export { applyConfluenceMarginLeftIndent };
-
 const sectionAnchorSelector = 'span[data-type="section-anchor"]';
 
 function isBareLink($el: Cheerio<any>): boolean {
-  const href = $el.attr("href")?.trim();
+  const href = $el.attr('href')?.trim();
   const text = $el.text().trim();
-
-  if(!text || !href) return false
-
-  return text === href && !$el.find(sectionAnchorSelector).length;
+  return !!href && text === href && !$el.find(sectionAnchorSelector).length;
 }
 
 export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
@@ -125,10 +122,22 @@ export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
   // child of their parent block. Anything else stays an inline link.
   $root.find('a[href]').each((_, el) => {
     const $el = $(el);
+    if ($el.find('img').length) {
+      const paragraph = $el.parent('p:not([id], [data-id])');
+      // A block image in its own paragraph would otherwise create a blank line.
+      if (
+        paragraph.length &&
+        !paragraph.children('br').length &&
+        isStandaloneLink($el)
+      ) {
+        paragraph.replaceWith($el);
+      }
+      return;
+    }
     const url = $el.attr('href')!;
     const { provider } = getEmbedUrlAndProvider(url);
     if (provider === 'iframe' || !isBareLink($el)) return;
-    if (!isSoleMeaningfulChild($el, el)) return;
+    if (!isStandaloneLink($el)) return;
 
     const embed = `<div data-type=\"embed\" data-src=\"${url}\" data-provider=\"${provider}\" data-align=\"center\" data-width=\"640\" data-height=\"480\"></div>`;
     $el.replaceWith(embed);
@@ -144,19 +153,22 @@ export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
   });
 }
 
-function isSoleMeaningfulChild(
-  $el: Cheerio<any>,
-  rawEl: any,
-): boolean {
-  const $parent = $el.parent();
-  if ($parent.length === 0) return true;
-  const others = $parent.contents().toArray().filter((n: any) => {
-    if (n === rawEl) return false;
-    if (n.type === 'text') return (n.data ?? '').trim() !== '';
-    if (n.type === 'tag' && n.name === 'br') return false;
-    return true;
-  });
-  return others.length === 0;
+function isStandaloneLink($link: Cheerio<any>): boolean {
+  const block = $link.closest(
+    'p, li, td, th, h1, h2, h3, h4, h5, h6, blockquote, div, figcaption, section, article, body',
+  ).get(0);
+  let current = $link;
+  while (current.length && current.get(0) !== block) {
+    const parent = current.parent();
+    const hasSibling = parent.contents().toArray().some((node) => {
+      if (node === current.get(0)) return false;
+      if (node.type === 'text') return !!node.data.trim();
+      return node.type === 'tag' && node.name !== 'br';
+    });
+    if (hasSibling) return false;
+    current = parent;
+  }
+  return true;
 }
 
 const COLUMN_LAYOUTS = [
@@ -408,7 +420,7 @@ export async function rewriteInternalLinksToMentionHtml(
 
     if (
       titleMatch &&
-      !$a.find(`time[data-type="date"], ${sectionAnchorSelector}`).length
+      !$a.find(`img, time[data-type="date"], ${sectionAnchorSelector}`).length
     ) {
       const mentionId = v7();
       const $mention = $('<span>')

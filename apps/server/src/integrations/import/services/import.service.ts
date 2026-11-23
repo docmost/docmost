@@ -258,11 +258,13 @@ export class ImportService {
     const content = prosemirrorState.content ?? [];
     const firstNode = content[0];
 
-    // Page titles are plain text. Keep headings with editable dates in the body.
+    // Keep headings with inline dates or bookmarks in the editable body.
     const isTitleHeading =
       firstNode?.type === 'heading' &&
       (opts?.anyHeadingLevel || firstNode.attrs?.level === 1) &&
-      !firstNode.content?.some((node) => node.type === 'date');
+      !firstNode.content?.some(
+        (node) => node.type === 'date' || node.type === 'sectionAnchor',
+      );
 
     if (isTitleHeading) {
       const headingText = (firstNode.content ?? [])

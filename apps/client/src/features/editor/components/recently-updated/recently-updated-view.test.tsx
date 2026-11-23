@@ -46,7 +46,13 @@ vi.mock("@/features/space/queries/space-query", () => ({
 vi.mock("@/features/label/queries/label-query", () => ({
   useWorkspaceLabelsQuery: () => ({
     data: {
-      items: [{ name: "review" }, { name: "-draft" }, { name: "draft" }],
+      items: [
+        { name: "review" },
+        { name: "-draft" },
+        { name: "draft" },
+        { name: oversizedLabel },
+        { name: boundaryLabel },
+      ],
     },
   }),
 }));
@@ -74,6 +80,8 @@ const teamSpace = {
   logo: "design.png",
 };
 const otherId = "dcb7b4d5-a068-448d-9f18-e8b0684ee57e";
+const oversizedLabel = "x".repeat(257);
+const boundaryLabel = "x".repeat(254) + "📌☀️";
 const otherSpace = { id: otherId, name: "Engineering", slug: "eng" };
 const editors: Editor[] = [];
 
@@ -754,6 +762,35 @@ it("saves literal names, exclusions and the match mode, then requests the new fi
   ).toBeTruthy();
   expect(screen.getByRole("combobox", { name: "Exclude labels" })).toBeTruthy();
 });
+
+it.each(["Labels", "Exclude labels"])(
+  "offers only valid catalog labels in %s and preserves other settings",
+  async (field) => {
+    vi.mocked(api.post).mockResolvedValue({ data: [] });
+    const { editor } = show(
+      "/s/team",
+      { labels: ["review"], excludeLabels: ["draft"], limit: 7 },
+      spaceId,
+    );
+    const original = editor.state.doc.firstChild.attrs;
+    fireEvent.click(
+      screen.getByRole("button", { name: "Recently updated settings" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    const picker = screen.getByRole("combobox", { name: field });
+    fireEvent.click(picker);
+    fireEvent.change(picker, { target: { value: oversizedLabel } });
+    expect(screen.queryByRole("option", { name: oversizedLabel })).toBeNull();
+    fireEvent.change(picker, { target: { value: boundaryLabel } });
+    fireEvent.click(await screen.findByRole("option", { name: boundaryLabel }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    const key = field === "Labels" ? "labels" : "excludeLabels";
+    expect(editor.state.doc.firstChild.attrs).toEqual({
+      ...original,
+      [key]: [...original[key], boundaryLabel],
+    });
+  },
+);
 
 it("allows empty label filters and discards display changes on cancel", async () => {
   vi.mocked(api.post).mockResolvedValue({ data: [] });
