@@ -35,7 +35,7 @@ import {
   Embed,
   Mention,
   Subpages,
-  PagesByLabel,
+  ItemsByLabel,
   Highlight,
   Color,
   Indent,
@@ -139,7 +139,7 @@ export const tiptapExtensions = [
   Embed,
   Mention,
   Subpages,
-  PagesByLabel,
+  ItemsByLabel,
   Columns,
   Column,
   Status,
@@ -185,7 +185,7 @@ export function jsonToText(tiptapJson: JSONContent) {
   // Public search snippets use this stored text before the page is rendered.
   return collapseBlankLines(
     generateText(tiptapJson, templateExtensions, {
-      textSerializers: { pagesByLabel: () => '' },
+      textSerializers: { itemsByLabel: () => '' },
     }),
   );
 }

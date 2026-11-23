@@ -14,10 +14,10 @@ import {
   Min,
 } from 'class-validator';
 import {
-  PAGES_BY_LABEL_DEFAULT_LIMIT,
-  PAGES_BY_LABEL_MAX_FILTERS,
-  PAGES_BY_LABEL_MAX_LABEL_LENGTH,
-  PAGES_BY_LABEL_MAX_LIMIT,
+  ITEMS_BY_LABEL_DEFAULT_LIMIT,
+  ITEMS_BY_LABEL_MAX_FILTERS,
+  ITEMS_BY_LABEL_MAX_LABEL_LENGTH,
+  ITEMS_BY_LABEL_MAX_LIMIT,
 } from '@docmost/editor-ext';
 import { normalizeLabelName } from '../utils';
 
@@ -32,10 +32,10 @@ function normalizeNames({ value }: TransformFnParams) {
 export class QueryLabelPagesDto {
   @Transform(normalizeNames)
   @IsArray()
-  @ArrayMaxSize(PAGES_BY_LABEL_MAX_FILTERS)
+  @ArrayMaxSize(ITEMS_BY_LABEL_MAX_FILTERS)
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
-  @MaxLength(PAGES_BY_LABEL_MAX_LABEL_LENGTH, { each: true })
+  @MaxLength(ITEMS_BY_LABEL_MAX_LABEL_LENGTH, { each: true })
   labels: string[] = [];
 
   @IsIn(['any', 'all'])
@@ -43,17 +43,17 @@ export class QueryLabelPagesDto {
 
   @Transform(normalizeNames)
   @IsArray()
-  @ArrayMaxSize(PAGES_BY_LABEL_MAX_FILTERS)
+  @ArrayMaxSize(ITEMS_BY_LABEL_MAX_FILTERS)
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
-  @MaxLength(PAGES_BY_LABEL_MAX_LABEL_LENGTH, { each: true })
+  @MaxLength(ITEMS_BY_LABEL_MAX_LABEL_LENGTH, { each: true })
   excludeLabels: string[] = [];
 
   @IsIn(['current', 'spaces', 'workspace'])
   scope: 'current' | 'spaces' | 'workspace' = 'current';
 
   @IsArray()
-  @ArrayMaxSize(PAGES_BY_LABEL_MAX_FILTERS)
+  @ArrayMaxSize(ITEMS_BY_LABEL_MAX_FILTERS)
   @IsUUID(undefined, { each: true })
   spaceIds: string[] = [];
 
@@ -73,8 +73,8 @@ export class QueryLabelPagesDto {
 
   @IsInt()
   @Min(1)
-  @Max(PAGES_BY_LABEL_MAX_LIMIT)
-  limit: number = PAGES_BY_LABEL_DEFAULT_LIMIT;
+  @Max(ITEMS_BY_LABEL_MAX_LIMIT)
+  limit: number = ITEMS_BY_LABEL_DEFAULT_LIMIT;
 
   @IsBoolean()
   excludeCurrentPage = false;

@@ -53,7 +53,7 @@ import {
   TableHeaderPin,
   TableReadonlySort,
   Subpages,
-  PagesByLabel,
+  ItemsByLabel,
   Heading,
   SectionAnchor,
   Highlight,
@@ -419,7 +419,7 @@ export const mainExtensions = [
   Subpages.configure({
     view: SubpagesView,
   }),
-  PagesByLabel.configure({
+  ItemsByLabel.configure({
     defaultHeading: () => i18n.t("Pages by label"),
     view: PagesByLabelView,
   }),

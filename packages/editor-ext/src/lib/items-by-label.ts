@@ -5,13 +5,13 @@ import type { ComponentType } from 'react';
 import { validate as isUuid } from 'uuid';
 import isLength from 'validator/lib/isLength';
 
-export const PAGES_BY_LABEL_DEFAULT_LIMIT = 15;
-export const PAGES_BY_LABEL_MAX_LIMIT = 500;
-export const PAGES_BY_LABEL_MAX_FILTERS = 100;
-export const PAGES_BY_LABEL_MAX_LABEL_LENGTH = 100;
-export const PAGES_BY_LABEL_MAX_HEADING_LENGTH = 255;
+export const ITEMS_BY_LABEL_DEFAULT_LIMIT = 15;
+export const ITEMS_BY_LABEL_MAX_LIMIT = 500;
+export const ITEMS_BY_LABEL_MAX_FILTERS = 100;
+export const ITEMS_BY_LABEL_MAX_LABEL_LENGTH = 100;
+export const ITEMS_BY_LABEL_MAX_HEADING_LENGTH = 255;
 
-export interface PagesByLabelAttributes {
+export interface ItemsByLabelAttributes {
   labels: string[];
   match: 'any' | 'all';
   excludeLabels: string[];
@@ -26,7 +26,7 @@ export interface PagesByLabelAttributes {
   excludeCurrentPage: boolean;
 }
 
-const defaults: PagesByLabelAttributes = {
+const defaults: ItemsByLabelAttributes = {
   labels: [],
   match: 'any',
   excludeLabels: [],
@@ -34,34 +34,34 @@ const defaults: PagesByLabelAttributes = {
   spaceIds: [],
   sortBy: 'title',
   sortDirection: 'asc',
-  limit: PAGES_BY_LABEL_DEFAULT_LIMIT,
+  limit: ITEMS_BY_LABEL_DEFAULT_LIMIT,
   heading: '',
   showLabels: false,
   showSpace: false,
   excludeCurrentPage: false,
 };
 
-export function pagesByLabelNameWithinLimit(name: string): boolean {
-  return isLength(name, { min: 1, max: PAGES_BY_LABEL_MAX_LABEL_LENGTH });
+export function itemsByLabelNameWithinLimit(name: string): boolean {
+  return isLength(name, { min: 1, max: ITEMS_BY_LABEL_MAX_LABEL_LENGTH });
 }
 
 function normalizeList(value: unknown, isSpace = false): string[] | null {
-  if (!Array.isArray(value) || value.length > PAGES_BY_LABEL_MAX_FILTERS)
+  if (!Array.isArray(value) || value.length > ITEMS_BY_LABEL_MAX_FILTERS)
     return null;
   const result = new Set<string>();
   for (const raw of value) {
     if (typeof raw !== 'string') return null;
     const item = isSpace ? raw : raw.trim().replace(/\s+/g, '-').toLowerCase();
-    if (isSpace ? !isUuid(item) : !pagesByLabelNameWithinLimit(item))
+    if (isSpace ? !isUuid(item) : !itemsByLabelNameWithinLimit(item))
       return null;
     result.add(item);
   }
   return [...result];
 }
 
-export function parsePagesByLabelAttributes(
+export function parseItemsByLabelAttributes(
   value: unknown,
-): PagesByLabelAttributes | null {
+): ItemsByLabelAttributes | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const attrs = { ...defaults, ...value };
   const labels = normalizeList(attrs.labels);
@@ -79,9 +79,9 @@ export function parsePagesByLabelAttributes(
     !['asc', 'desc'].includes(attrs.sortDirection) ||
     !Number.isInteger(attrs.limit) ||
     attrs.limit < 1 ||
-    attrs.limit > PAGES_BY_LABEL_MAX_LIMIT ||
+    attrs.limit > ITEMS_BY_LABEL_MAX_LIMIT ||
     typeof attrs.heading !== 'string' ||
-    !isLength(attrs.heading, { max: PAGES_BY_LABEL_MAX_HEADING_LENGTH }) ||
+    !isLength(attrs.heading, { max: ITEMS_BY_LABEL_MAX_HEADING_LENGTH }) ||
     [attrs.showLabels, attrs.showSpace, attrs.excludeCurrentPage].some(
       (flag) => typeof flag !== 'boolean',
     )
@@ -103,33 +103,33 @@ export function parsePagesByLabelAttributes(
   };
 }
 
-export function normalizePagesByLabelAttributes(
+export function normalizeItemsByLabelAttributes(
   value: unknown,
-): PagesByLabelAttributes {
-  return parsePagesByLabelAttributes(value) ?? defaults;
+): ItemsByLabelAttributes {
+  return parseItemsByLabelAttributes(value) ?? defaults;
 }
 
-type PagesByLabelOptions = {
+type ItemsByLabelOptions = {
   defaultHeading: () => string;
   view: ComponentType<ReactNodeViewProps> | null;
 };
 
-export const pagesByLabelSettingsKey = new PluginKey<number | null>(
-  'pagesByLabelSettings',
+export const itemsByLabelSettingsKey = new PluginKey<number | null>(
+  'itemsByLabelSettings',
 );
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
-    pagesByLabel: {
-      insertPagesByLabel: (
-        attributes?: Partial<PagesByLabelAttributes>,
+    itemsByLabel: {
+      insertItemsByLabel: (
+        attributes?: Partial<ItemsByLabelAttributes>,
       ) => ReturnType;
     };
   }
 }
 
-export const PagesByLabel = Node.create<PagesByLabelOptions>({
-  name: 'pagesByLabel',
+export const ItemsByLabel = Node.create<ItemsByLabelOptions>({
+  name: 'itemsByLabel',
   group: 'block',
   atom: true,
   draggable: true,
@@ -151,7 +151,7 @@ export const PagesByLabel = Node.create<PagesByLabelOptions>({
   parseHTML() {
     return [
       {
-        tag: 'div[data-type="pages-by-label"]',
+        tag: 'div[data-type="items-by-label"]',
         getAttrs: (element: HTMLElement) => {
           try {
             const config = JSON.parse(
@@ -161,7 +161,7 @@ export const PagesByLabel = Node.create<PagesByLabelOptions>({
               Object.keys(config).some((key) => !Object.hasOwn(defaults, key))
             )
               return defaults;
-            return normalizePagesByLabelAttributes(config);
+            return normalizeItemsByLabelAttributes(config);
           } catch {
             return defaults;
           }
@@ -171,11 +171,11 @@ export const PagesByLabel = Node.create<PagesByLabelOptions>({
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    const attrs = normalizePagesByLabelAttributes(node.attrs);
+    const attrs = normalizeItemsByLabelAttributes(node.attrs);
     return [
       'div',
       mergeAttributes(HTMLAttributes, {
-        'data-type': 'pages-by-label',
+        'data-type': 'items-by-label',
         'data-config': JSON.stringify(attrs),
       }),
       attrs.heading || 'Pages by label',
@@ -184,17 +184,17 @@ export const PagesByLabel = Node.create<PagesByLabelOptions>({
 
   renderText({ node }) {
     return (
-      normalizePagesByLabelAttributes(node.attrs).heading || 'Pages by label'
+      normalizeItemsByLabelAttributes(node.attrs).heading || 'Pages by label'
     );
   },
 
   addCommands() {
     return {
-      insertPagesByLabel:
+      insertItemsByLabel:
         (attributes) =>
         ({ commands, dispatch, tr }) => {
           const node = this.type.create(
-            normalizePagesByLabelAttributes({
+            normalizeItemsByLabelAttributes({
               ...attributes,
               scope: attributes?.scope ?? 'workspace',
               heading: attributes?.heading ?? this.options.defaultHeading(),
@@ -209,7 +209,7 @@ export const PagesByLabel = Node.create<PagesByLabelOptions>({
               .forEach((_a, _b, from, to) => {
                 tr.doc.nodesBetween(from, to, (child, pos) => {
                   if (child.type === this.type)
-                    tr.setMeta(pagesByLabelSettingsKey, pos);
+                    tr.setMeta(itemsByLabelSettingsKey, pos);
                 });
               });
           }
@@ -221,11 +221,11 @@ export const PagesByLabel = Node.create<PagesByLabelOptions>({
   addProseMirrorPlugins() {
     return [
       new Plugin({
-        key: pagesByLabelSettingsKey,
+        key: itemsByLabelSettingsKey,
         state: {
           init: () => null,
           apply(tr, pos: number | null) {
-            const request = tr.getMeta(pagesByLabelSettingsKey);
+            const request = tr.getMeta(itemsByLabelSettingsKey);
             if (request !== undefined) return request;
             if (pos === null) return null;
             const mapped = tr.mapping.mapResult(pos);

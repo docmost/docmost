@@ -236,7 +236,7 @@ it('keeps private label block headings and filters out of indexed text', () => {
     type: 'doc',
     content: [
       { type: 'paragraph', content: [{ type: 'text', text: 'Published introduction' }] },
-      { type: 'pagesByLabel', attrs: { heading: 'Internal handbook', labels: ['private-tag'] } },
+      { type: 'itemsByLabel', attrs: { heading: 'Internal handbook', labels: ['private-tag'] } },
     ],
   };
   expect(jsonToText(content).trim()).toBe('Published introduction');

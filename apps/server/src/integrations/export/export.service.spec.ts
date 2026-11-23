@@ -131,10 +131,10 @@ it.each([ExportFormat.HTML, ExportFormat.Markdown])(
         type: 'doc',
         content: [
           {
-            type: 'pagesByLabel',
+            type: 'itemsByLabel',
             attrs: { labels: ['private-tag'], heading: 'Field guides' },
           },
-          { type: 'pagesByLabel', attrs: { labels: ['private-tag'] } },
+          { type: 'itemsByLabel', attrs: { labels: ['private-tag'] } },
         ],
       },
     };
