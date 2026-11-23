@@ -36,7 +36,7 @@ describe("Pages by label", () => {
       excludeLabels: ["draft"],
       match: "all",
       heading: "Rollout",
-      scope: "current",
+      scope: "workspace",
       limit: 15,
     });
   });
@@ -88,12 +88,26 @@ describe("Pages by label", () => {
     ]);
   });
 
+  it("keeps an explicitly empty heading on insert and import", () => {
+    const editor = createEditor();
+    editor.commands.insertPagesByLabel({ heading: "" });
+    expect(editor.state.doc.firstChild.attrs.heading).toBe("");
+    expect(
+      createEditor(editor.getHTML()).state.doc.firstChild.attrs.heading,
+    ).toBe("");
+    expect(
+      createEditor('<div data-type="pages-by-label"></div>').state.doc
+        .firstChild.attrs.heading,
+    ).toBe("");
+  });
+
   it("only requests settings for the locally inserted empty block", () => {
     const editor = createEditor();
     editor.can().insertPagesByLabel();
     expect(pagesByLabelSettingsKey.getState(editor.state)).toBeNull();
     editor.commands.insertPagesByLabel();
     expect(pagesByLabelSettingsKey.getState(editor.state)).toBe(0);
+    expect(editor.state.doc.firstChild.attrs.heading).toBe("Pages by label");
     expect(
       pagesByLabelSettingsKey.getState(createEditor(editor.getHTML()).state),
     ).toBeNull();

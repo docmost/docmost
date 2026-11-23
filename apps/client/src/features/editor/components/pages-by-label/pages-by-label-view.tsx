@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Modal, Paper } from "@mantine/core";
+import { ActionIcon, Group, Paper } from "@mantine/core";
 import { IconSettings, IconTags } from "@tabler/icons-react";
 import {
   normalizePagesByLabelAttributes,
@@ -113,34 +113,24 @@ export function PagesByLabelView({
         </PageListLayout>
       )}
       {editable && editing && (
-        <Modal
-          opened
+        <PagesByLabelSettings
+          initial={editing}
           onClose={() => setEditing(null)}
-          title={t("Pages by label")}
-          size={576}
-          padding={24}
-          classNames={{ title: styles.modalTitle, header: styles.modalHeader }}
-          closeButtonProps={{ "aria-label": t("Close") }}
-        >
-          <PagesByLabelSettings
-            initial={editing}
-            onClose={() => setEditing(null)}
-            onSave={(changes) => {
-              if (editor.isEditable && Object.keys(changes).length) {
-                const pos = getPos();
-                const current =
-                  typeof pos === "number" && editor.state.doc.nodeAt(pos);
-                if (current && current.type === node.type) {
-                  updateAttributes({
-                    ...normalizePagesByLabelAttributes(current.attrs),
-                    ...changes,
-                  });
-                }
+          onSave={(changes) => {
+            if (editor.isEditable && Object.keys(changes).length) {
+              const pos = getPos();
+              const current =
+                typeof pos === "number" && editor.state.doc.nodeAt(pos);
+              if (current && current.type === node.type) {
+                updateAttributes({
+                  ...normalizePagesByLabelAttributes(current.attrs),
+                  ...changes,
+                });
               }
-              setEditing(null);
-            }}
-          />
-        </Modal>
+            }
+            setEditing(null);
+          }}
+        />
       )}
     </NodeViewWrapper>
   );
