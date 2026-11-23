@@ -5,11 +5,19 @@ import { getFileUrl } from "@/lib/config.ts";
 import clsx from "clsx";
 import classes from "./image-view.module.css";
 import { useTranslation } from "react-i18next";
+import { sanitizeUrl } from "@docmost/editor-ext";
 
 export default function ImageView(props: NodeViewProps) {
   const { t } = useTranslation();
   const { editor, node, selected } = props;
   const { src, width, align, alt, aspectRatio, placeholder } = node.attrs;
+  const imageHref = sanitizeUrl(node.attrs.href);
+  const href =
+    imageHref &&
+    (props.extension.options.resolveLink?.(imageHref) ?? imageHref);
+  const image = src && (
+    <Image radius="md" fit="contain" src={getFileUrl(src)} alt={alt} />
+  );
   const alignClass = useMemo(() => {
     if (align === "left") return "alignLeft";
     if (align === "right") return "alignRight";
@@ -41,8 +49,24 @@ export default function ImageView(props: NodeViewProps) {
           width,
         }}
       >
-        {src && (
-          <Image radius="md" fit="contain" src={getFileUrl(src)} alt={alt} />
+        {image && href ? (
+          <a
+            href={href}
+            aria-label={alt ? undefined : href}
+            onClick={(event) => {
+              if (
+                editor.isEditable &&
+                event.detail &&
+                !event.ctrlKey &&
+                !event.metaKey
+              )
+                event.preventDefault();
+            }}
+          >
+            {image}
+          </a>
+        ) : (
+          image
         )}
         {!src && previewSrc && (
           <Group pos="relative" h="100%" w="100%">

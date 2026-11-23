@@ -309,12 +309,7 @@ function CollabPageEditor({
 }: CollabPageEditorProps) {
   const { t } = useTranslation();
   const provider = useHocuspocusProvider();
-  const isComponentMounted = useRef(false);
   const editorRef = useRef<Editor | null>(null);
-
-  useEffect(() => {
-    isComponentMounted.current = true;
-  }, []);
 
   const setPageEditor = useSetAtom(pageEditorBindingAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
@@ -344,11 +339,6 @@ function CollabPageEditor({
   const canType =
     !showStatic && editable && editMode === PageEditMode.Edit &&
     !isCheckingLock && (!requiresConnection || isRemoteSynced);
-  const canScroll = useCallback(
-    () => Boolean(isComponentMounted.current && editorRef.current),
-    [isComponentMounted],
-  );
-  const { handleScrollTo } = useEditorScroll({ canScroll });
 
   useHocuspocusEvent("synced", ({ state }) => setIsRemoteSynced(state));
   useHocuspocusEvent("status", ({ status }) => {
@@ -477,7 +467,6 @@ function CollabPageEditor({
         if (editor) {
           // @ts-ignore
           editor.storage.pageId = pageId;
-          handleScrollTo(editor);
           editorRef.current = editor;
         }
       },
@@ -489,6 +478,7 @@ function CollabPageEditor({
     },
     [pageId, extensions],
   );
+  useEditorScroll(editor, !showStatic);
 
   useEffect(() => {
     // Read by the paste handler with no observer, so it must not be garbage collected.
@@ -686,5 +676,6 @@ function StaticPageEditor({
     );
   }, [editor]);
 
+  useEditorScroll(editor);
   return <EditorContent editor={editor} />;
 }

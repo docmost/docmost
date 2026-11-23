@@ -19,7 +19,7 @@ export const TableHeader = TiptapTableHeader.extend({
             return {};
           }
           return {
-            style: `background-color: ${attributes.backgroundColor}`,
+            style: `background-color: ${attributes.backgroundColor}; --cell-bg: ${attributes.backgroundColor}`,
             "data-background-color": attributes.backgroundColor,
           };
         },

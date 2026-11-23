@@ -5,11 +5,11 @@ import { Superscript } from '@tiptap/extension-superscript';
 import SubScript from '@tiptap/extension-subscript';
 import { Typography } from '@tiptap/extension-typography';
 import { TextStyle } from '@tiptap/extension-text-style';
-import { Color } from '@tiptap/extension-color';
 import { Youtube } from '@tiptap/extension-youtube';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import {
   Heading,
+  SectionAnchor,
   Callout,
   Comment,
   CustomCodeBlock,
@@ -37,6 +37,7 @@ import {
   Subpages,
   PagesByLabel,
   Highlight,
+  Color,
   Indent,
   UniqueID,
   Columns,
@@ -92,8 +93,9 @@ export const tiptapExtensions = [
     content: 'block+ footnotes?',
   }),
   Heading,
+  SectionAnchor,
   UniqueID.configure({
-    types: ['heading', 'paragraph', 'transclusionSource'],
+    types: ['heading', 'paragraph', 'transclusionSource', 'sectionAnchor'],
   }),
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),

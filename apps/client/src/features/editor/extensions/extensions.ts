@@ -12,7 +12,6 @@ import { Superscript } from "@tiptap/extension-superscript";
 import SubScript from "@tiptap/extension-subscript";
 import { Typography } from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
-import { Color } from "@tiptap/extension-color";
 import { Youtube } from "@tiptap/extension-youtube";
 import SlashCommand, {
   SlashCommandExtension as Command,
@@ -56,7 +55,9 @@ import {
   Subpages,
   PagesByLabel,
   Heading,
+  SectionAnchor,
   Highlight,
+  Color,
   Indent,
   ListItem,
   TaskItem,
@@ -213,8 +214,9 @@ export const mainExtensions = [
   }),
   SharedStorage,
   Heading.configure({ translate: (label) => i18n.t(label) }),
+  SectionAnchor,
   UniqueID.configure({
-    types: ["heading", "paragraph", "transclusionSource"],
+    types: ["heading", "paragraph", "transclusionSource", "sectionAnchor"],
     filterTransaction: (transaction) => !isChangeOrigin(transaction),
   }),
   Placeholder.configure({

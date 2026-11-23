@@ -1,4 +1,4 @@
-import { updateUserMentionLabels } from './utils';
+import { extractInternalLinkSlugIds, updateUserMentionLabels } from './utils';
 
 const ADA = '0190c3c5-8b7d-7c3e-9a53-6f3f2a1b4c5d';
 const BOB = '0190c3c5-8b7d-7c3e-9a53-6f3f2a1b4c5e';
@@ -42,6 +42,32 @@ function mentionLabels(node: any): string[] {
 function lookup(users: UserName[]) {
   return jest.fn(async (_userIds: string[]) => users);
 }
+
+describe('extractInternalLinkSlugIds', () => {
+  it('deduplicates linked images and text while ignoring external and file destinations', () => {
+    const linkedImage = (href: string) => ({
+      type: 'image',
+      attrs: { src: '/api/files/attachment/tile.png', href },
+    });
+    const content = doc(
+      linkedImage('/p/guide-abc123#overview'),
+      paragraph({
+        type: 'text',
+        text: 'Guide',
+        marks: [
+          {
+            type: 'link',
+            attrs: { href: '/s/team/p/guide-abc123', internal: true },
+          },
+        ],
+      }),
+      linkedImage('/s/team/p/another-def456?view=full'),
+      linkedImage('https://elsewhere.example/s/team/p/other-xyz'),
+      linkedImage('/api/files/attachment/manual.pdf'),
+    );
+    expect(extractInternalLinkSlugIds(content)).toEqual(['abc123', 'def456']);
+  });
+});
 
 describe('updateUserMentionLabels', () => {
   it('puts current names on user mentions anywhere in the document', async () => {
