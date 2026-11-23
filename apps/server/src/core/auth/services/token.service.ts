@@ -132,8 +132,10 @@ export class TokenService {
   async generatePdfExportDownloadToken(
     fileTaskId: string,
     workspaceId: string,
+    userId: string,
   ): Promise<string> {
     const payload: JwtPdfExportDownloadPayload = {
+      sub: userId,
       fileTaskId,
       workspaceId,
       type: JwtType.PDF_EXPORT_DOWNLOAD,

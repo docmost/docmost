@@ -56,6 +56,7 @@ export type JwtPdfRenderPayload = {
 };
 
 export type JwtPdfExportDownloadPayload = {
+  sub?: string;
   fileTaskId: string;
   workspaceId: string;
   type: 'pdf_export_download';
