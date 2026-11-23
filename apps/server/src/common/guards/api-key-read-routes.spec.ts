@@ -15,6 +15,7 @@ const READ_ROUTES = [
   'POST /groups/members',
   'POST /labels',
   'POST /labels/pages',
+  'POST /labels/query-pages',
   'POST /notifications',
   'POST /notifications/unread-count',
   'POST /pages/attachments',

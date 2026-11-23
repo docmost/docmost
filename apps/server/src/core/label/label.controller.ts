@@ -28,6 +28,7 @@ import {
   SpaceCaslSubject,
 } from '../casl/interfaces/space-ability.type';
 import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
+import { QueryLabelPagesDto } from './dto/query-label-pages.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('labels')
@@ -94,6 +95,17 @@ export class LabelController {
       query: pagination.query,
       pagination,
     });
+  }
+
+  @ApiKeyScope('read')
+  @HttpCode(HttpStatus.OK)
+  @Post('query-pages')
+  async queryPages(
+    @Body() dto: QueryLabelPagesDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.labelRepo.queryPages(workspace.id, user.id, dto);
   }
 
   // @HttpCode(HttpStatus.OK)

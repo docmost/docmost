@@ -8,6 +8,8 @@ import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { normalizeLabelName } from '../../../core/label/utils';
+import { PagePermissionRepo } from '../page/page-permission.repo';
+import type { QueryLabelPagesDto } from '../../../core/label/dto/query-label-pages.dto';
 
 export const LabelType = {
   PAGE: 'page',
@@ -21,6 +23,7 @@ export class LabelRepo {
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly spaceMemberRepo: SpaceMemberRepo,
+    private readonly pagePermissionRepo: PagePermissionRepo,
   ) {}
 
   async findById(
@@ -346,6 +349,136 @@ export class LabelRepo {
         id: cursor.id,
       }),
     });
+  }
+
+  async queryPages(
+    workspaceId: string,
+    userId: string,
+    options: QueryLabelPagesDto,
+  ) {
+    const labels = [...new Set(options.labels)];
+    const hasSpaceIds = options.spaceIds.length > 0;
+    if (!labels.length || (options.scope === 'spaces') !== hasSpaceIds) {
+      return { items: [] };
+    }
+
+    let contextSpaceId = options.contextSpaceId;
+    if (options.pageId) {
+      const host = await this.db
+        .selectFrom('pages')
+        .select('spaceId')
+        .where('pages.id', '=', options.pageId)
+        .where('pages.workspaceId', '=', workspaceId)
+        .where('pages.deletedAt', 'is', null)
+        .where(
+          'pages.spaceId',
+          'in',
+          this.spaceMemberRepo.getUserSpaceIdsQuery(userId),
+        )
+        .where(this.pagePermissionRepo.canUserAccessPageExpression(userId))
+        .executeTakeFirst();
+      if (!host) return { items: [] };
+      contextSpaceId = host.spaceId;
+    }
+    if (options.scope === 'current' && !contextSpaceId) return { items: [] };
+
+    const labeledPages = this.db
+      .selectFrom('labels')
+      .innerJoin('pageLabels', 'pageLabels.labelId', 'labels.id')
+      .select('pageLabels.pageId')
+      .where('labels.workspaceId', '=', workspaceId)
+      .where('labels.type', '=', LabelType.PAGE);
+    let included = labeledPages.where('labels.name', 'in', labels);
+    if (options.match === 'all' && labels.length > 1) {
+      included = included
+        .groupBy('pageLabels.pageId')
+        .having((eb) => eb.fn.count('labels.id'), '=', labels.length);
+    }
+
+    const dateColumn =
+      options.sortBy === 'createdAt' ? 'pages.createdAt' : 'pages.updatedAt';
+    let query = this.db
+      .selectFrom('pages')
+      .innerJoin('spaces', 'spaces.id', 'pages.spaceId')
+      .select([
+        'pages.id',
+        'pages.slugId',
+        'pages.title',
+        'pages.icon',
+        'pages.isBase',
+        dateColumn,
+        'spaces.id as spaceId',
+        'spaces.slug as spaceSlug',
+        'spaces.name as spaceName',
+        'spaces.archivedAt as spaceArchivedAt',
+      ])
+      .where('pages.workspaceId', '=', workspaceId)
+      .whereRef('spaces.workspaceId', '=', 'pages.workspaceId')
+      .where('pages.deletedAt', 'is', null)
+      .where(
+        'pages.spaceId',
+        'in',
+        this.spaceMemberRepo.getUserSpaceIdsQuery(userId, {
+          excludeArchived: true,
+          keepArchivedSpaceId: contextSpaceId,
+        }),
+      )
+      .where('pages.id', 'in', included)
+      .where(this.pagePermissionRepo.canUserAccessPageExpression(userId));
+    if (options.scope === 'current')
+      query = query.where('pages.spaceId', '=', contextSpaceId);
+    if (options.scope === 'spaces')
+      query = query.where('pages.spaceId', 'in', options.spaceIds);
+    if (options.excludeLabels.length) {
+      query = query.where(
+        'pages.id',
+        'not in',
+        labeledPages.where('labels.name', 'in', options.excludeLabels),
+      );
+    }
+    if (options.excludeCurrentPage && options.pageId)
+      query = query.where('pages.id', '!=', options.pageId);
+
+    const rows = await query
+      .$if(options.showLabels, (qb) =>
+        qb.select((eb) =>
+          jsonArrayFrom(
+            eb
+              .selectFrom('pageLabels')
+              .innerJoin('labels', 'labels.id', 'pageLabels.labelId')
+              .select('labels.name')
+              .whereRef('pageLabels.pageId', '=', 'pages.id')
+              .where('labels.workspaceId', '=', workspaceId)
+              .where('labels.type', '=', LabelType.PAGE)
+              .orderBy('labels.name'),
+          ).as('labels'),
+        ),
+      )
+      .orderBy(
+        (eb) =>
+          options.sortBy === 'title'
+            ? eb.fn<string>('lower', ['pages.title'])
+            : eb.ref(dateColumn),
+        options.sortDirection,
+      )
+      .orderBy('pages.id', 'asc')
+      .limit(options.limit)
+      .execute();
+
+    return {
+      items: rows.map(
+        ({ spaceId, spaceName, spaceSlug, spaceArchivedAt, labels, ...page }) => ({
+          ...page,
+          space: {
+            id: spaceId,
+            name: spaceName,
+            slug: spaceSlug,
+            archivedAt: spaceArchivedAt,
+          },
+          ...(labels && { labels: labels.map(({ name }) => name) }),
+        }),
+      ),
+    };
   }
 
   async getLabelPageCountForUser(

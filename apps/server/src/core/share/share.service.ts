@@ -19,6 +19,7 @@ import {
   removeMarkTypeFromDoc,
 } from '../../common/helpers/prosemirror/utils';
 import { Node } from '@tiptap/pm/model';
+import { Transform } from '@tiptap/pm/transform';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { updateAttachmentAttr, updateAttachmentUrl } from './share.util';
@@ -490,7 +491,7 @@ export class ShareService {
    *    content, the source page for transcluded source-block content
    *    (attachments in a sync block were uploaded onto the source page).
    *
-   * 2. Remove template instructions and strip `comment` marks from the
+   * 2. Remove private page queries, template instructions and `comment` marks from the
    *    surrounding page content.
    *
    * Both share-content paths — the host page (`updatePublicAttachments`) and
@@ -520,7 +521,13 @@ export class ShareService {
 
     const doc = jsonToNode(pmJson);
     if (!doc) return null;
-    doc.descendants((node: Node) => {
+    const tr = new Transform(doc);
+    doc.descendants((node: Node, pos: number) => {
+      if (node.type.name === 'pagesByLabel') {
+        const from = tr.mapping.map(pos);
+        tr.delete(from, from + node.nodeSize);
+        return false;
+      }
       if (!isAttachmentNode(node.type.name)) return;
       const token = tokenMap.get(node.attrs.attachmentId);
       if (!token) return;
@@ -528,7 +535,7 @@ export class ShareService {
       updateAttachmentAttr(node, 'url', token);
     });
 
-    const publicDoc = doc.copy(withoutTemplatePlaceholders(doc.content));
+    const publicDoc = tr.doc.copy(withoutTemplatePlaceholders(tr.doc.content));
     return removeMarkTypeFromDoc(publicDoc, 'comment');
   }
 }
