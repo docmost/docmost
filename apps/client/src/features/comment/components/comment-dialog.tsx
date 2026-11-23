@@ -192,13 +192,19 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
 
         <CommentErrorBoundary>
           <CommentEditor
+            defaultContent={initialDraft || undefined}
             onUpdate={handleCommentEditorChange}
             onSave={handleAddComment}
             placeholder={t("Write a comment")}
             editable={true}
             autofocus={true}
           />
-          <CommentActions onSave={handleAddComment} isLoading={isPending} />
+          <CommentActions
+            isCommentEditor
+            onSave={handleAddComment}
+            onCancel={handleCancel}
+            isLoading={isPending}
+          />
         </CommentErrorBoundary>
       </Stack>
     </Dialog>
