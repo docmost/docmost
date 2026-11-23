@@ -72,10 +72,6 @@
         height: auto;
     }
 
-    .ProseMirror :global(.tableWrapper) table {
-        min-width: 100% !important;
-    }
-
     .actions {
 
     }

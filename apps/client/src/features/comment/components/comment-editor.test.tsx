@@ -85,29 +85,55 @@ it("preserves attachment and web images copied into an empty reply", () => {
   expect(editor.getText().trim()).toBe("");
 });
 
-it("keeps colored text in table cells and nested tasks when a reply is edited", () => {
-  const { getByLabelText } = render(<CommentEditor editable />);
+it("pastes table cells in order and saves their contents as ordinary comment blocks", () => {
+  const href = "https://example.org/guide";
+  const update = vi.fn<(content: JSONContent) => void>();
+  const { container, getByLabelText, getByRole, rerender } = render(
+    <CommentEditor editable onUpdate={update} />,
+  );
   const { editor } = getByLabelText("Comment") as HTMLElement & {
     editor: Editor;
   };
+  expect(editor.schema.nodes.table).toBeUndefined();
   act(() => {
-    editor.commands.setContent(
-      '<table><tr><td><p><span data-text-color="#13579b" style="color: #13579b">Owner</span></p></td></tr></table>' +
+    editor.view.pasteHTML(
+      '<table><tr><th>Team</th><td><span data-text-color="#13579b" style="color: #13579b">Owner</span></td></tr>' +
+        `<tr><td><p><a href="${href}">Guide</a></p><p>Next</p></td>` +
+        `<td><img src="${image.attrs.src}" alt="Thread diagram" data-attachment-id="${image.attrs.attachmentId}"></td></tr></table>` +
         '<ul data-type="taskList"><li data-type="taskItem"><p>Review</p>' +
         '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><p>Done</p></li></ul></li></ul>',
+      new Event("paste") as ClipboardEvent,
     );
   });
-  const table = editor.state.doc.child(0);
-  expect(table.type.name).toBe("table");
-  const cell = table.child(0).child(0);
-  expect(cell.child(0).child(0).toJSON()).toMatchObject({
-    text: "Owner",
-    marks: [{ type: "textStyle", attrs: { color: "#13579b" } }],
-  });
-  const tasks = editor.state.doc.child(1);
+  const saved = update.mock.lastCall[0];
+  expect(saved.content.slice(0, 5)).toMatchObject([
+    { type: "paragraph", content: [{ text: "Team" }] },
+    {
+      type: "paragraph",
+      content: [
+        { text: "Owner", marks: [{ type: "textStyle", attrs: { color: "#13579b" } }] },
+      ],
+    },
+    {
+      type: "paragraph",
+      content: [{ text: "Guide", marks: [{ type: "link", attrs: { href } }] }],
+    },
+    { type: "paragraph", content: [{ text: "Next" }] },
+    image,
+  ]);
+  const tasks = editor.state.doc.child(5);
   expect(tasks.type.name).toBe("taskList");
   expect(tasks.child(0).child(1).toJSON()).toMatchObject({
     type: "taskList",
     content: [{ type: "taskItem", attrs: { checked: true } }],
   });
+
+  rerender(
+    <CommentEditor key="saved" editable={false} defaultContent={saved} />,
+  );
+  expect(container.querySelector("table")).toBeNull();
+  expect(getByRole("link", { name: "Guide" }).getAttribute("href")).toBe(href);
+  expect(getByRole("img", { name: "Thread diagram" }).getAttribute("src")).toBe(
+    image.attrs.src,
+  );
 });
