@@ -157,18 +157,22 @@ export interface BasePendingConversions {
   workspaceId: string;
 }
 
+export type BasePropertyScope = 'baseRows' | 'page';
+
 export interface BaseProperties {
   createdAt: Generated<Timestamp>;
   deletedAt: Timestamp | null;
   id: Generated<string>;
   isPrimary: Generated<boolean>;
+  metadataPageId: string | null;
   name: string;
-  pageId: string;
+  pageId: string | null;
   pendingType: string | null;
   pendingTypeOptions: Json | null;
   pendingToken: string | null;
   position: string;
   schemaVersion: Generated<number>;
+  scope: Generated<BasePropertyScope>;
   type: string;
   typeOptions: Json | null;
   updatedAt: Generated<Timestamp>;
@@ -182,8 +186,10 @@ export interface BaseRows {
   deletedAt: Timestamp | null;
   id: Generated<string>;
   lastUpdatedById: string | null;
-  pageId: string;
+  metadataPageId: string | null;
+  pageId: string | null;
   position: string;
+  scope: Generated<BasePropertyScope>;
   updatedAt: Generated<Timestamp>;
   workspaceId: string;
 }

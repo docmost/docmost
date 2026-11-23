@@ -7,7 +7,7 @@ import {
   SpaceCaslSubject,
 } from '../../casl/interfaces/space-ability.type';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
-import { CacheOptions } from '../../../common/helpers/with-cache';
+import type { PermissionQueryOptions } from '@docmost/db/types/kysely.types';
 
 @Injectable()
 export class PageAccessService {
@@ -23,9 +23,9 @@ export class PageAccessService {
    * If no restrictions: space-level permission determines access.
    */
   async validateCanView(
-    page: Page,
+    page: Pick<Page, 'id' | 'spaceId'>,
     user: User,
-    opts?: CacheOptions,
+    opts?: PermissionQueryOptions,
   ): Promise<void> {
     // TODO: cache by pageId and userId.
     const ability = await this.spaceAbility.createForUser(
@@ -84,10 +84,15 @@ export class PageAccessService {
    * If no restrictions: space-level edit permission determines access.
    */
   async validateCanEdit(
-    page: Page,
+    page: Pick<Page, 'id' | 'spaceId'>,
     user: User,
+    opts?: PermissionQueryOptions,
   ): Promise<{ hasRestriction: boolean }> {
-    const ability = await this.spaceAbility.createForUser(user, page.spaceId);
+    const ability = await this.spaceAbility.createForUser(
+      user,
+      page.spaceId,
+      opts,
+    );
 
     // User must be at least a space member
     if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
@@ -95,7 +100,7 @@ export class PageAccessService {
     }
 
     const { hasAnyRestriction, canEdit } =
-      await this.pagePermissionRepo.canUserEditPage(user.id, page.id);
+      await this.pagePermissionRepo.canUserEditPage(user.id, page.id, opts);
 
     if (hasAnyRestriction) {
       // Page has restrictions - use page-level permission

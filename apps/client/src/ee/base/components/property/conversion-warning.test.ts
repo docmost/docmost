@@ -22,3 +22,14 @@ describe("conversionWarning to date", () => {
     expect(isLossyConversion(from, "date")).toBe(true);
   });
 });
+
+describe("choice conversion data loss", () => {
+  it.each(["select", "status"] as const)("requires confirmation when multiple selections are reduced to %s", (single) => {
+    expect(isLossyConversion("multiSelect", single)).toBe(true);
+    expect(isLossyConversion(single, "multiSelect")).toBe(false);
+  });
+
+  it.each(["select", "status", "multiSelect"] as const)("requires confirmation when converting text to %s", (choice) => {
+    expect(isLossyConversion("text", choice)).toBe(true);
+  });
+});

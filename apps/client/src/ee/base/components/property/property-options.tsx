@@ -39,8 +39,10 @@ import { useViewerDateContext } from "@/ee/base/hooks/use-viewer-date-context";
 import { IconCheck } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 
+type ConfigurableProperty = Pick<IBaseProperty, "name" | "type" | "typeOptions" | "pageId">;
+
 type PropertyOptionsProps = {
-  property: IBaseProperty;
+  property: ConfigurableProperty;
   onUpdate: (typeOptions: Record<string, unknown>) => void;
   onClose: () => void;
   onDirtyChange?: (dirty: boolean) => void;
@@ -149,7 +151,7 @@ export function PropertyOptions({
 }
 
 type OptionEditorProps = {
-  property: IBaseProperty;
+  property: ConfigurableProperty;
   onUpdate: (typeOptions: Record<string, unknown>) => void;
   onClose: () => void;
   onDirtyChange?: (dirty: boolean) => void;

@@ -40,6 +40,7 @@ describe('PageController getSidebarPages', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     );
 
     return { controller, pageService };

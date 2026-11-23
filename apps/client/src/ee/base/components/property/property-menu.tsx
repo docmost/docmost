@@ -22,8 +22,6 @@ import {
 import {
   IBaseProperty,
   BasePropertyType,
-  TypeOptions,
-  SelectTypeOptions,
 } from "@/ee/base/types/base.types";
 import { useAtom } from "jotai";
 import { propertyMenuCloseRequestAtomFamily } from "@/ee/base/atoms/base-atoms";
@@ -33,6 +31,7 @@ import {
 } from "@/ee/base/queries/base-property-query";
 import { PropertyTypePicker } from "./property-type-picker";
 import { PropertyOptions } from "./property-options";
+import { PropertyChangeConfirmation } from "./property-change-confirmation";
 import {
   conversionWarning,
   isLossyConversion,
@@ -43,7 +42,7 @@ import {
   isPropertyConverting,
   isSystemPropertyType,
   propertyTypes,
-  defaultTypeOptionsFor,
+  typeOptionsForConversion,
 } from "@/ee/base/property-types/property-type.registry";
 import {
   DATE_FORMATS,
@@ -71,31 +70,6 @@ type MenuPanel =
   | "confirmTypeChange"
   | "confirmDelete"
   | "confirmDiscard";
-
-const CHOICE_TYPES = new Set<BasePropertyType>([
-  "select",
-  "multiSelect",
-  "status",
-]);
-
-function typeOptionsForConversion(
-  source: IBaseProperty,
-  target: BasePropertyType,
-): TypeOptions {
-  if (!CHOICE_TYPES.has(source.type) || !CHOICE_TYPES.has(target)) {
-    return defaultTypeOptionsFor(target);
-  }
-  const opts = source.typeOptions as SelectTypeOptions | undefined;
-  const choices = opts?.choices ?? [];
-  const choiceOrder = opts?.choiceOrder?.length
-    ? opts.choiceOrder
-    : choices.map((c) => c.id);
-  const carried: SelectTypeOptions = { choices, choiceOrder };
-  if (target === "status") {
-    carried.defaultValue = choices[0]?.id ?? null;
-  }
-  return carried;
-}
 
 export function PropertyMenuContent({
   property,
@@ -353,53 +327,36 @@ export function PropertyMenuContent({
       )}
       {panel === "confirmTypeChange" && pendingTargetType && (
         <Stack gap="xs" p="sm">
-          <Text size="sm" fw={600}>
-            {t("Change type to {{label}}?", {
+          <PropertyChangeConfirmation
+            title={t("Change type to {{label}}?", {
               label: t(
                 propertyTypes.find((pt) => pt.type === pendingTargetType)
                   ?.labelKey ?? pendingTargetType,
               ),
             })}
-          </Text>
-          <Text size="xs" c="dimmed">
-            {t(conversionWarning(property.type, pendingTargetType))}
-          </Text>
-          {pendingTargetType === "date" && (
-            <Select
-              size="xs"
-              label={t("Date format")}
-              description={t("Also used to read dates like 03/04/2026")}
-              placeholder={t(DATE_FORMAT_LABELS.medium)}
-              clearable
-              comboboxProps={{ withinPortal: false }}
-              data={DATE_FORMATS.map((format) => ({
-                value: format,
-                label: t(DATE_FORMAT_LABELS[format]),
-              }))}
-              value={targetDateFormat}
-              onChange={(value) => setTargetDateFormat(value as DateFormat | null)}
-            />
-          )}
-          <Group gap="xs" justify="flex-end">
-            <Button
-              variant="default"
-              size="xs"
-              onClick={() => setPanel("main")}
-            >
-              {t("Cancel")}
-            </Button>
-            <Button
-              size="xs"
-              color={
-                isLossyConversion(property.type, pendingTargetType)
-                  ? "red"
-                  : undefined
-              }
-              onClick={handleApplyTypeChange}
-            >
-              {t("Apply")}
-            </Button>
-          </Group>
+            description={t(conversionWarning(property.type, pendingTargetType))}
+            confirmLabel={t("Apply")}
+            destructive={isLossyConversion(property.type, pendingTargetType)}
+            onCancel={() => setPanel("main")}
+            onConfirm={handleApplyTypeChange}
+          >
+            {pendingTargetType === "date" && (
+              <Select
+                size="xs"
+                label={t("Date format")}
+                description={t("Also used to read dates like 03/04/2026")}
+                placeholder={t(DATE_FORMAT_LABELS.medium)}
+                clearable
+                comboboxProps={{ withinPortal: false }}
+                data={DATE_FORMATS.map((format) => ({
+                  value: format,
+                  label: t(DATE_FORMAT_LABELS[format]),
+                }))}
+                value={targetDateFormat}
+                onChange={(value) => setTargetDateFormat(value as DateFormat | null)}
+              />
+            )}
+          </PropertyChangeConfirmation>
         </Stack>
       )}
       {(panel === "options" || panel === "confirmDiscard") && (

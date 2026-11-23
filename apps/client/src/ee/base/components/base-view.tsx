@@ -47,6 +47,7 @@ import { RowExpandProvider } from "@/ee/base/context/row-expand";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import type { IPage } from "@/features/page/types/page.types";
 import { DeletedPageBanner } from "@/features/page/trash/components/deleted-page-banner";
+import { PagePropertiesPanel } from "@/ee/page-properties/page-properties-panel";
 import { buildPageUrl } from "@/features/page/page.utils";
 import { getAppUrl, isBetaBaseForms } from "@/lib/config.ts";
 import { useNavigate } from "react-router-dom";
@@ -82,7 +83,12 @@ export function BasePageView({
     );
   }
 
-  return <BaseView pageId={page.id} editable={editable} titleSlot={titleSlot} />;
+  return (
+    <BaseView pageId={page.id} editable={editable} titleSlot={<>
+      {titleSlot}
+      <PagePropertiesPanel pageId={page.id} spaceId={page.spaceId} editable={!!editable && !!page.permissions?.canEdit} inBase />
+    </>} />
+  );
 }
 
 export function BaseView(props: BaseViewProps) {

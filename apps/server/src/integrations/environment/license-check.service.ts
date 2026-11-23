@@ -1,3 +1,4 @@
+import { Feature } from '../../common/features';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { EnvironmentService } from './environment.service';
@@ -74,6 +75,12 @@ export class LicenseCheckService {
     }
 
     return this.getFeatures(licenseKey);
+  }
+
+  resolvePublicFeatures(licenseKey: string, plan: string): string[] {
+    return this.resolveFeatures(licenseKey, plan).filter(
+      (feature) => feature !== Feature.PAGE_PROPERTIES,
+    );
   }
 
   resolveTier(licenseKey: string, plan: string): string {

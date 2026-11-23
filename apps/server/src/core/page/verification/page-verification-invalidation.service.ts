@@ -101,7 +101,7 @@ export class PageVerificationInvalidationService {
   async notifyInvalidated(
     invalidation: PageVerificationInvalidation,
     actorId: string | null,
-    source: 'content' | 'title',
+    source: IVerificationInvalidatedJob['source'],
   ): Promise<void> {
     const job: IVerificationInvalidatedJob = {
       ...invalidation,

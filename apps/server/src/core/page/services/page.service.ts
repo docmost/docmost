@@ -788,6 +788,7 @@ export class PageService {
     rootPage: Page,
     targetSpaceId: string | undefined,
     authUser: User,
+    opts?: { copyPageProperties: boolean },
   ) {
     const spaceId = targetSpaceId || rootPage.spaceId;
     const isDuplicateInSameSpace =
@@ -985,10 +986,18 @@ export class PageService {
 
     const copiedRestrictions = await executeTx(this.db, async (trx) => {
       await trx.insertInto('pages').values(insertablePages).execute();
-      await this.labelRepo.copyLabelsToPages(
-        new Map([...pageMap].map(([oldId, entry]) => [oldId, entry.newPageId])),
-        trx,
+      const copiedPageIds = new Map(
+        [...pageMap].map(([oldId, entry]) => [oldId, entry.newPageId]),
       );
+      await this.labelRepo.copyLabelsToPages(copiedPageIds, trx);
+      if (opts?.copyPageProperties) {
+        await this.pageRepo.copyPageProperties(
+          copiedPageIds,
+          rootPage.spaceId,
+          authUser,
+          trx,
+        );
+      }
       return this.pagePermissionRepo.copyRestrictions(
         restrictionCopies,
         {

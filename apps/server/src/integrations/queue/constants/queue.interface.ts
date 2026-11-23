@@ -123,7 +123,7 @@ export interface IVerificationInvalidatedJob {
   verificationType: string;
   previousStatus: string;
   newStatus: string;
-  source: 'content' | 'title';
+  source: 'content' | 'title' | 'properties';
 }
 
 export interface IBaseTypeConversionJob {

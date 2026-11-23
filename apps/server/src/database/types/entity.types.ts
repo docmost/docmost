@@ -277,15 +277,19 @@ export type Template = Selectable<Templates>;
 export type InsertableTemplate = Insertable<Templates>;
 export type UpdatableTemplate = Updateable<Omit<Templates, 'id'>>;
 
+type BaseTableColumns<T> = Omit<T, 'scope' | 'metadataPageId' | 'pageId'> & {
+  pageId: string;
+};
+
 // Base Property
-export type BaseProperty = Selectable<BaseProperties>;
-export type InsertableBaseProperty = Insertable<BaseProperties>;
-export type UpdatableBaseProperty = Updateable<Omit<BaseProperties, 'id'>>;
+export type BaseProperty = Selectable<BaseTableColumns<BaseProperties>>;
+export type InsertableBaseProperty = Insertable<BaseTableColumns<BaseProperties>>;
+export type UpdatableBaseProperty = Updateable<Omit<BaseTableColumns<BaseProperties>, 'id'>>;
 
 // Base Row
-export type BaseRow = Selectable<BaseRows>;
-export type InsertableBaseRow = Insertable<BaseRows>;
-export type UpdatableBaseRow = Updateable<Omit<BaseRows, 'id'>>;
+export type BaseRow = Selectable<BaseTableColumns<BaseRows>>;
+export type InsertableBaseRow = Insertable<BaseTableColumns<BaseRows>>;
+export type UpdatableBaseRow = Updateable<Omit<BaseTableColumns<BaseRows>, 'id'>>;
 
 // Base View
 export type BaseView = Selectable<BaseViews>;

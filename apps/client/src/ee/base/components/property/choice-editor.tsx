@@ -512,6 +512,7 @@ function SortableChoiceRow({
   onReorder: (activeId: string, targetId: string, edge: Edge) => void;
   dropdownPortalTarget?: HTMLElement | null;
 }) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
@@ -590,12 +591,14 @@ function SortableChoiceRow({
         <IconGripVertical size={14} style={{ opacity: 0.4 }} />
       </div>
       <ColorDot
+        label={t("Color for {{name}}", { name: choice.name || t("New option") })}
         color={choice.color}
         onChange={(c) => onColorChange(choice.id, c)}
         dropdownPortalTarget={dropdownPortalTarget}
       />
       <TextInput
         ref={inputRef}
+        aria-label={choice.name ? t("Option name for {{name}}", { name: choice.name }) : t("New option name")}
         size="xs"
         value={choice.name}
         onChange={(e) => onRename(choice.id, e.currentTarget.value)}
@@ -603,21 +606,24 @@ function SortableChoiceRow({
         error={hasError}
         styles={hasError ? { input: { borderColor: "var(--mantine-color-red-6)" } } : undefined}
       />
-      <CloseButton size="sm" onClick={() => onRemove(choice.id)} />
+      <CloseButton size="sm" aria-label={t("Remove {{name}}", { name: choice.name || t("New option") })} onClick={() => onRemove(choice.id)} />
       {closestEdge && <BaseDropEdgeIndicator edge={closestEdge} />}
     </Group>
   );
 }
 
 function ColorDot({
+  label,
   color,
   onChange,
   dropdownPortalTarget,
 }: {
+  label: string;
   color: string;
   onChange: (color: string) => void;
   dropdownPortalTarget?: HTMLElement | null;
 }) {
+  const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
   const colors = choiceColor(color);
 
@@ -632,6 +638,7 @@ function ColorDot({
     >
       <Popover.Target>
         <UnstyledButton
+          aria-label={label}
           onClick={() => setOpened((o) => !o)}
           style={{
             width: 20,
@@ -650,6 +657,8 @@ function ColorDot({
             return (
               <UnstyledButton
                 key={c}
+                aria-label={t(c.charAt(0).toUpperCase() + c.slice(1))}
+                aria-pressed={c === color}
                 onClick={() => {
                   onChange(c);
                   setOpened(false);

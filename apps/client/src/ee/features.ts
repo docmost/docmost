@@ -12,6 +12,7 @@ export const Feature = {
   SECURITY_SETTINGS: 'security:settings',
   MCP: 'mcp',
   SCIM: 'scim',
+  PAGE_PROPERTIES: 'page:properties',
   PAGE_VERIFICATION: 'page:verification',
   AUDIT_LOGS: 'audit:logs',
   RETENTION: 'retention',

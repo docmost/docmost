@@ -59,7 +59,7 @@ function describeConversion(
     return { message: "All data in this column will be lost.", lossy: true };
   }
 
-  if (to === "select" && from === "multiSelect") {
+  if ((to === "select" || to === "status") && from === "multiSelect") {
     return {
       message:
         "Only the first selected item per row will be kept; the rest will be discarded.",
@@ -67,11 +67,18 @@ function describeConversion(
     };
   }
 
-  if (to === "multiSelect" && from === "select") {
+  if (to === "multiSelect" && (from === "select" || from === "status")) {
     return {
       message: "Existing values become single-item lists. No data is lost.",
       lossy: false,
     };
+  }
+
+  if (
+    (to === "select" || to === "status" || to === "multiSelect") &&
+    from !== "select" && from !== "status" && from !== "multiSelect"
+  ) {
+    return { message: "Values that do not match an option will be cleared.", lossy: true };
   }
 
   if (to === "page") {

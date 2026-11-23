@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, useId } from "react";
+import { useTranslation } from "react-i18next";
 import { TextInput } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import clsx from "clsx";
@@ -41,6 +42,7 @@ type ChoicePickerProps = {
   grouped?: boolean;
   /** Offer "Add option: <search>" when the search has no exact match. */
   allowCreate?: boolean;
+  onSaveChoices?: (options: SelectTypeOptions) => Promise<unknown>;
   onToggle: (choice: Choice) => void;
   onEscape: () => void;
 };
@@ -53,9 +55,13 @@ export function ChoicePicker({
   multiple = false,
   grouped = false,
   allowCreate = false,
+  onSaveChoices,
   onToggle,
   onEscape,
 }: ChoicePickerProps) {
+  const { t } = useTranslation();
+  const listId = useId();
+  const adding = useRef(false);
   const typeOptions = property.typeOptions as SelectTypeOptions | undefined;
   const choices = typeOptions?.choices ?? [];
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -122,30 +128,33 @@ export function ChoicePicker({
     useListKeyboardNav(navItems.length, [search, showAddOption]);
 
   const handleAddOption = useCallback(async () => {
-    if (!trimmedSearch || updatePropertyMutation.isPending) return;
+    if (!trimmedSearch || adding.current) return;
     const newChoice: Choice = {
       id: generateBaseChoiceId(),
       name: trimmedSearch,
       color: addOptionColor,
     };
     const newChoices = [...choices, newChoice];
+    const options = {
+      ...typeOptions,
+      choices: newChoices,
+      choiceOrder: newChoices.map((c) => c.id),
+    };
     // The server rejects a cell that names a choice it hasn't saved yet.
+    adding.current = true;
     try {
-      await updatePropertyMutation.mutateAsync({
-        propertyId: property.id,
-        pageId: property.pageId,
-        typeOptions: {
-          ...typeOptions,
-          choices: newChoices,
-          choiceOrder: newChoices.map((c) => c.id),
-        },
+      if (onSaveChoices) await onSaveChoices(options);
+      else await updatePropertyMutation.mutateAsync({
+        propertyId: property.id, pageId: property.pageId, typeOptions: options,
       });
     } catch {
       return; // the mutation shows the error toast
+    } finally {
+      adding.current = false;
     }
     onToggle(newChoice);
     setSearch("");
-  }, [trimmedSearch, addOptionColor, choices, typeOptions, property, updatePropertyMutation, onToggle]);
+  }, [trimmedSearch, addOptionColor, choices, typeOptions, property, updatePropertyMutation, onSaveChoices, onToggle]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -187,6 +196,7 @@ export function ChoicePicker({
               {choice.name}
               <button
                 type="button"
+                aria-label={t("Remove {{name}}", { name: choice.name })}
                 className={`${cellClasses.personTagRemove} ${cellClasses.badgeRemoveBtn}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -202,18 +212,23 @@ export function ChoicePicker({
       <TextInput
         ref={searchRef}
         size="xs"
-        placeholder="Search..."
+        placeholder={t("Search...")}
+        role="combobox"
+        aria-label={t("Search options for {{name}}", { name: property.name })}
+        aria-expanded
+        aria-controls={listId}
+        aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
         value={search}
         onChange={(e) => setSearch(e.currentTarget.value)}
         onKeyDown={handleKeyDown}
         mb={4}
         data-autofocus
       />
-      <div className={cellClasses.selectDropdown}>
+      <div className={cellClasses.selectDropdown} role="listbox" id={listId} aria-label={property.name} aria-multiselectable={multiple}>
         {groups.map((group) => (
           <div key={group.label ?? "all"}>
             {group.label && (
-              <div className={cellClasses.selectCategoryLabel}>{group.label}</div>
+              <div className={cellClasses.selectCategoryLabel}>{t(group.label)}</div>
             )}
             {group.choices.map((choice) => {
               const idx = choiceIdxMap.get(choice.id) ?? -1;
@@ -221,6 +236,9 @@ export function ChoicePicker({
               return (
                 <div
                   key={choice.id}
+                  role="option"
+                  aria-selected={isSelected}
+                  id={`${listId}-${idx}`}
                   ref={setOptionRef(idx)}
                   className={clsx(
                     cellClasses.selectOption,
@@ -244,6 +262,9 @@ export function ChoicePicker({
         {showAddOption && (
           <div
             ref={setOptionRef(addOptionIdx)}
+            role="option"
+            aria-selected={false}
+            id={`${listId}-${addOptionIdx}`}
             className={clsx(
               cellClasses.addOptionRow,
               addOptionIdx === activeIndex && cellClasses.selectOptionKeyboardActive,
@@ -251,7 +272,7 @@ export function ChoicePicker({
             onMouseEnter={() => setActiveIndex(addOptionIdx)}
             onClick={handleAddOption}
           >
-            <span className={cellClasses.addOptionLabel}>Add option:</span>
+            <span className={cellClasses.addOptionLabel}>{t("Add option")}:</span>
             <span className={cellClasses.badge} style={choiceColor(addOptionColor)}>
               {trimmedSearch}
             </span>

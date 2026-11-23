@@ -83,7 +83,7 @@ export class ShareController {
 
     return {
       ...shareData,
-      features: this.licenseCheckService.resolveFeatures(
+      features: this.licenseCheckService.resolvePublicFeatures(
         workspace.licenseKey,
         workspace.plan,
       ),
@@ -275,7 +275,7 @@ export class ShareController {
 
     return {
       ...treeData,
-      features: this.licenseCheckService.resolveFeatures(
+      features: this.licenseCheckService.resolvePublicFeatures(
         workspace.licenseKey,
         workspace.plan,
       ),

@@ -2,7 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
+import {
+  KyselyDB,
+  KyselyTransaction,
+  PermissionQueryOptions,
+} from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
 import {
   InsertablePageAccess,
@@ -19,7 +23,7 @@ import {
   executeWithCursorPagination,
 } from '@docmost/db/pagination/cursor-pagination';
 import { PagePermissionMember } from './types/page-permission.types';
-import { CacheOptions, withCache } from '../../../common/helpers/with-cache';
+import { withCache } from '../../../common/helpers/with-cache';
 import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
@@ -489,7 +493,7 @@ export class PagePermissionRepo {
   async canUserAccessPage(
     userId: string,
     pageId: string,
-    opts?: CacheOptions,
+    opts?: PermissionQueryOptions,
   ): Promise<boolean> {
     const { canAccess } = await this.canUserEditPage(userId, pageId, opts);
     return canAccess;
@@ -505,7 +509,7 @@ export class PagePermissionRepo {
   async canUserEditPage(
     userId: string,
     pageId: string,
-    opts?: CacheOptions,
+    opts?: PermissionQueryOptions,
   ): Promise<{
     hasAnyRestriction: boolean;
     canAccess: boolean;
@@ -542,7 +546,7 @@ export class PagePermissionRepo {
                 SELECT gu.group_id FROM group_users gu WHERE gu.user_id = ${userId}::uuid
               )
             )
-        `.execute(this.db);
+        `.execute(dbOrTx(this.db, opts?.trx));
 
         const row = result.rows[0];
         if (!row || row.canAccess === null) {
@@ -554,7 +558,7 @@ export class PagePermissionRepo {
           canEdit: row.canAccess && (row.canEdit ?? false),
         };
       },
-      opts,
+      opts?.trx ? { skipCache: true } : opts,
     );
   }
 

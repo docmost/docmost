@@ -207,6 +207,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
           contributors={page.contributors}
           canComment={canComment}
           hasCover={layout.hasCover}
+          showPageProperties={!page.deletedAt}
           showToolbar={layout.showToolbar}
         />
         <MemoizedHistoryModal pageId={page.id} />

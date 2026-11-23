@@ -22,6 +22,7 @@ import type {
   BasePropertyType,
   FilterOperator,
   IBaseProperty,
+  SelectTypeOptions,
   TypeOptions,
 } from "@/ee/base/types/base.types";
 import { CellText } from "@/ee/base/components/cells/cell-text";
@@ -300,4 +301,23 @@ export function systemAccessorFor(type: string) {
 
 export function defaultTypeOptionsFor(type: string): TypeOptions {
   return getDescriptor(type)?.defaultTypeOptions?.() ?? ({} as TypeOptions);
+}
+
+export const CHOICE_TYPES = new Set<BasePropertyType>(["select", "multiSelect", "status"]);
+
+export function typeOptionsForConversion(
+  source: Pick<IBaseProperty, "type" | "typeOptions">,
+  target: BasePropertyType,
+): TypeOptions {
+  if (!CHOICE_TYPES.has(source.type) || !CHOICE_TYPES.has(target)) {
+    return defaultTypeOptionsFor(target);
+  }
+  const options = source.typeOptions as SelectTypeOptions;
+  const choices = options?.choices ?? [];
+  const choiceOrder = options?.choiceOrder?.length
+    ? options.choiceOrder
+    : choices.map((choice) => choice.id);
+  const carried: SelectTypeOptions = { choices, choiceOrder };
+  if (target === "status") carried.defaultValue = choices[0]?.id ?? null;
+  return carried;
 }

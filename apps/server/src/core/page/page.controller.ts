@@ -8,6 +8,7 @@ import {
   Inject,
   NotFoundException,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { PageService } from './services/page.service';
@@ -54,6 +55,9 @@ import {
 } from '../../integrations/audit/audit.service';
 import { getPageTitle } from '../../common/helpers';
 import { ApiKeyScope } from '../../common/decorators/api-key-scope.decorator';
+import { Feature } from '../../common/features';
+import { LicenseCheckService } from '../../integrations/environment/license-check.service';
+import { JwtType } from '../auth/dto/jwt-payload';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pages')
@@ -67,6 +71,7 @@ export class PageController {
     private readonly backlinkService: BacklinkService,
     private readonly labelService: LabelService,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
+    private readonly licenseCheckService: LicenseCheckService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -652,7 +657,12 @@ export class PageController {
   @HttpCode(HttpStatus.OK)
   @Post('duplicate')
   @OAuthScope('write')
-  async duplicatePage(@Body() dto: DuplicatePageDto, @AuthUser() user: User) {
+  async duplicatePage(
+    @Body() dto: DuplicatePageDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+    @Req() request: { user: { authType: JwtType } },
+  ) {
     const copiedPage = await this.pageRepo.findById(dto.pageId);
     if (!copiedPage) {
       throw new NotFoundException('Page to copy not found');
@@ -662,6 +672,16 @@ export class PageController {
     // Inaccessible child branches are automatically skipped during duplication
     await this.pageAccessService.validateCanView(copiedPage, user);
 
+    const options = {
+      copyPageProperties:
+        request.user.authType === JwtType.ACCESS &&
+        copiedPage.workspaceId === workspace.id &&
+        this.licenseCheckService.hasFeature(
+          workspace.licenseKey,
+          Feature.PAGE_PROPERTIES,
+          workspace.plan,
+        ),
+    };
     let result;
 
     // If spaceId is provided, it's a copy to different space
@@ -683,6 +703,7 @@ export class PageController {
         copiedPage,
         dto.spaceId,
         user,
+        options,
       );
 
       this.auditService.log({
@@ -714,6 +735,7 @@ export class PageController {
         copiedPage,
         undefined,
         user,
+        options,
       );
 
       this.auditService.log({

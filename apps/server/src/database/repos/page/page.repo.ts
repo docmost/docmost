@@ -6,6 +6,7 @@ import {
   InsertablePage,
   Page,
   UpdatablePage,
+  User,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
@@ -670,6 +671,43 @@ export class PageRepo {
       .selectFrom('page_hierarchy')
       .selectAll()
       .execute();
+  }
+
+  async copyPageProperties(
+    pageIds: Map<string, string>,
+    sourceSpaceId: string,
+    actor: Pick<User, 'id' | 'workspaceId'>,
+    trx: KyselyTransaction,
+  ): Promise<void> {
+    if (pageIds.size === 0) return;
+
+    // Copy live definitions and their values from the same database snapshot.
+    await sql`
+      WITH copies AS (
+        SELECT m.source_id, m.target_id
+        FROM unnest(${[...pageIds.keys()]}::uuid[], ${[...pageIds.values()]}::uuid[])
+          AS m(source_id, target_id)
+        JOIN pages source ON source.id = m.source_id
+        JOIN pages target ON target.id = m.target_id AND target.workspace_id = source.workspace_id
+        WHERE source.workspace_id = ${actor.workspaceId} AND source.space_id = ${sourceSpaceId}
+          AND source.deleted_at IS NULL
+      ), fields AS (
+        INSERT INTO base_properties (metadata_page_id, scope, id, name, type, position, type_options, workspace_id)
+        SELECT c.target_id, 'page', p.id, p.name, p.type, p.position, p.type_options, p.workspace_id
+        FROM copies c JOIN base_properties p ON p.metadata_page_id = c.source_id
+        WHERE p.workspace_id = ${actor.workspaceId} AND p.scope = 'page' AND p.deleted_at IS NULL
+        RETURNING metadata_page_id, id
+      )
+      INSERT INTO base_rows (metadata_page_id, scope, cells, position, workspace_id, creator_id, last_updated_by_id)
+      SELECT f.metadata_page_id, 'page', jsonb_object_agg(f.id, r.cells -> f.id), r.position,
+        r.workspace_id, ${actor.id}::uuid, ${actor.id}::uuid
+      FROM fields f
+      JOIN copies c ON c.target_id = f.metadata_page_id
+      JOIN base_rows r ON r.metadata_page_id = c.source_id
+      WHERE r.workspace_id = ${actor.workspaceId} AND r.scope = 'page' AND r.deleted_at IS NULL
+        AND r.cells ? f.id
+      GROUP BY f.metadata_page_id, r.id
+    `.execute(trx);
   }
 
   async isPageDescendant(

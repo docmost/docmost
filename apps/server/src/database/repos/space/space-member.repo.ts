@@ -2,7 +2,11 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { InjectKysely } from 'nestjs-kysely';
-import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
+import {
+  KyselyDB,
+  KyselyTransaction,
+  PermissionQueryOptions,
+} from '@docmost/db/types/kysely.types';
 import { dbOrTx } from '@docmost/db/utils';
 import { ExpressionBuilder, sql } from 'kysely';
 import { DB } from '@docmost/db/types/db';
@@ -16,7 +20,7 @@ import { MemberInfo, UserSpaceIdsOptions, UserSpaceRole } from './types';
 import { executeWithCursorPagination } from '@docmost/db/pagination/cursor-pagination';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
-import { CacheOptions, withCache } from '../../../common/helpers/with-cache';
+import { withCache } from '../../../common/helpers/with-cache';
 import {
   CacheKey,
   PERMISSION_CACHE_TTL_MS,
@@ -231,20 +235,21 @@ export class SpaceMemberRepo {
   async getUserSpaceRoles(
     userId: string,
     spaceId: string,
-    opts?: CacheOptions,
+    opts?: PermissionQueryOptions,
   ): Promise<UserSpaceRole[]> {
+    const db = dbOrTx(this.db, opts?.trx);
     return withCache(
       this.cacheManager,
       CacheKey.SPACE_ROLES(userId, spaceId),
       PERMISSION_CACHE_TTL_MS,
       async () => {
-        const roles = await this.db
+        const roles = await db
           .selectFrom('spaceMembers')
           .select(['userId', 'role'])
           .where('userId', '=', userId)
           .where('spaceId', '=', spaceId)
           .unionAll(
-            this.db
+            db
               .selectFrom('spaceMembers')
               .innerJoin(
                 'groupUsers',
@@ -262,7 +267,7 @@ export class SpaceMemberRepo {
         }
         return roles;
       },
-      opts,
+      opts?.trx ? { skipCache: true } : opts,
     );
   }
 

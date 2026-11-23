@@ -36,6 +36,7 @@ import clsx from "clsx";
 import { currentPageEditModeAtom } from "@/features/editor/atoms/editor-atoms.ts";
 import { EmptyPageGetStarted } from "@/features/editor/components/empty-page/empty-page-get-started";
 import { AddCoverButton } from "@/features/page-cover/components/add-cover-button.tsx";
+import { PagePropertiesPanel } from "@/ee/page-properties/page-properties-panel";
 
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageEditor = React.memo(PageEditor);
@@ -63,6 +64,7 @@ export interface FullEditorProps {
   contributors?: IContributor[];
   canComment?: boolean;
   hasCover?: boolean;
+  showPageProperties?: boolean;
   showToolbar: boolean;
 }
 
@@ -78,6 +80,7 @@ export function FullEditor({
   contributors,
   canComment,
   hasCover,
+  showPageProperties,
   showToolbar,
 }: FullEditorProps) {
   const { t } = useTranslation();
@@ -156,6 +159,13 @@ export function FullEditor({
         contributors={contributors}
         readOnly={!editable}
       />
+      {showPageProperties && (
+        <PagePropertiesPanel
+          pageId={pageId}
+          spaceId={spaceId}
+          editable={editable && isEditMode && !isCheckingLock && !verificationUnavailable}
+        />
+      )}
       <div className={clsx(classes.documentBody, classes.documentReveal)}>
         <MemoizedPageEditor
           pageId={pageId}

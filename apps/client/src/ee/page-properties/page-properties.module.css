@@ -1,0 +1,293 @@
+.panel {
+  --property-muted: light-dark(
+    var(--mantine-color-gray-7),
+    var(--mantine-color-dark-1)
+  );
+  --property-hover: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+  container-type: inline-size;
+  margin-inline: 3rem;
+  font-size: var(--mantine-font-size-sm);
+  flex-shrink: 0;
+}
+
+@media (max-width: $mantine-breakpoint-sm) {
+  .panel {
+    margin-inline: 1rem;
+  }
+}
+
+.basePanel {
+  margin-inline: 0;
+  padding-inline-start: 20px;
+}
+
+.content {
+  border-bottom: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+  padding-block: 3px 16px;
+  margin-bottom: 12px;
+}
+
+.basePanel .content {
+  margin-bottom: 8px;
+}
+
+.heading,
+.disclosure,
+.textButton,
+.preview,
+.dateValue,
+.choices,
+.choice,
+.status {
+  display: flex;
+  align-items: center;
+}
+
+.heading {
+  position: relative;
+  gap: 12px;
+  min-height: 28px;
+}
+
+.disclosure,
+.textButton,
+.label,
+.valueButton,
+.handle {
+  appearance: none;
+  font: inherit;
+  text-align: start;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: var(--mantine-radius-sm);
+  color: inherit;
+}
+
+.disclosure,
+.textButton {
+  flex: none;
+  gap: 6px;
+  padding: 3px 4px;
+  margin-inline-start: -4px;
+  color: var(--property-muted);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.disclosure:hover,
+.textButton:hover,
+button.label:hover,
+.valueButton:hover,
+.handle:hover,
+.disclosure:focus-visible,
+.textButton:focus-visible,
+button.label:focus-visible,
+.valueButton:focus-visible {
+  background: var(--property-hover);
+}
+
+.count {
+  min-width: 17px;
+  padding-inline: 5px;
+  border-radius: 100px;
+  background: var(--property-hover);
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+}
+.rows {
+  margin: 5px 0 0;
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, min(25%, 180px)) minmax(0, 1fr);
+  align-items: start;
+  position: relative;
+  min-height: 35px;
+  margin: 0;
+}
+
+.row dt,
+.row dd {
+  min-width: 0;
+  margin: 0;
+}
+.label,
+.value,
+.valueButton {
+  min-height: 33px;
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  line-height: 1.5;
+}
+
+.label {
+  gap: 9px;
+  width: calc(100% - 12px);
+  padding: 4px 5px;
+  margin-inline-start: -5px;
+  color: var(--property-muted);
+  overflow-wrap: anywhere;
+}
+
+span.label {
+  cursor: default;
+}
+.label svg,
+.choice svg,
+.status svg,
+.dateValue svg {
+  flex-shrink: 0;
+}
+.label svg {
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+.value {
+  padding-block: 0;
+}
+.valueButton {
+  width: 100%;
+  padding: 4px 5px;
+  margin-inline-start: -5px;
+}
+.value > .inlineEditor {
+  width: 100%;
+}
+.textValue {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.muted,
+.more,
+.preview {
+  color: var(--property-muted);
+}
+.dateValue {
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.choices {
+  gap: 4px;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.choice,
+.status {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 1px 7px;
+  min-height: 22px;
+  line-height: 1.5;
+  font-size: var(--mantine-font-size-sm);
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+}
+
+.status {
+  border-radius: 100px;
+  gap: 5px;
+  padding-inline: 9px;
+}
+.handle {
+  position: absolute;
+  inset-inline-end: 100%;
+  top: 4px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 25px;
+  padding: 0;
+  color: var(--property-muted);
+  cursor: grab;
+  opacity: 0;
+}
+.handle:active {
+  cursor: grabbing;
+}
+.row:hover .handle,
+.row:focus-within .handle,
+.handle[aria-expanded="true"] {
+  opacity: 1;
+}
+@media (hover: none) {
+  .handle {
+    opacity: 1;
+  }
+}
+
+.preview {
+  min-width: 0;
+  gap: 10px;
+  overflow: hidden;
+  border-inline-start: 1px solid var(--mantine-color-default-border);
+  padding-inline-start: 11px;
+  font-size: var(--mantine-font-size-xs);
+}
+.previewItem {
+  display: block;
+  min-width: 0;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.previewItem .choices,
+.previewItem .textValue {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.previewItem .choice,
+.previewItem .status {
+  min-width: 0;
+  min-height: 20px;
+  font-size: inherit;
+}
+.previewItem .choice > span,
+.previewItem .status > span,
+.previewItem .dateValue > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.more {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@container (max-width: 520px) {
+  .row {
+    grid-template-columns: minmax(0, 36%) minmax(0, 1fr);
+  }
+  .label {
+    width: calc(100% - 4px);
+    gap: 6px;
+  }
+  .handle {
+    width: 16px;
+  }
+  .heading {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+  .preview {
+    order: 1;
+    flex: 1 0 100%;
+    border: 0;
+    padding: 0;
+    gap: 7px;
+  }
+  .previewItem {
+    max-width: 38%;
+  }
+}

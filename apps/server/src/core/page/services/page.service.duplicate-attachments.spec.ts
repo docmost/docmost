@@ -95,9 +95,11 @@ function makeService(pageContent: any = content, extraRows: any[] = []) {
   };
   const pageRepo = {
     getPageAndDescendants: jest.fn(async () => [page]),
+    copyPageProperties: jest.fn(async () => undefined),
     findById: jest.fn(async () => page),
   };
   const pagePermissionRepo = {
+    filterAccessiblePageIds: jest.fn(async ({ pageIds }: { pageIds: string[] }) => pageIds),
     copyRestrictions: jest.fn(async () => 0),
   };
   const labelRepo = { copyLabelsToPages: jest.fn(async () => undefined) };
@@ -128,19 +130,33 @@ function makeService(pageContent: any = content, extraRows: any[] = []) {
     {} as any,
     {} as any,
   );
-  jest
-    .spyOn(service as any, 'filterAccessibleTreePages')
-    .mockResolvedValue([page]);
-
-  return { service, page, inserted, storageService };
+  return { service, page, inserted, storageService, pageRepo, pagePermissionRepo, trx };
 }
 
-describe('PageService.duplicatePage attachments', () => {
+describe('PageService.duplicatePage', () => {
+  it('copies the metadata of the permitted pages in the transaction creating the copies', async () => {
+    const { service, page, inserted, pageRepo, pagePermissionRepo, trx } = makeService();
+    const privateChild = { ...page, id: OUTSIDE_PAGE_ID, parentPageId: page.id };
+    const grandchild = {
+      ...page, id: '019a1f00-0000-7000-8000-000000000007', parentPageId: privateChild.id,
+    };
+    pageRepo.getPageAndDescendants.mockResolvedValueOnce([page, privateChild, grandchild]);
+    pagePermissionRepo.filterAccessiblePageIds.mockResolvedValueOnce([page.id, grandchild.id]);
+
+    await service.duplicatePage(page, undefined, user, { copyPageProperties: true });
+
+    expect(inserted[0]).toHaveLength(1);
+    expect(pageRepo.copyPageProperties).toHaveBeenCalledWith(
+      new Map([[page.id, inserted[0][0].id]]), SPACE_ID, user, trx,
+    );
+  });
+
   it('points file and image nodes at the copied attachments', async () => {
-    const { service, page, inserted } = makeService();
+    const { service, page, inserted, pageRepo } = makeService();
 
     await service.duplicatePage(page, undefined, user);
 
+    expect(pageRepo.copyPageProperties).not.toHaveBeenCalled();
     const [copy] = inserted[0];
     const [file, image] = copy.content.content;
 
