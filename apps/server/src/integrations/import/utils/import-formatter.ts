@@ -100,10 +100,12 @@ export function xwikiFormatter($: CheerioAPI, $root: Cheerio<any>) {
   }
 }
 
+const sectionAnchorSelector = 'span[data-type="section-anchor"]';
+
 function isBareLink($el: Cheerio<any>): boolean {
   const href = $el.attr('href')?.trim();
   const text = $el.text().trim();
-  return !!href && text === href;
+  return !!href && text === href && !$el.find(sectionAnchorSelector).length;
 }
 
 export function defaultHtmlFormatter($: CheerioAPI, $root: Cheerio<any>) {
@@ -410,7 +412,10 @@ export async function rewriteInternalLinksToMentionHtml(
       linkText === meta.title ||
       linkText === meta.title?.trim();
 
-    if (titleMatch && !$a.find('img, time[data-type="date"]').length) {
+    if (
+      titleMatch &&
+      !$a.find(`img, time[data-type="date"], ${sectionAnchorSelector}`).length
+    ) {
       const mentionId = v7();
       const $mention = $('<span>')
         .attr({

@@ -46,6 +46,28 @@ describe('HTML provider links', () => {
   });
 });
 
+it('preserves a link destination in the first heading of imported HTML', async () => {
+  const doc = await ImportService.prototype.processHTML(
+    '<h1>Guide<span data-type="section-anchor" data-id="intro"></span></h1>' +
+      '<p><a href="#intro">Back to the start</a></p>',
+  );
+  const { prosemirrorJson } =
+    ImportService.prototype.extractTitleAndRemoveHeading(doc);
+  expect(prosemirrorJson.content).toMatchObject([
+    {
+      type: 'heading',
+      content: [
+        { text: 'Guide' },
+        { type: 'sectionAnchor', attrs: { id: 'intro' } },
+      ],
+    },
+    {
+      type: 'paragraph',
+      content: [{ marks: [{ type: 'link', attrs: { href: '#intro' } }] }],
+    },
+  ]);
+});
+
 describe('linked images in HTML archives', () => {
   let extractDir: string;
   const fileTask = {

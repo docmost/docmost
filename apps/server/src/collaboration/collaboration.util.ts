@@ -9,6 +9,7 @@ import { Youtube } from '@tiptap/extension-youtube';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import {
   Heading,
+  SectionAnchor,
   Callout,
   Comment,
   CustomCodeBlock,
@@ -91,8 +92,9 @@ export const tiptapExtensions = [
     content: 'block+ footnotes?',
   }),
   Heading,
+  SectionAnchor,
   UniqueID.configure({
-    types: ['heading', 'paragraph', 'transclusionSource'],
+    types: ['heading', 'paragraph', 'transclusionSource', 'sectionAnchor'],
   }),
   Comment,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
