@@ -12,8 +12,20 @@ import EmojiCommand from "@/features/editor/extensions/emoji-command";
 import mentionRenderItems from "@/features/editor/components/mention/mention-suggestion";
 import MentionView from "@/features/editor/components/mention/mention-view";
 import { platformModifierKey } from "@/lib";
-import { TableKit } from "@tiptap/extension-table";
 import { TaskList, TaskItem } from "@tiptap/extension-list";
+
+// A div gives even plain-text HTML cells a block boundary in the comment schema.
+function separateTableCells(html: string): string {
+  if (!/<t[dh]\b/i.test(html)) return html;
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  const range = document.createRange();
+  for (const cell of template.content.querySelectorAll("th, td")) {
+    range.selectNodeContents(cell);
+    range.surroundContents(document.createElement("div"));
+  }
+  return template.innerHTML;
+}
 
 interface CommentEditorProps {
   defaultContent?: any;
@@ -72,13 +84,13 @@ const CommentEditor = forwardRef(
             return ReactNodeViewRenderer(MentionView);
           },
         }),
-        TableKit,
         TaskList,
         TaskItem.configure({
           nested: true,
         }),
       ],
       editorProps: {
+        transformPastedHTML: separateTableCells,
         attributes: {
           "aria-label": placeholder || t("Comment"),
         },
