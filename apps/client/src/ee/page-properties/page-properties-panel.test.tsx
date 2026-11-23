@@ -1,4 +1,4 @@
-import { MantineProvider } from "@mantine/core";
+import { MantineProvider, Menu } from "@mantine/core";
 import { EventEmitter } from "node:events";
 import { MemoryRouter } from "react-router-dom";
 import type { Socket } from "socket.io-client";
@@ -20,7 +20,10 @@ import { socketAtom } from "@/features/websocket/atoms/socket-atom";
 import { useQuerySubscription } from "@/features/websocket/use-query-subscription";
 import type { ICurrentUser } from "@/features/user/types/user.types";
 import api from "@/lib/api-client";
-import { PagePropertiesPanel } from "./page-properties-panel";
+import {
+  AddPagePropertyMenuItem,
+  PagePropertiesPanel,
+} from "./page-properties-panel";
 import type { SelectTypeOptions } from "@/ee/base/types/base.types";
 import type { PageProperty } from "./page-property.types";
 
@@ -94,6 +97,14 @@ function panel(
       <QueryClientProvider client={client}>
         <MantineProvider env={env}>
           <SocketSubscription />
+          <Menu>
+            <Menu.Target>
+              <button>Page actions</button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <AddPagePropertyMenuItem pageId={pageId} />
+            </Menu.Dropdown>
+          </Menu>
           <PagePropertiesPanel
             pageId={pageId}
             spaceId="space"
@@ -152,6 +163,43 @@ afterEach(() => {
 });
 
 describe("page properties", () => {
+  it("keeps an empty page clear before creating its first field and after deleting its last", async () => {
+    const field = { ...fields[3], name: "Reviewer", value: null };
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ data: [] })
+      .mockResolvedValueOnce({ data: field })
+      .mockResolvedValueOnce({ data: null });
+    const view = render(panel("one", true));
+    const section = () => screen.queryByRole("region", { name: "Properties" });
+    const openActions = () =>
+      fireEvent.click(screen.getByRole("button", { name: "Page actions" }));
+
+    openActions();
+    const add = await screen.findByRole("menuitem", { name: "Add property" });
+    expect(section()).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add property" })).toBeNull();
+    fireEvent.click(add);
+    fireEvent.change(await screen.findByLabelText("Name"), {
+      target: { value: field.name },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create property" }));
+    const edit = await screen.findByRole("button", {
+      name: "Edit property Reviewer",
+    });
+    expect(section()?.contains(edit)).toBe(true);
+    fireEvent.click(edit);
+    fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete property" }));
+    await waitFor(() => expect(section()).toBeNull());
+
+    openActions();
+    expect(
+      await screen.findByRole("menuitem", { name: "Add property" }),
+    ).toBeTruthy();
+    view.rerender(panel("one", false));
+    expect(screen.queryByRole("menuitem", { name: "Add property" })).toBeNull();
+  });
+
   it("keeps the portalled report and its column picker inside the print exclusion", async () => {
     vi.mocked(api.post).mockImplementation(async (url) => ({
       data: url === read ? fields : { items: [], nextCursor: null },
