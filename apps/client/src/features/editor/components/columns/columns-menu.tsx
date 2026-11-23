@@ -1,4 +1,4 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { NodeBubbleMenu } from "@/features/editor/components/bubble-menu/node-bubble-menu";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import React, { useCallback, useRef, useState } from "react";
 import { Node as PMNode } from "@tiptap/pm/model";
@@ -218,7 +218,7 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
   const presets = getPresetsForCount(columnCount);
 
   return (
-    <BaseBubbleMenu
+    <NodeBubbleMenu
       editor={editor}
       pluginKey="columns-menu"
       ref={(element) => {
@@ -321,7 +321,7 @@ export function ColumnsMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
       </div>
-    </BaseBubbleMenu>
+    </NodeBubbleMenu>
   );
 }
 

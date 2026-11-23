@@ -1,4 +1,4 @@
-import { BubbleMenu as BaseBubbleMenu } from "@tiptap/react/menus";
+import { NodeBubbleMenu } from "@/features/editor/components/bubble-menu/node-bubble-menu";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
 import { useCallback } from "react";
 import { Node as PMNode } from "@tiptap/pm/model";
@@ -49,7 +49,7 @@ export function MicrosoftFolderMenu({ editor }: EditorMenuProps) {
   }, [editor]);
 
   return (
-    <BaseBubbleMenu
+    <NodeBubbleMenu
       editor={editor}
       pluginKey="microsoft-folder-menu"
       ref={(element) => {
@@ -81,7 +81,7 @@ export function MicrosoftFolderMenu({ editor }: EditorMenuProps) {
           </ActionIcon>
         </Tooltip>
       </div>
-    </BaseBubbleMenu>
+    </NodeBubbleMenu>
   );
 }
 
