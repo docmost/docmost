@@ -628,7 +628,7 @@ const CommandGroups: SlashMenuGroupedItemsType = {
       searchTerms: ["tags", "labels", "pages", "content by label"],
       icon: IconTags,
       command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).insertPagesByLabel().run();
+        editor.chain().focus().deleteRange(range).insertItemsByLabel().run();
       },
     },
     {

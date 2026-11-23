@@ -32,7 +32,7 @@ export const TRANSCLUSION_SOURCE_ALLOWED_NODE_TYPES = [
   'pdf',
   'subpages',
   'recentlyUpdated',
-  'pagesByLabel',
+  'itemsByLabel',
   'columns',
   'youtube',
 ] as const;

@@ -2,7 +2,7 @@ import * as _TurndownService from '@joplin/turndown';
 import * as TurndownPluginGfm from '@joplin/turndown-plugin-gfm';
 import { getBasename } from './basename';
 import { getFileNameFromUrl } from '../../media-utils';
-import { normalizePagesByLabelAttributes } from '../../pages-by-label';
+import { normalizeItemsByLabelAttributes } from '../../items-by-label';
 
 // CJS/ESM interop: .default exists in Vite, not in NestJS
 const TurndownService = (_TurndownService as any).default || _TurndownService;
@@ -17,14 +17,14 @@ function sanitizeMdLinkText(value: string): string {
     .replace(/[\r\n]+/g, ' ');
 }
 
-function isPagesByLabel(node: HTMLElement): boolean {
+function isItemsByLabel(node: HTMLElement): boolean {
   return (
     node.nodeName === 'DIV' &&
-    node.getAttribute('data-type') === 'pages-by-label'
+    node.getAttribute('data-type') === 'items-by-label'
   );
 }
 
-function pagesByLabelMarkdown(
+function itemsByLabelMarkdown(
   service: _TurndownService,
   node: HTMLElement,
 ): string {
@@ -32,7 +32,7 @@ function pagesByLabelMarkdown(
   let heading = '';
   try {
     const attrs = JSON.parse(node.getAttribute('data-config') ?? '{}');
-    heading = normalizePagesByLabelAttributes(attrs).heading.trim();
+    heading = normalizeItemsByLabelAttributes(attrs).heading.trim();
   } catch {
     // Older or incomplete HTML can contain only the marker.
   }
@@ -50,7 +50,7 @@ export function htmlToMarkdown(html: string): string {
     bulletListMarker: '-',
     // Turndown bypasses custom rules for nodes with no text.
     blankReplacement: (_content: string, node: HTMLElement & { isBlock: boolean }) => {
-      if (isPagesByLabel(node)) return pagesByLabelMarkdown(turndownService, node);
+      if (isItemsByLabel(node)) return itemsByLabelMarkdown(turndownService, node);
       return node.isBlock ? '\n\n' : '';
     },
   });
@@ -75,10 +75,10 @@ export function htmlToMarkdown(html: string): string {
     footnoteRef,
     footnotesList,
   ]);
-  turndownService.addRule('pagesByLabel', {
-    filter: isPagesByLabel,
+  turndownService.addRule('itemsByLabel', {
+    filter: isItemsByLabel,
     replacement: (_content: string, node: HTMLElement) =>
-      pagesByLabelMarkdown(turndownService, node),
+      itemsByLabelMarkdown(turndownService, node),
   });
   const htmlWithoutColgroups = html.replace(
     /<colgroup\b[^>]*>[\s\S]*?<\/colgroup>/gi,

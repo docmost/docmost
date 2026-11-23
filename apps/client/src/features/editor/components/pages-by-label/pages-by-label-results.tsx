@@ -1,8 +1,8 @@
 import { Button, Group, Skeleton } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import {
-  PAGES_BY_LABEL_DEFAULT_LIMIT,
-  type PagesByLabelAttributes,
+  ITEMS_BY_LABEL_DEFAULT_LIMIT,
+  type ItemsByLabelAttributes,
 } from "@docmost/editor-ext";
 import { useAtomValue } from "jotai";
 import { useContext, type ReactNode } from "react";
@@ -40,7 +40,7 @@ export function PagesByLabelResults({
   settings,
 }: {
   heading: ReactNode;
-  options: PagesByLabelAttributes;
+  options: ItemsByLabelAttributes;
   settings: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -69,7 +69,7 @@ export function PagesByLabelResults({
     ...(excludeLabels.length > 0 && { excludeLabels }),
     ...(sortBy !== "title" && { sortBy }),
     ...(sortDirection !== "asc" && { sortDirection }),
-    ...(limit !== PAGES_BY_LABEL_DEFAULT_LIMIT && { limit }),
+    ...(limit !== ITEMS_BY_LABEL_DEFAULT_LIMIT && { limit }),
     ...(showLabels && { showLabels }),
     ...(pageId && excludeCurrentPage && { excludeCurrentPage }),
   };
@@ -84,7 +84,7 @@ export function PagesByLabelResults({
     queryKey: [
       "label-pages",
       {
-        block: "pagesByLabel",
+        block: "itemsByLabel",
         workspaceId: viewer?.workspaceId,
         userId: viewer?.id,
       },
@@ -157,7 +157,7 @@ function ResultRows({
   options,
 }: {
   pages: PageResult[];
-  options: PagesByLabelAttributes;
+  options: ItemsByLabelAttributes;
 }) {
   const { t } = useTranslation();
   const dateField = options.sortBy === "createdAt" ? "createdAt" : "updatedAt";

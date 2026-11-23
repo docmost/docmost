@@ -54,7 +54,7 @@ import {
   TableReadonlySort,
   Subpages,
   RecentlyUpdated,
-  PagesByLabel,
+  ItemsByLabel,
   Heading,
   SectionAnchor,
   Highlight,
@@ -424,7 +424,7 @@ export const mainExtensions = [
   RecentlyUpdated.configure({
     view: RecentlyUpdatedView,
   }),
-  PagesByLabel.configure({
+  ItemsByLabel.configure({
     defaultHeading: () => i18n.t("Pages by label"),
     view: PagesByLabelView,
   }),

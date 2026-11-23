@@ -1,5 +1,5 @@
 import { MantineProvider } from "@mantine/core";
-import { PagesByLabel, type PagesByLabelAttributes } from "@docmost/editor-ext";
+import { ItemsByLabel, type ItemsByLabelAttributes } from "@docmost/editor-ext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -60,7 +60,7 @@ const longLabel = "x".repeat(101);
 const boundaryLabel = "x".repeat(98) + "📌☀️";
 const editors: Editor[] = [];
 function show(
-  attrs?: Partial<PagesByLabelAttributes>,
+  attrs?: Partial<ItemsByLabelAttributes>,
   path = "/s/team/p/host-abc",
   editable = true,
   host: ContextType<typeof PagesByLabelContext> = {
@@ -71,7 +71,7 @@ function show(
   const editor = new Editor({
     extensions: [
       StarterKit,
-      PagesByLabel.configure({
+      ItemsByLabel.configure({
         view: PagesByLabelView,
       }),
     ],
@@ -79,7 +79,7 @@ function show(
     content: {
       type: "doc",
       content: [
-        attrs ? { type: "pagesByLabel", attrs } : { type: "paragraph" },
+        attrs ? { type: "itemsByLabel", attrs } : { type: "paragraph" },
       ],
     },
   });
@@ -106,7 +106,7 @@ function show(
 
 function applyRemoteEdit(
   editor: Editor,
-  changes: Partial<PagesByLabelAttributes>,
+  changes: Partial<ItemsByLabelAttributes>,
 ) {
   act(() => {
     editor.view.dispatch(
@@ -143,7 +143,7 @@ it("opens settings on local insertion and leaves a previously stored empty block
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
   act(() => {
-    editor.commands.insertPagesByLabel();
+    editor.commands.insertItemsByLabel();
   });
   await screen.findByRole("dialog", { name: "Pages by label" });
   expect(screen.getByRole("combobox", { name: "Labels" })).toBeTruthy();
@@ -272,7 +272,7 @@ it("sends non-default filters and the selected space IDs for a page", async () =
     limit: 8,
     excludeCurrentPage: true,
     showLabels: true,
-  } satisfies Partial<PagesByLabelAttributes>;
+  } satisfies Partial<ItemsByLabelAttributes>;
   show({ ...filters, showSpace: true, heading: "Guides" });
   await waitFor(() =>
     expect(api.post).toHaveBeenCalledWith("/labels/query-pages", {

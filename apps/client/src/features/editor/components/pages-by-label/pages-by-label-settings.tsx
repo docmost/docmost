@@ -7,12 +7,12 @@ import {
   TextInput,
 } from "@mantine/core";
 import {
-  parsePagesByLabelAttributes,
-  pagesByLabelNameWithinLimit,
-  PAGES_BY_LABEL_MAX_FILTERS,
-  PAGES_BY_LABEL_MAX_HEADING_LENGTH,
-  PAGES_BY_LABEL_MAX_LIMIT,
-  type PagesByLabelAttributes,
+  parseItemsByLabelAttributes,
+  itemsByLabelNameWithinLimit,
+  ITEMS_BY_LABEL_MAX_FILTERS,
+  ITEMS_BY_LABEL_MAX_HEADING_LENGTH,
+  ITEMS_BY_LABEL_MAX_LIMIT,
+  type ItemsByLabelAttributes,
 } from "@docmost/editor-ext";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -26,8 +26,8 @@ import { SpaceSelect } from "@/features/space/components/sidebar/space-select";
 import classes from "./pages-by-label.module.css";
 
 const labelLimits = {
-  maxValues: PAGES_BY_LABEL_MAX_FILTERS,
-  isWithinLength: pagesByLabelNameWithinLimit,
+  maxValues: ITEMS_BY_LABEL_MAX_FILTERS,
+  isWithinLength: itemsByLabelNameWithinLimit,
 };
 
 export function PagesByLabelSettings({
@@ -35,16 +35,16 @@ export function PagesByLabelSettings({
   onSave,
   onClose,
 }: {
-  initial: PagesByLabelAttributes;
-  onSave: (changes: Partial<PagesByLabelAttributes>) => void;
+  initial: ItemsByLabelAttributes;
+  onSave: (changes: Partial<ItemsByLabelAttributes>) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState(initial);
   const [limit, setLimit] = useState<number | string>(initial.limit);
-  const update = <K extends keyof PagesByLabelAttributes>(
+  const update = <K extends keyof ItemsByLabelAttributes>(
     key: K,
-    value: PagesByLabelAttributes[K],
+    value: ItemsByLabelAttributes[K],
   ) => setDraft((previous) => ({ ...previous, [key]: value }));
   const selectedSpaces =
     draft.scope === "current" ? ["current"] : draft.spaceIds;
@@ -55,7 +55,7 @@ export function PagesByLabelSettings({
       scope === "spaces"
         ? values.filter((id) => id !== "current" && id !== "workspace")
         : [];
-    if (spaceIds.length <= PAGES_BY_LABEL_MAX_FILTERS) {
+    if (spaceIds.length <= ITEMS_BY_LABEL_MAX_FILTERS) {
       setDraft((previous) => ({ ...previous, scope, spaceIds }));
     }
   }
@@ -66,7 +66,7 @@ export function PagesByLabelSettings({
       : draft.sortBy === "title"
         ? t("Reverse alphabetical order")
         : t("Oldest first");
-  const options = parsePagesByLabelAttributes({
+  const options = parseItemsByLabelAttributes({
     ...draft,
     limit,
     spaceIds: draft.scope === "spaces" ? draft.spaceIds : [],
@@ -129,7 +129,7 @@ export function PagesByLabelSettings({
             value={selectedSpaces}
             onChange={changeSpaces}
             // A scope can still replace a full list of named spaces.
-            maxValues={PAGES_BY_LABEL_MAX_FILTERS + 1}
+            maxValues={ITEMS_BY_LABEL_MAX_FILTERS + 1}
             unavailableLabel={t("Unavailable space")}
             withinPortal={false}
           />
@@ -155,7 +155,7 @@ export function PagesByLabelSettings({
             }
             labelProps={{ w: "100%" }}
             value={draft.heading}
-            maxLength={PAGES_BY_LABEL_MAX_HEADING_LENGTH}
+            maxLength={ITEMS_BY_LABEL_MAX_HEADING_LENGTH}
             onChange={(e) => update("heading", e.currentTarget.value)}
           />
           <SimpleGrid cols={{ base: 1, xs: 2 }}>
@@ -174,14 +174,14 @@ export function PagesByLabelSettings({
                 if (!value || value === draft.sortBy) return;
                 setDraft((previous) => ({
                   ...previous,
-                  sortBy: value as PagesByLabelAttributes["sortBy"],
+                  sortBy: value as ItemsByLabelAttributes["sortBy"],
                   sortDirection: value === "title" ? "asc" : "desc",
                 }));
               }}
               comboboxProps={{ withinPortal: false }}
             />
             <PageListLimitInput
-              max={PAGES_BY_LABEL_MAX_LIMIT}
+              max={ITEMS_BY_LABEL_MAX_LIMIT}
               value={limit}
               onChange={setLimit}
             />

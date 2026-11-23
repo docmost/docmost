@@ -521,7 +521,7 @@ export class ShareService {
     const doc = jsonToNode(pmJson);
     const tr = new Transform(doc);
     doc.descendants((node: Node, pos: number) => {
-      if (node.type.name === 'recentlyUpdated' || node.type.name === 'pagesByLabel') {
+      if (node.type.name === 'recentlyUpdated' || node.type.name === 'itemsByLabel') {
         const from = tr.mapping.map(pos);
         tr.delete(from, from + node.nodeSize);
         return false;

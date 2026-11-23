@@ -42,14 +42,14 @@ import {
   getProsemirrorContent,
   updateUserMentionLabels,
 } from '../../common/helpers/prosemirror/utils';
-import { htmlToMarkdown, PagesByLabel } from '@docmost/editor-ext';
+import { htmlToMarkdown, ItemsByLabel } from '@docmost/editor-ext';
 import { validate as isValidUUID } from 'uuid';
 
 type AllowedAttachment = { id: string; fileName: string; filePath: string };
 
 const exportExtensions = templateExtensions.map((extension) =>
-  extension.name === PagesByLabel.name
-    ? PagesByLabel.extend({
+  extension.name === ItemsByLabel.name
+    ? ItemsByLabel.extend({
         renderHTML({ node }) {
           return ['p', node.attrs.heading || 'Pages by label'];
         },

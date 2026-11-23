@@ -121,7 +121,7 @@ it('omits recently updated blocks from public pages and synced blocks', async ()
 
 it('omits label filters from shared pages and transclusions even inside a callout', async () => {
   const node = {
-    type: 'pagesByLabel',
+    type: 'itemsByLabel',
     attrs: { labels: ['internal-runbook'], heading: 'Internal handbook' },
   };
   const content = {
@@ -137,7 +137,7 @@ it('omits label filters from shared pages and transclusions even inside a callou
   const publicContent = await service.updatePublicAttachments(page);
   const serialized = JSON.stringify(publicContent);
   expect(serialized).not.toMatch(
-    /pagesByLabel|internal-runbook|Internal handbook/,
+    /itemsByLabel|internal-runbook|Internal handbook/,
   );
   expect(serialized).toContain('callout');
   expect(() => jsonToNode(publicContent).check()).not.toThrow();

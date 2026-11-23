@@ -127,7 +127,7 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
         </Menu.Item>
         <Menu.Item
           leftSection={<IconTags size={16} />}
-          onClick={() => editor.chain().focus().insertPagesByLabel().run()}
+          onClick={() => editor.chain().focus().insertItemsByLabel().run()}
         >
           {t("Pages by label")}
         </Menu.Item>

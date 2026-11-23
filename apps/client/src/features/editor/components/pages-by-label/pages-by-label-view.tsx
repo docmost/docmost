@@ -1,9 +1,9 @@
 import { ActionIcon, Group, Paper } from "@mantine/core";
 import { IconSettings, IconTags } from "@tabler/icons-react";
 import {
-  normalizePagesByLabelAttributes,
-  pagesByLabelSettingsKey,
-  type PagesByLabelAttributes,
+  normalizeItemsByLabelAttributes,
+  itemsByLabelSettingsKey,
+  type ItemsByLabelAttributes,
 } from "@docmost/editor-ext";
 import {
   NodeViewWrapper,
@@ -35,7 +35,7 @@ export function PagesByLabelView({
   const { editable: editorEditable, openOnInsert } = useEditorState({
     editor,
     selector: ({ editor }) => {
-      const requested = pagesByLabelSettingsKey.getState(editor.state);
+      const requested = itemsByLabelSettingsKey.getState(editor.state);
       return {
         editable: editor.isEditable,
         openOnInsert: typeof requested === "number" && requested === getPos(),
@@ -44,14 +44,14 @@ export function PagesByLabelView({
   });
   const editable =
     binding?.editor === editor ? binding.editable : editorEditable;
-  const options = normalizePagesByLabelAttributes(node.attrs);
-  const [editing, setEditing] = useState<PagesByLabelAttributes | null>(null);
+  const options = normalizeItemsByLabelAttributes(node.attrs);
+  const [editing, setEditing] = useState<ItemsByLabelAttributes | null>(null);
   useEffect(() => {
     if (!editable) setEditing(null);
     else if (openOnInsert) {
-      setEditing(normalizePagesByLabelAttributes(node.attrs));
+      setEditing(normalizeItemsByLabelAttributes(node.attrs));
       editor.view.dispatch(
-        editor.state.tr.setMeta(pagesByLabelSettingsKey, null),
+        editor.state.tr.setMeta(itemsByLabelSettingsKey, null),
       );
     }
   }, [node, editable, openOnInsert, editor]);
@@ -78,7 +78,7 @@ export function PagesByLabelView({
   );
   return (
     <NodeViewWrapper
-      data-type="pages-by-label"
+      data-type="items-by-label"
       contentEditable={false}
       className={classes.block + " " + styles.block}
       data-print-heading={options.heading || t("Pages by label")}
@@ -123,7 +123,7 @@ export function PagesByLabelView({
                 typeof pos === "number" && editor.state.doc.nodeAt(pos);
               if (current && current.type === node.type) {
                 updateAttributes({
-                  ...normalizePagesByLabelAttributes(current.attrs),
+                  ...normalizeItemsByLabelAttributes(current.attrs),
                   ...changes,
                 });
               }
