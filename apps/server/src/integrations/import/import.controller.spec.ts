@@ -96,6 +96,7 @@ describe('ImportController uploads', () => {
       {} as any,
       {} as any,
       {} as any,
+      { isDisableHtmlBlocks: () => false } as any,
     );
     const controller = new ImportController(
       importService,

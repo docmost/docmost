@@ -378,7 +378,6 @@ export class WorkspaceService {
       typeof updateWorkspaceDto.restrictApiToAdmins !== 'undefined' ||
       typeof updateWorkspaceDto.allowMemberTemplates !== 'undefined' ||
       typeof updateWorkspaceDto.htmlBlocks !== 'undefined' ||
-      typeof updateWorkspaceDto.allowMemberHtmlBlocks !== 'undefined' ||
       typeof updateWorkspaceDto.isScimEnabled !== 'undefined' ||
       typeof updateWorkspaceDto.allowPersonalSpaces !== 'undefined' ||
       typeof updateWorkspaceDto.aiChatReadOnly !== 'undefined' ||
@@ -475,8 +474,14 @@ export class WorkspaceService {
       }
 
       if (
-        (updateWorkspaceDto.htmlBlocks === true ||
-          updateWorkspaceDto.allowMemberHtmlBlocks === true) &&
+        updateWorkspaceDto.htmlBlocks === true &&
+        this.environmentService.isDisableHtmlBlocks()
+      ) {
+        throw new ForbiddenException('HTML blocks are disabled on this server');
+      }
+
+      if (
+        updateWorkspaceDto.htmlBlocks === true &&
         !this.licenseCheckService.hasFeature(
           ws.licenseKey,
           Feature.HTML_BLOCKS,
@@ -670,20 +675,6 @@ export class WorkspaceService {
         );
       }
 
-      if (typeof updateWorkspaceDto.allowMemberHtmlBlocks !== 'undefined') {
-        const prev = settingsBefore?.htmlBlocks?.allowMembers ?? false;
-        if (prev !== updateWorkspaceDto.allowMemberHtmlBlocks) {
-          before.allowMemberHtmlBlocks = prev;
-          after.allowMemberHtmlBlocks = updateWorkspaceDto.allowMemberHtmlBlocks;
-        }
-        await this.workspaceRepo.updateHtmlBlockSettings(
-          workspaceId,
-          'allowMembers',
-          updateWorkspaceDto.allowMemberHtmlBlocks,
-          trx,
-        );
-      }
-
       if (typeof updateWorkspaceDto.aiChat !== 'undefined') {
         const prev = settingsBefore?.ai?.chat ?? false;
         if (prev !== updateWorkspaceDto.aiChat) {
@@ -791,7 +782,6 @@ export class WorkspaceService {
       delete updateWorkspaceDto.mcpEnabled;
       delete updateWorkspaceDto.allowMemberTemplates;
       delete updateWorkspaceDto.htmlBlocks;
-      delete updateWorkspaceDto.allowMemberHtmlBlocks;
       delete updateWorkspaceDto.aiChat;
       delete updateWorkspaceDto.allowPersonalSpaces;
       delete updateWorkspaceDto.defaultPageEditMode;

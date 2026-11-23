@@ -2,7 +2,6 @@ import { validate as isValidUUID } from 'uuid';
 import { getSchema } from '@tiptap/core';
 import { Schema } from '@tiptap/pm/model';
 import { tiptapExtensions } from '../../../collaboration/collaboration.util';
-import { UserRole } from '../types/permission';
 import {
   HTML_BLOCK_EXPORT_LANGUAGE,
   HTML_BLOCK_IMPORT_MAX_PER_PAGE,
@@ -184,17 +183,18 @@ export function convertImportedHtmlBlocks<T>(
   return { json: walk(json), blocks };
 }
 
-export function canAuthorHtmlBlocks(input: {
+export function isHtmlBlocksEnabled(input: {
   settings: unknown;
-  role: string;
-  licensed: boolean;
+  disabledOnServer: boolean;
 }): boolean {
   const settings = input.settings as Record<string, any> | null;
-  const htmlBlocks = settings?.htmlBlocks;
-  if (!input.licensed || htmlBlocks?.enabled !== true) return false;
-  return (
-    input.role === UserRole.OWNER ||
-    input.role === UserRole.ADMIN ||
-    htmlBlocks.allowMembers === true
-  );
+  return !input.disabledOnServer && settings?.htmlBlocks?.enabled === true;
+}
+
+export function canAuthorHtmlBlocks(input: {
+  settings: unknown;
+  licensed: boolean;
+  disabledOnServer: boolean;
+}): boolean {
+  return input.licensed && isHtmlBlocksEnabled(input);
 }

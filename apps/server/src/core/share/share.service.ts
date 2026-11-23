@@ -25,6 +25,8 @@ import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo'
 import { updateAttachmentAttr, updateAttachmentUrl } from './share.util';
 import { Page, Workspace } from '@docmost/db/types/entity.types';
 import { HtmlBlockRepo } from '@docmost/db/repos/html-block/html-block.repo';
+import { isHtmlBlocksEnabled } from '../../common/helpers/prosemirror/html-block.utils';
+import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { getCoverAttachmentId } from '../page/page-cover.utils';
 import { validate as isValidUUID } from 'uuid';
 import { sql } from 'kysely';
@@ -44,6 +46,7 @@ export class ShareService {
     private readonly tokenService: TokenService,
     private readonly transclusionService: TransclusionService,
     private readonly htmlBlockRepo: HtmlBlockRepo,
+    private readonly environmentService: EnvironmentService,
   ) {}
 
   async getShares(userId: string, pagination: PaginationOptions) {
@@ -414,7 +417,12 @@ export class ShareService {
       throw new NotFoundException('HTML block not found');
     }
 
-    if ((workspace.settings as any)?.htmlBlocks?.enabled !== true) {
+    if (
+      !isHtmlBlocksEnabled({
+        settings: workspace.settings,
+        disabledOnServer: this.environmentService.isDisableHtmlBlocks(),
+      })
+    ) {
       throw new ForbiddenException('HTML blocks are disabled in this workspace');
     }
 

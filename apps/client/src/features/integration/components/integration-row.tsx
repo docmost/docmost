@@ -1,28 +1,16 @@
-import {
-  Group,
-  Text,
-  Button,
-  Box,
-  Stack,
-  Tooltip,
-} from "@mantine/core";
+import { Button, Tooltip } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import {
   IntegrationDefinition,
   Integration,
 } from "../types/integration.types";
 import { getIntegrationIcon } from "./integration-icons";
+import IntegrationRowLayout from "./integration-row-layout";
+import { getMinimumPlan } from "../utils/minimum-plan";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
-import { Feature } from "@/ee/features";
 import { UpgradeBadge } from "@/ee/components/upgrade-badge";
 import { isCloud } from "@/lib/config.ts";
-
-// Keep in sync with apps/server/src/ee/licence/feature-registry.ts.
-const MINIMUM_PLAN: Record<string, { selfHosted: string; cloud: string }> = {
-  [Feature.INTEGRATIONS]: { selfHosted: "Business", cloud: "Standard" },
-  [Feature.INTEGRATIONS_ADVANCED]: { selfHosted: "Enterprise", cloud: "Business" },
-};
 
 type IntegrationRowProps = {
   definition: IntegrationDefinition;
@@ -42,62 +30,36 @@ export default function IntegrationRow({
   const hasAccess = useHasFeature(definition.requiresFeature ?? "");
   const locked = !!definition.requiresFeature && !hasAccess;
   const upgradeLabel = useUpgradeLabel();
-  const minimumPlan = MINIMUM_PLAN[definition.requiresFeature ?? ""];
+  const minimumPlan = getMinimumPlan(definition.requiresFeature, isCloud());
 
   return (
-    <Box
-      py="sm"
-      px="xs"
-      style={{
-        borderBottom: "1px solid var(--mantine-color-default-border)",
-      }}
-    >
-      <Group justify="space-between" wrap="nowrap">
-        <Group gap="sm" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-          {getIntegrationIcon(definition.type, 28)}
-          <Stack gap={2} style={{ minWidth: 0 }}>
-            <Group gap="xs" wrap="nowrap">
-              <Text size="sm" fw={500}>
-                {definition.name}
-              </Text>
-              {locked && (
-                <UpgradeBadge
-                  label={
-                    minimumPlan &&
-                    t(isCloud() ? minimumPlan.cloud : minimumPlan.selfHosted)
-                  }
-                />
-              )}
-            </Group>
-            <Text size="xs" c="dimmed" truncate>
-              {definition.description}
-            </Text>
-          </Stack>
-        </Group>
-
-        <Group gap="sm" wrap="nowrap" style={{ flexShrink: 0 }}>
-          {isInstalled ? (
+    <IntegrationRowLayout
+      icon={getIntegrationIcon(definition.type, 28)}
+      name={definition.name}
+      badge={locked && <UpgradeBadge label={minimumPlan && t(minimumPlan)} />}
+      description={definition.description}
+      actions={
+        isInstalled ? (
+          <Button
+            size="xs"
+            variant="default"
+            onClick={() => onUninstall(installation.id)}
+          >
+            {t("Uninstall")}
+          </Button>
+        ) : (
+          <Tooltip label={upgradeLabel} disabled={!locked}>
             <Button
               size="xs"
-              variant="default"
-              onClick={() => onUninstall(installation.id)}
+              variant="light"
+              disabled={locked}
+              onClick={() => onInstall(definition.type)}
             >
-              {t("Uninstall")}
+              {t("Install")}
             </Button>
-          ) : (
-            <Tooltip label={upgradeLabel} disabled={!locked}>
-              <Button
-                size="xs"
-                variant="light"
-                disabled={locked}
-                onClick={() => onInstall(definition.type)}
-              >
-                {t("Install")}
-              </Button>
-            </Tooltip>
-          )}
-        </Group>
-      </Group>
-    </Box>
+          </Tooltip>
+        )
+      }
+    />
   );
 }

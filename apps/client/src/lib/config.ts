@@ -51,6 +51,10 @@ export function isBetaBaseForms(): boolean {
   return castToBoolean(getConfigValue("BETA_BASE_FORMS"));
 }
 
+export function isDisableHtmlBlocks(): boolean {
+  return castToBoolean(getConfigValue("DISABLE_HTML_BLOCKS"));
+}
+
 export function isUnsplashEnabled(): boolean {
   return castToBoolean(getConfigValue("UNSPLASH_ENABLED"));
 }

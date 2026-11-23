@@ -73,6 +73,7 @@ function makeService(overrides: any = {}) {
 
   const environmentService = {
     isBetaPublicSpaces: jest.fn().mockReturnValue(true),
+    isDisableHtmlBlocks: jest.fn().mockReturnValue(false),
     ...overrides.environmentService,
   };
 
@@ -454,6 +455,26 @@ describe('PublicSpaceService', () => {
         'handbook',
         'html-block-1',
         makeWorkspace(optInSettings),
+      );
+
+      await expect(result).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(result).rejects.toThrow(
+        'HTML blocks are disabled in this workspace',
+      );
+      expect(htmlBlockRepo.findById).not.toHaveBeenCalled();
+    });
+
+    it('refuses when disabled on the server', async () => {
+      const { service, htmlBlockRepo } = makeService({
+        environmentService: {
+          isDisableHtmlBlocks: jest.fn().mockReturnValue(true),
+        },
+      });
+
+      const result = service.getHtmlBlockForPublicSpace(
+        'handbook',
+        'html-block-1',
+        makeWorkspace(htmlBlocksOn),
       );
 
       await expect(result).rejects.toBeInstanceOf(ForbiddenException);

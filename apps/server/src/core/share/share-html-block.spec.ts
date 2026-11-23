@@ -64,6 +64,9 @@ function buildService() {
     hasRestrictedAncestor: jest.fn().mockResolvedValue(false),
   };
   const htmlBlockRepo = { findById: jest.fn().mockResolvedValue(block()) };
+  const environmentService = {
+    isDisableHtmlBlocks: jest.fn().mockReturnValue(false),
+  };
   const service = new ShareService(
     shareRepo as any,
     {} as any,
@@ -72,6 +75,7 @@ function buildService() {
     {} as any,
     {} as any,
     htmlBlockRepo as any,
+    environmentService as any,
   );
   const getShareForPage = jest
     .spyOn(service, 'getShareForPage')
@@ -84,6 +88,7 @@ function buildService() {
     shareRepo,
     pagePermissionRepo,
     htmlBlockRepo,
+    environmentService,
     getShareForPage,
     isSharingAllowed,
   };
@@ -123,6 +128,18 @@ describe('ShareService.getHtmlBlockForShare', () => {
         DISABLED,
       );
     }
+    expect(htmlBlockRepo.findById).not.toHaveBeenCalled();
+  });
+
+  it('refuses when disabled on the server', async () => {
+    const { service, htmlBlockRepo, environmentService } = buildService();
+    environmentService.isDisableHtmlBlocks.mockReturnValue(true);
+
+    await expectRejection(
+      service.getHtmlBlockForShare(SHARE_ID, HTML_BLOCK_ID, enabled),
+      ForbiddenException,
+      DISABLED,
+    );
     expect(htmlBlockRepo.findById).not.toHaveBeenCalled();
   });
 

@@ -267,6 +267,14 @@ export class EnvironmentService {
     return disable === 'true';
   }
 
+  isDisableHtmlBlocks(): boolean {
+    const disable = this.getConfigValue(
+      'DISABLE_HTML_BLOCKS',
+      'false',
+    ).toLowerCase();
+    return disable === 'true';
+  }
+
   isBetaPublicSpaces(): boolean {
     const enabled = this.getConfigValue(
       'BETA_PUBLIC_SPACES',

@@ -2,6 +2,7 @@ import {
   canAuthorHtmlBlocks,
   convertImportedHtmlBlocks,
   getHtmlBlockIds,
+  isHtmlBlocksEnabled,
   replaceHtmlBlockIds,
   replaceHtmlBlocksWithCode,
 } from './html-block.utils';
@@ -461,20 +462,29 @@ describe('convertImportedHtmlBlocks', () => {
   });
 });
 
-describe('canAuthorHtmlBlocks', () => {
+describe('isHtmlBlocksEnabled', () => {
   const settings = (htmlBlocks: Record<string, boolean>) => ({ htmlBlocks });
-  const enabled = settings({ enabled: true });
-  const membersAllowed = settings({ enabled: true, allowMembers: true });
 
   it.each([
-    ['unlicensed', { settings: membersAllowed, role: 'owner', licensed: false }, false],
-    ['disabled', { settings: settings({ enabled: false, allowMembers: true }), role: 'owner', licensed: true }, false],
-    ['without settings', { settings: null, role: 'owner', licensed: true }, false],
-    ['owner', { settings: enabled, role: 'owner', licensed: true }, true],
-    ['admin', { settings: enabled, role: 'admin', licensed: true }, true],
-    ['member without allowMembers', { settings: enabled, role: 'member', licensed: true }, false],
-    ['member with allowMembers off', { settings: settings({ enabled: true, allowMembers: false }), role: 'member', licensed: true }, false],
-    ['member with allowMembers', { settings: membersAllowed, role: 'member', licensed: true }, true],
+    ['enabled', { settings: settings({ enabled: true }), disabledOnServer: false }, true],
+    ['disabled', { settings: settings({ enabled: false }), disabledOnServer: false }, false],
+    ['without settings', { settings: null, disabledOnServer: false }, false],
+    ['disabled on the server', { settings: settings({ enabled: true }), disabledOnServer: true }, false],
+  ])('%s', (_label, input, expected) => {
+    expect(isHtmlBlocksEnabled(input)).toBe(expected);
+  });
+});
+
+describe('canAuthorHtmlBlocks', () => {
+  const settings = (htmlBlocks: Record<string, boolean>) => ({ htmlBlocks });
+  const on = settings({ enabled: true });
+
+  it.each([
+    ['unlicensed', { settings: on, licensed: false, disabledOnServer: false }, false],
+    ['disabled', { settings: settings({ enabled: false }), licensed: true, disabledOnServer: false }, false],
+    ['without settings', { settings: null, licensed: true, disabledOnServer: false }, false],
+    ['disabled on the server', { settings: on, licensed: true, disabledOnServer: true }, false],
+    ['enabled and licensed', { settings: on, licensed: true, disabledOnServer: false }, true],
   ])('%s', (_label, input, expected) => {
     expect(canAuthorHtmlBlocks(input)).toBe(expected);
   });

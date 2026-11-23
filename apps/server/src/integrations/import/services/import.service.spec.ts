@@ -33,8 +33,8 @@ function uploadFile(filename: string, content: string) {
 
 function buildService(opts: {
   role: string;
-  allowMembers?: boolean;
   enabled?: boolean;
+  disabledOnServer?: boolean;
   licensed?: boolean;
   deactivatedAt?: Date;
   deletedAt?: Date;
@@ -94,7 +94,6 @@ function buildService(opts: {
       settings: {
         htmlBlocks: {
           enabled: opts.enabled ?? true,
-          allowMembers: opts.allowMembers ?? false,
         },
       },
     })),
@@ -125,6 +124,7 @@ function buildService(opts: {
     htmlBlockRepo as any,
     licenseCheckService as any,
     eventEmitter as any,
+    { isDisableHtmlBlocks: () => opts.disabledOnServer ?? false } as any,
   );
   return {
     service,
@@ -264,10 +264,9 @@ describe('ImportService html blocks', () => {
     );
   });
 
-  it('gives a member live blocks when members may add them', async () => {
+  it('gives a member live blocks', async () => {
     const { service, insertedRows, htmlBlockRepo } = buildService({
       role: 'member',
-      allowMembers: true,
     });
 
     await service.importPage(
@@ -314,9 +313,9 @@ describe('ImportService html blocks', () => {
   });
 
   it.each([
-    ['a member when members may not add blocks', { role: 'member' }],
     ['an owner without the license feature', { role: 'owner', licensed: false }],
     ['an owner when the workspace switch is off', { role: 'owner', enabled: false }],
+    ['an owner when disabled on the server', { role: 'owner', disabledOnServer: true }],
     ['a deactivated owner', { role: 'owner', deactivatedAt: new Date() }],
     ['a deleted owner', { role: 'owner', deletedAt: new Date() }],
   ])('keeps html code and inserts no block for %s', async (_label, opts) => {

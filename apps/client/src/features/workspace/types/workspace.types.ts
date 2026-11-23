@@ -35,7 +35,6 @@ export interface IWorkspace {
   restrictApiToAdmins?: boolean;
   allowMemberTemplates?: boolean;
   htmlBlocks?: boolean;
-  allowMemberHtmlBlocks?: boolean;
   allowPersonalSpaces?: boolean;
   defaultPageEditMode?: string;
   defaultLocale?: string;
@@ -83,7 +82,6 @@ export interface IWorkspaceTemplateSettings {
 
 export interface IWorkspaceHtmlBlockSettings {
   enabled?: boolean;
-  allowMembers?: boolean;
 }
 
 export interface IWorkspaceSpaceSettings {

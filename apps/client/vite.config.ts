@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => {
     AI_VECTOR_DRIVER,
     BETA_PUBLIC_SPACES,
     BETA_BASE_FORMS,
+    DISABLE_HTML_BLOCKS,
     UNSPLASH_ACCESS_KEY,
   } = loadEnv(mode, envPath, "");
 
@@ -38,6 +39,7 @@ export default defineConfig(({ mode }) => {
         AI_VECTOR_DRIVER,
         BETA_PUBLIC_SPACES,
         BETA_BASE_FORMS,
+        DISABLE_HTML_BLOCKS,
         UNSPLASH_ENABLED: UNSPLASH_ACCESS_KEY?.trim() ? "true" : undefined,
       },
       APP_VERSION: JSON.stringify(process.env.npm_package_version),

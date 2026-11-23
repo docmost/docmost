@@ -52,6 +52,7 @@ export class StaticModule implements OnModuleInit {
           : undefined,
         BETA_PUBLIC_SPACES: this.environmentService.isBetaPublicSpaces(),
         BETA_BASE_FORMS: this.environmentService.isBetaBaseForms(),
+        DISABLE_HTML_BLOCKS: this.environmentService.isDisableHtmlBlocks(),
         POSTHOG_HOST: this.environmentService.getPostHogHost(),
         POSTHOG_KEY: this.environmentService.getPostHogKey(),
         AI_VECTOR_DRIVER:

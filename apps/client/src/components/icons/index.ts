@@ -5,6 +5,7 @@ export { GithubIcon } from "./github-icon.tsx";
 export { GitlabIcon } from "./gitlab-icon.tsx";
 export { GoogleDocsIcon } from "./google-docs-icon.tsx";
 export { GoogleDriveIcon } from "./google-drive-icon.tsx";
+export { Html5Icon } from "./html5-icon.tsx";
 export { JiraIcon } from "./jira-icon.tsx";
 export { LinearIcon } from "./linear-icon.tsx";
 export { TypeformIcon } from "./typeform-icon.tsx";

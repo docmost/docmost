@@ -8,6 +8,7 @@ import { SpaceRepo } from '@docmost/db/repos/space/space.repo';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
 import { HtmlBlockRepo } from '@docmost/db/repos/html-block/html-block.repo';
+import { isHtmlBlocksEnabled } from '../../common/helpers/prosemirror/html-block.utils';
 import { ShareService } from '../share/share.service';
 import { TransclusionService } from '../page/transclusion/transclusion.service';
 import { TransclusionLookup } from '../page/transclusion/transclusion.types';
@@ -259,7 +260,12 @@ export class PublicSpaceService {
       throw err;
     }
 
-    if ((workspace.settings as any)?.htmlBlocks?.enabled !== true) {
+    if (
+      !isHtmlBlocksEnabled({
+        settings: workspace.settings,
+        disabledOnServer: this.environmentService.isDisableHtmlBlocks(),
+      })
+    ) {
       throw new ForbiddenException('HTML blocks are disabled in this workspace');
     }
 

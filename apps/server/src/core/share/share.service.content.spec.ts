@@ -39,7 +39,16 @@ it('removes unfilled prompts and comments from public pages and synced blocks', 
     content: jsonToNode(content).toJSON(),
   } as Page;
   const original = structuredClone(page.content);
-  const service = new ShareService(null, null, null, null, null, null, null);
+  const service = new ShareService(
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  );
 
   expect(await service.updatePublicAttachments(page)).toEqual(expected);
   const [block] = await service.sanitizeTransclusionItemsForPublic(

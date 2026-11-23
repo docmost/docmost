@@ -89,6 +89,7 @@ async function buildService(role: string, deactivatedAt: Date | null = null) {
     {} as any,
     { hasFeature: () => true } as any,
     {} as any,
+    { isDisableHtmlBlocks: () => false } as any,
   );
   const htmlBlockRepo = {
     insertMany: jest.fn(async (rows: any[], _trx?: unknown) => {
@@ -186,7 +187,6 @@ describe('FileImportTaskService html blocks', () => {
   });
 
   it.each([
-    ['a member when members may not add blocks', 'member', null],
     ['a deactivated owner', 'owner', new Date()],
   ])('keeps html code and inserts no block for %s', async (_label, role, deactivatedAt) => {
     const ctx = await buildService(role, deactivatedAt);

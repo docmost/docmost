@@ -16,6 +16,7 @@ function makeService() {
     tokenService as any,
     {} as any,
     {} as any,
+    {} as any,
   );
   return { service, tokenService };
 }

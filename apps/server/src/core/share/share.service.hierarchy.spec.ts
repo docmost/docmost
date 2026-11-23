@@ -35,6 +35,7 @@ describe('ShareService.getShareForPage', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     );
 
     await service.getShareForPage(PAGE_ID, WORKSPACE_ID);

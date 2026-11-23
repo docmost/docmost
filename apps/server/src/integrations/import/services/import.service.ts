@@ -39,6 +39,7 @@ import { HtmlBlockRepo } from '@docmost/db/repos/html-block/html-block.repo';
 import { InsertablePage } from '@docmost/db/types/entity.types';
 import { executeTx } from '@docmost/db/utils';
 import { LicenseCheckService } from '../../environment/license-check.service';
+import { EnvironmentService } from '../../environment/environment.service';
 import { Feature } from '../../../common/features';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventName } from '../../../common/events/event.contants';
@@ -63,6 +64,7 @@ export class ImportService {
     private readonly htmlBlockRepo: HtmlBlockRepo,
     private readonly licenseCheckService: LicenseCheckService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly environmentService: EnvironmentService,
   ) {}
 
   async importPage(
@@ -207,12 +209,12 @@ export class ImportService {
 
     return canAuthorHtmlBlocks({
       settings: workspace.settings,
-      role: user.role,
       licensed: this.licenseCheckService.hasFeature(
         workspace.licenseKey,
         Feature.HTML_BLOCKS,
         workspace.plan,
       ),
+      disabledOnServer: this.environmentService.isDisableHtmlBlocks(),
     });
   }
 

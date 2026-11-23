@@ -14,9 +14,12 @@ import {
 } from "../queries/integration-query";
 import { getOAuthInstallUrl } from "../services/integration-service";
 import { notifications } from "@mantine/notifications";
+import useUserRole from "@/hooks/use-user-role";
+import HtmlBlockIntegrationRow from "@/ee/html-block/components/html-block-integration-row";
 
 export default function Integrations() {
   const { t } = useTranslation();
+  const { isAdmin } = useUserRole();
   const { data: available, isLoading: loadingAvailable } =
     useAvailableIntegrations();
   const { data: installed, isLoading: loadingInstalled } =
@@ -111,13 +114,13 @@ export default function Integrations() {
 
       {isLoading ? (
         <IntegrationListSkeleton />
-      ) : !available?.length ? (
+      ) : !isAdmin && !available?.length ? (
         <Text c="dimmed" size="sm">
           {t("No integrations available.")}
         </Text>
       ) : (
         <Stack gap={0}>
-          {available.map((def) => {
+          {available?.map((def) => {
             const installation = installed?.find((i) => i.type === def.type);
             return (
               <IntegrationRow
@@ -129,6 +132,7 @@ export default function Integrations() {
               />
             );
           })}
+          {isAdmin && <HtmlBlockIntegrationRow />}
         </Stack>
       )}
     </>

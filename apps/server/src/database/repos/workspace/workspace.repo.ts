@@ -311,7 +311,7 @@ export class WorkspaceRepo {
 
   async updateHtmlBlockSettings(
     workspaceId: string,
-    prefKey: 'enabled' | 'allowMembers',
+    prefKey: 'enabled',
     prefValue: boolean,
     trx?: KyselyTransaction,
   ) {
