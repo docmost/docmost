@@ -36,6 +36,7 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
     labelIds?: string[];
     titleOnly?: boolean;
     includeArchived?: boolean;
+    verifiedOnly?: boolean;
   }>({
     contentType: "page",
   });
@@ -69,6 +70,10 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
 
     if (filters.includeArchived) {
       params.includeArchived = true;
+    }
+
+    if (filters.verifiedOnly) {
+      params.verifiedOnly = true;
     }
 
     return params;
@@ -115,7 +120,9 @@ export function SearchSpotlight({ spaceId }: SearchSpotlightProps) {
   }, [aiSearchError, t]);
 
   const isFilterBrowse =
-    (filters.labelIds?.length ?? 0) > 0 || !!filters.creatorId;
+    (filters.labelIds?.length ?? 0) > 0 ||
+    !!filters.creatorId ||
+    !!filters.verifiedOnly;
   // while the debounce is pending the empty list is not a settled "no results"
   const isQuerySettled = query === debouncedSearchQuery;
 

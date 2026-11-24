@@ -7,6 +7,7 @@ import {
   Group,
   ScrollArea,
   Switch,
+  Tooltip,
   getDefaultZIndex,
 } from "@mantine/core";
 import {
@@ -19,6 +20,7 @@ import {
   IconTag,
   IconLetterCase,
   IconArchive,
+  IconRosetteDiscountCheck,
   IconX,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
@@ -34,6 +36,7 @@ import { CheckboxMenuItem } from "@/components/ui/checkbox-menu-item";
 import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { UpgradeBadge } from "@/ee/components/upgrade-badge";
+import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import classes from "./search-spotlight-filters.module.css";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
@@ -54,6 +57,8 @@ export function SearchSpotlightFilters({
 }: SearchSpotlightFiltersProps) {
   const { t } = useTranslation();
   const hasAttachmentIndexing = useHasFeature(Feature.ATTACHMENT_INDEXING);
+  const hasPageVerification = useHasFeature(Feature.PAGE_VERIFICATION);
+  const upgradeLabel = useUpgradeLabel();
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(
     spaceId || null
   );
@@ -65,6 +70,7 @@ export function SearchSpotlightFilters({
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [titleOnly, setTitleOnly] = useState(false);
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const filterMenuTargetRef = useRef<HTMLButtonElement>(null);
   const [openedFilter, setOpenedFilter] = useState<string | null>(null);
   const [visibleFilters, setVisibleFilters] = useState<string[]>([]);
@@ -100,6 +106,7 @@ export function SearchSpotlightFilters({
       labelIds: selectedLabelIds,
       titleOnly,
       includeArchived,
+      verifiedOnly,
     });
   }, [
     selectedSpaceId,
@@ -109,18 +116,19 @@ export function SearchSpotlightFilters({
     selectedLabelIds,
     titleOnly,
     includeArchived,
+    verifiedOnly,
     onFiltersChange,
   ]);
 
   // the chip can push the open menu's target out of the scrolled row
   useLayoutEffect(() => {
-    if (includeArchived) {
+    if (includeArchived || verifiedOnly) {
       filterMenuTargetRef.current?.scrollIntoView({
         block: "nearest",
         inline: "nearest",
       });
     }
-  }, [includeArchived]);
+  }, [includeArchived, verifiedOnly]);
 
   const handleSpaceSelect = (spaceId: string | null) => {
     setSelectedSpaceId(spaceId);
@@ -140,6 +148,7 @@ export function SearchSpotlightFilters({
 
     if (value === "attachment") {
       setSelectedLabelIds([]);
+      setVerifiedOnly(false);
     }
   };
 
@@ -373,6 +382,26 @@ export function SearchSpotlightFilters({
         return null;
       })}
 
+      {!isAiMode && verifiedOnly && (
+        <Button
+          variant="light"
+          color="blue"
+          size="sm"
+          radius="xl"
+          leftSection={<IconRosetteDiscountCheck size={16} />}
+          rightSection={<IconX size={14} />}
+          className={cx(classes.filterButton, classes.filterButtonActive)}
+          fw={500}
+          aria-pressed
+          onClick={() => {
+            setVerifiedOnly(false);
+            filterMenuTargetRef.current?.focus();
+          }}
+        >
+          {t("Verified only")}
+        </Button>
+      )}
+
       {!isAiMode && includeArchived && (
         <Button
           variant="light"
@@ -425,6 +454,45 @@ export function SearchSpotlightFilters({
               </Menu.Item>
             ))}
             {addableFilters.length > 0 && <Menu.Divider />}
+            {contentType !== "attachment" &&
+              (hasPageVerification ? (
+                <Menu.Item
+                  component={CheckboxMenuItem}
+                  aria-checked={verifiedOnly}
+                  closeMenuOnClick={false}
+                  leftSection={<IconRosetteDiscountCheck size={16} />}
+                  rightSection={
+                    <Switch
+                      checked={verifiedOnly}
+                      readOnly
+                      size="sm"
+                      tabIndex={-1}
+                      aria-hidden
+                      style={{ pointerEvents: "none" }}
+                    />
+                  }
+                  onClick={() => setVerifiedOnly(!verifiedOnly)}
+                >
+                  {t("Verified only")}
+                </Menu.Item>
+              ) : (
+                <Tooltip
+                  label={upgradeLabel}
+                  zIndex={getDefaultZIndex("max")}
+                  position="left"
+                >
+                  <Menu.Item
+                    leftSection={<IconRosetteDiscountCheck size={16} />}
+                    aria-disabled
+                    closeMenuOnClick={false}
+                    style={{ opacity: 0.7 }}
+                    rightSection={<UpgradeBadge />}
+                    onClick={() => {}}
+                  >
+                    {t("Verified only")}
+                  </Menu.Item>
+                </Tooltip>
+              ))}
             <Menu.Item
               component={CheckboxMenuItem}
               aria-checked={includeArchived}
