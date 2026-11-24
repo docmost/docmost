@@ -1,22 +1,14 @@
 import { NodeBubbleMenu } from "@/features/editor/components/bubble-menu/node-bubble-menu";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import { useSetAtom } from "jotai";
 import { Node as PMNode } from "@tiptap/pm/model";
 import { isEditorReady } from "@docmost/editor-ext";
 import {
   EditorMenuProps,
   ShouldShowProps,
-} from "@/features/editor/components/table/types/types.ts";
-import {
-  ActionIcon,
-  LoadingOverlay,
-  Modal,
-  Text,
-  Tooltip,
-  useComputedColorScheme,
-} from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+} from "@/features/editor/components/table/types/types";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import clsx from "clsx";
 import {
   IconLayoutAlignCenter,
@@ -28,41 +20,19 @@ import {
   IconZoomIn,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { getDrawioUrl, getFileUrl } from "@/lib/config.ts";
-import { uploadFile } from "@/features/page/services/page-service.ts";
-import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
-import {
-  DrawIoEmbed,
-  DrawIoEmbedRef,
-  EventExit,
-  EventExport,
-  EventSave,
-} from "react-drawio";
-import { decodeBase64ToSvgString, svgStringToFile } from "@/lib/utils";
-import { IAttachment } from "@/features/attachments/types/attachment.types";
-import { modals } from "@mantine/modals";
-import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
-import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
+import { getFileUrl } from "@/lib/config";
+import { useAltTextControl } from "../common/use-alt-text-control";
 import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
-import {
-  diagramSizeAt,
-  diagramZoom,
-  drawingSize,
-} from "@/features/editor/components/common/diagram-size";
-import { useDiagramSave } from "@/features/editor/components/common/use-diagram-save";
+import { RenameDiagramButton } from "../common/rename-diagram-button";
+import { DiagramHistoryButton } from "../common/diagram-history-button";
+import { useDiagramEditor } from "../common/use-diagram-editor";
+import { DrawioEditor } from "./drawio-editor";
 import classes from "../common/toolbar-menu.module.css";
 
 export function DrawioMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
   const setLightboxRequest = useSetAtom(lightboxRequestAtom);
-  const [opened, { open, close }] = useDisclosure(false);
-  const [initialXML, setInitialXML] = useState<string>("");
-  const drawioRef = useRef<DrawIoEmbedRef>(null);
-  const computedColorScheme = useComputedColorScheme();
-  const isDirtyRef = useRef(false);
-  const zoomRef = useRef<number | null>(null);
-  const { isSaving, isSavingRef, save, autosave } = useDiagramSave();
-  const [isLoading, setIsLoading] = useState(false);
+  const editing = useDiagramEditor(editor, "drawio");
 
   const editorState = useEditorState({
     editor,
@@ -164,114 +134,6 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
     currentAlt: editorState?.alt || "",
   });
 
-  const saveData = useCallback(async (svgXml: string) => {
-    const svgString = decodeBase64ToSvgString(svgXml);
-    const fileName = "diagram.drawio.svg";
-    const drawioSVGFile = await svgStringToFile(svgString, fileName);
-
-    const uploadTarget = getEditorUploadTarget(editor);
-    if (!uploadTarget) return;
-    const attachmentId = editorState?.attachmentId;
-
-    let attachment: IAttachment = null;
-    if (attachmentId) {
-      attachment = await uploadFile(drawioSVGFile, uploadTarget, attachmentId);
-    } else {
-      attachment = await uploadFile(drawioSVGFile, uploadTarget);
-    }
-
-    editor.commands.updateAttributes("drawio", {
-      src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
-      title: attachment.fileName,
-      size: attachment.fileSize,
-      attachmentId: attachment.id,
-      ...diagramSizeAt(zoomRef.current, drawingSize(svgString)),
-    });
-
-    isDirtyRef.current = false;
-  }, [editor, editorState?.attachmentId]);
-
-  const handleClose = useCallback(() => {
-    if (!isDirtyRef.current) {
-      close();
-      return;
-    }
-
-    modals.openConfirmModal({
-      title: t("Unsaved changes"),
-      children: (
-        <Text size="sm">
-          {t("You have unsaved changes that will be lost.")}
-        </Text>
-      ),
-      centered: true,
-      labels: { confirm: t("Discard"), cancel: t("Cancel") },
-      confirmProps: { color: "red" },
-      onConfirm: () => {
-        isDirtyRef.current = false;
-        close();
-      },
-    });
-  }, [close, t]);
-
-  const handleOpen = useCallback(async () => {
-    if (!editorState?.src) return;
-
-    setIsLoading(true);
-    zoomRef.current = null;
-    try {
-      const url = getFileUrl(editorState.src);
-      const request = await fetch(url, {
-        credentials: "include",
-        cache: "no-store",
-      });
-      const blob = await request.blob();
-      zoomRef.current = diagramZoom(
-        editor.getAttributes("drawio").width,
-        drawingSize(await blob.text()),
-      );
-
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = () => {
-        const base64data = (reader.result || "") as string;
-        setInitialXML(base64data);
-      };
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-      isDirtyRef.current = false;
-      open();
-    }
-  }, [editor, editorState?.src, open]);
-
-  useEffect(() => {
-    if (!opened) return;
-
-    const interval = setInterval(() => {
-      if (isDirtyRef.current && !isSavingRef.current && drawioRef.current) {
-        drawioRef.current.exportDiagram({ format: "xmlsvg" });
-      }
-    }, 60_000);
-
-    return () => clearInterval(interval);
-  }, [opened]);
-
-  useEffect(() => {
-    if (!opened) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        handleClose();
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [opened, handleClose]);
-
   return (
     <>
       <NodeBubbleMenu
@@ -293,147 +155,124 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
           altTextPanel
         ) : (
           <div className={classes.toolbar}>
-          <Tooltip position="top" label={t("Align left")} withinPortal={false}>
-            <ActionIcon
-              onClick={alignLeft}
-              size="lg"
-              aria-label={t("Align left")}
-              variant="subtle"
-              className={clsx({ [classes.active]: editorState?.isAlignLeft })}
+            <Tooltip
+              position="top"
+              label={t("Align left")}
+              withinPortal={false}
             >
-              <IconLayoutAlignLeft size={18} />
-            </ActionIcon>
-          </Tooltip>
+              <ActionIcon
+                onClick={alignLeft}
+                size="lg"
+                aria-label={t("Align left")}
+                variant="subtle"
+                className={clsx({ [classes.active]: editorState?.isAlignLeft })}
+              >
+                <IconLayoutAlignLeft size={18} />
+              </ActionIcon>
+            </Tooltip>
 
-          <Tooltip
-            position="top"
-            label={t("Align center")}
-            withinPortal={false}
-          >
-            <ActionIcon
-              onClick={alignCenter}
-              size="lg"
-              aria-label={t("Align center")}
-              variant="subtle"
-              className={clsx({ [classes.active]: editorState?.isAlignCenter })}
+            <Tooltip
+              position="top"
+              label={t("Align center")}
+              withinPortal={false}
             >
-              <IconLayoutAlignCenter size={18} />
-            </ActionIcon>
-          </Tooltip>
+              <ActionIcon
+                onClick={alignCenter}
+                size="lg"
+                aria-label={t("Align center")}
+                variant="subtle"
+                className={clsx({
+                  [classes.active]: editorState?.isAlignCenter,
+                })}
+              >
+                <IconLayoutAlignCenter size={18} />
+              </ActionIcon>
+            </Tooltip>
 
-          <Tooltip position="top" label={t("Align right")}>
-            <ActionIcon
-              onClick={alignRight}
-              size="lg"
-              aria-label={t("Align right")}
-              variant="subtle"
-              className={clsx({ [classes.active]: editorState?.isAlignRight })}
-            >
-              <IconLayoutAlignRight size={18} />
-            </ActionIcon>
-          </Tooltip>
+            <Tooltip position="top" label={t("Align right")}>
+              <ActionIcon
+                onClick={alignRight}
+                size="lg"
+                aria-label={t("Align right")}
+                variant="subtle"
+                className={clsx({
+                  [classes.active]: editorState?.isAlignRight,
+                })}
+              >
+                <IconLayoutAlignRight size={18} />
+              </ActionIcon>
+            </Tooltip>
 
-          <div className={classes.divider} />
+            <div className={classes.divider} />
 
-          {altTextButton}
+            {altTextButton}
 
-          <div className={classes.divider} />
+            <div className={classes.divider} />
 
-          <Tooltip position="top" label={t("Expand")} withinPortal={false}>
-            <ActionIcon
-              onClick={() =>
-                editorState?.src &&
-                setLightboxRequest({
-                  src: getFileUrl(editorState.src),
-                  type: "image",
-                })
-              }
-              size="lg"
-              aria-label={t("Expand")}
-              variant="subtle"
-            >
-              <IconZoomIn size={18} />
-            </ActionIcon>
-          </Tooltip>
+            <Tooltip position="top" label={t("Expand")} withinPortal={false}>
+              <ActionIcon
+                onClick={() =>
+                  editorState?.src &&
+                  setLightboxRequest({
+                    src: getFileUrl(editorState.src),
+                    type: "image",
+                  })
+                }
+                size="lg"
+                aria-label={t("Expand")}
+                variant="subtle"
+              >
+                <IconZoomIn size={18} />
+              </ActionIcon>
+            </Tooltip>
 
-          <Tooltip position="top" label={t("Edit")} withinPortal={false}>
-            <ActionIcon
-              onClick={handleOpen}
-              size="lg"
-              aria-label={t("Edit")}
-              variant="subtle"
-              loading={isLoading}
-            >
-              <IconEdit size={18} />
-            </ActionIcon>
-          </Tooltip>
+            <Tooltip position="top" label={t("Edit")} withinPortal={false}>
+              <ActionIcon
+                onClick={editing.openSelected}
+                size="lg"
+                aria-label={t("Edit")}
+                variant="subtle"
+                loading={editing.loading}
+              >
+                <IconEdit size={18} />
+              </ActionIcon>
+            </Tooltip>
 
-          <Tooltip position="top" label={t("Download")} withinPortal={false}>
-            <ActionIcon
-              onClick={handleDownload}
-              size="lg"
-              aria-label={t("Download")}
-              variant="subtle"
-            >
-              <IconDownload size={18} />
-            </ActionIcon>
-          </Tooltip>
+            {editorState?.attachmentId && (
+              <DiagramHistoryButton editor={editor} type="drawio" />
+            )}
+            {editorState?.attachmentId && (
+              <RenameDiagramButton editor={editor} type="drawio" />
+            )}
 
-          <Tooltip position="top" label={t("Delete")} withinPortal={false}>
-            <ActionIcon
-              onClick={handleDelete}
-              size="lg"
-              aria-label={t("Delete")}
-              variant="subtle"
-            >
-              <IconTrash size={18} />
-            </ActionIcon>
-          </Tooltip>
+            <Tooltip position="top" label={t("Download")} withinPortal={false}>
+              <ActionIcon
+                onClick={handleDownload}
+                size="lg"
+                aria-label={t("Download")}
+                variant="subtle"
+              >
+                <IconDownload size={18} />
+              </ActionIcon>
+            </Tooltip>
+
+            <Tooltip position="top" label={t("Delete")} withinPortal={false}>
+              <ActionIcon
+                onClick={handleDelete}
+                size="lg"
+                aria-label={t("Delete")}
+                variant="subtle"
+              >
+                <IconTrash size={18} />
+              </ActionIcon>
+            </Tooltip>
           </div>
         )}
       </NodeBubbleMenu>
 
-      <Modal.Root opened={opened} onClose={handleClose} fullScreen closeOnEscape={false}>
-        <Modal.Overlay />
-        <Modal.Content style={{ overflow: "hidden" }}>
-          <Modal.Body pos="relative">
-            <LoadingOverlay visible={isSaving} />
-            <div style={{ height: "100vh" }}>
-              <DrawIoEmbed
-                ref={drawioRef}
-                xml={initialXML}
-                baseUrl={getDrawioUrl()}
-                autosave
-                urlParameters={{
-                  ui: computedColorScheme === "light" ? "kennedy" : "dark",
-                  spin: true,
-                  libraries: true,
-                  saveAndExit: true,
-                  noSaveBtn: true,
-                }}
-                onSave={(data: EventSave) => {
-                  if (data.parentEvent !== "save") {
-                    return;
-                  }
-                  save(() => saveData(data.xml)).then(() => close()).catch(notifyDiagramSaveError);
-                }}
-                onClose={(data: EventExit) => {
-                  if (data.parentEvent) {
-                    return;
-                  }
-                  handleClose();
-                }}
-                onAutoSave={() => {
-                  isDirtyRef.current = true;
-                }}
-                onExport={(data: EventExport) => {
-                  autosave(() => saveData(data.data)).catch(() => {});
-                }}
-              />
-            </div>
-          </Modal.Body>
-        </Modal.Content>
-      </Modal.Root>
+      {editing.session && (
+        <DrawioEditor session={editing.session} onClose={editing.close} />
+      )}
     </>
   );
 }

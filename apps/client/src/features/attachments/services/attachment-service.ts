@@ -19,6 +19,17 @@ export async function deleteAttachment(attachmentId: string): Promise<void> {
   await api.post("/attachments/delete", { attachmentId });
 }
 
+export async function renameDiagramAttachment(
+  attachmentId: string,
+  name: string,
+): Promise<IAttachment> {
+  const response = await api.post<IAttachment>("/attachments/rename-diagram", {
+    attachmentId,
+    name,
+  });
+  return response.data;
+}
+
 async function compressAndResizeIcon(
   file: File,
   type: AvatarIconType,

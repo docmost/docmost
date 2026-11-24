@@ -68,6 +68,8 @@ export interface Attachments {
   createdAt: Generated<Timestamp>;
   creatorId: string;
   deletedAt: Timestamp | null;
+  diagramId: string | null;
+  diagramType: string | null;
   fileExt: string;
   fileName: string;
   filePath: string;
@@ -811,7 +813,15 @@ export interface OauthTokens {
   workspaceId: string;
 }
 
+export interface DiagramDrafts {
+  active: Generated<boolean>;
+  draftKey: string;
+  id: string;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface DB {
+  diagramDrafts: DiagramDrafts;
   aiChats: AiChats;
   aiChatMessages: AiChatMessages;
   announcements: Announcements;

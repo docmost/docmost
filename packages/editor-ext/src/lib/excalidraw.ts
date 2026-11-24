@@ -2,7 +2,7 @@ import { Node, mergeAttributes } from "@tiptap/core";
 import { ResizableNodeView } from "./resizable-nodeview";
 import type { ResizableNodeViewDirection } from "./resizable-nodeview";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { normalizeFileUrl, syncAltBadge } from "./media-utils";
+import { normalizeFileUrl, syncAltBadge, syncEmptyDiagramLabel } from "./media-utils";
 
 export type ExcalidrawResizeOptions = {
   enabled: boolean;
@@ -35,6 +35,7 @@ export interface ExcalidrawAttributes {
   aspectRatio?: number;
   align?: string;
   attachmentId?: string;
+  draftId?: string;
 }
 
 declare module "@tiptap/core" {
@@ -133,6 +134,7 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
           "data-align": attributes.align,
         }),
       },
+      draftId: { default: null, rendered: false },
       attachmentId: {
         default: undefined,
         parseHTML: (element) => element.getAttribute("data-attachment-id"),
@@ -164,6 +166,7 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
         {
           src: HTMLAttributes["data-src"],
           alt: HTMLAttributes["data-alt"] || HTMLAttributes["data-title"],
+          title: HTMLAttributes["data-title"],
           width: HTMLAttributes["data-width"],
         },
       ],
@@ -235,6 +238,7 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
       const el = document.createElement("img");
       el.src = normalizeFileUrl(node.attrs.src);
       el.alt = node.attrs.alt || node.attrs.title || "";
+      el.title = node.attrs.title || "";
       el.style.display = "block";
       el.style.maxWidth = "100%";
       el.style.borderRadius = "8px";
@@ -276,6 +280,7 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
             updatedNode.attrs.alt !== currentNode.attrs.alt ||
             updatedNode.attrs.title !== currentNode.attrs.title
           ) {
+            el.title = updatedNode.attrs.title || "";
             el.alt =
               updatedNode.attrs.alt || updatedNode.attrs.title || "";
           }
@@ -293,6 +298,7 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
           const container = nodeView.dom as HTMLElement;
           applyAlignment(container, align);
 
+          syncEmptyDiagramLabel(nodeView.wrapper, el, 20);
           syncAltBadge(nodeView.wrapper, updatedNode.attrs.alt);
 
           currentNode = updatedNode;
@@ -344,6 +350,7 @@ export const Excalidraw = Node.create<ExcalidrawOptions>({
       el.classList.add("media-pulse");
 
       el.onload = () => {
+        syncEmptyDiagramLabel(nodeView.wrapper, el, 20);
         dom.style.pointerEvents = "";
         el.classList.remove("media-pulse");
       };

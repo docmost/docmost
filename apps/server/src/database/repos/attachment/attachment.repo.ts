@@ -26,6 +26,8 @@ export class AttachmentRepo {
     'fileExt',
     'mimeType',
     'type',
+    'diagramType',
+    'diagramId',
     'creatorId',
     'pageId',
     'spaceId',
@@ -50,6 +52,40 @@ export class AttachmentRepo {
       .select(this.baseFields)
       .where('id', '=', attachmentId)
       .executeTakeFirst();
+  }
+
+  async findDiagramHistory(attachment: Attachment, before?: string) {
+    const root = attachment.diagramId ?? attachment.id;
+    let query = this.db
+      .selectFrom('attachments')
+      .select(['id', 'fileName', 'createdAt'])
+      .select(sql<number>`(row_number() over (order by attachments.created_at, attachments.id))::integer`.as('version'))
+      .select((eb) => this.withCreator(eb))
+      .where((eb) => eb.or([eb('id', '=', root), eb('diagramId', '=', root)]))
+      .where('workspaceId', '=', attachment.workspaceId)
+      .where('diagramType', '=', attachment.diagramType)
+      .where('deletedAt', 'is', null);
+    query = attachment.templateId
+      ? query.where('templateId', '=', attachment.templateId)
+      : query.where('pageId', '=', attachment.pageId);
+    if (before) {
+      const cursor = query
+        .clearSelect()
+        .select(['createdAt', 'id'])
+        .where('id', '=', before);
+      query = query.where((eb) =>
+        eb(
+          eb.refTuple('createdAt', 'id'),
+          '<',
+          cursor.$asTuple('createdAt', 'id'),
+        ),
+      );
+    }
+    return query
+      .orderBy('createdAt', 'desc')
+      .orderBy('id', 'desc')
+      .limit(25)
+      .execute();
   }
 
   async findByIdWithContent(
@@ -102,7 +138,33 @@ export class AttachmentRepo {
       .select((eb) => this.withCreator(eb))
       .where('pageId', '=', pageId)
       .where('type', '=', AttachmentType.File)
-      .where('deletedAt', 'is', null);
+      .where('deletedAt', 'is', null)
+      .where((eb) =>
+        eb.or([
+          eb('diagramType', 'is', null),
+          eb.not(
+            eb.exists(
+              eb
+                .selectFrom('attachments as newer')
+                .select('newer.id')
+                .whereRef('newer.pageId', '=', 'attachments.pageId')
+                .where(
+                  'newer.diagramId',
+                  '=',
+                  eb.fn.coalesce('attachments.diagramId', 'attachments.id'),
+                )
+                .where('newer.deletedAt', 'is', null)
+                .where((ref) =>
+                  ref(
+                    ref.refTuple('newer.createdAt', 'newer.id'),
+                    '>',
+                    ref.refTuple('attachments.createdAt', 'attachments.id'),
+                  ),
+                ),
+            ),
+          ),
+        ]),
+      );
 
     if (pagination.query) {
       query = query.where(

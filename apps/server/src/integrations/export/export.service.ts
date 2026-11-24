@@ -331,8 +331,10 @@ export class ExportService {
 
         if (includeAttachments) {
           await this.zipAttachments(updatedJsonContent, folder, allowedAttachments);
-          updatedJsonContent =
-            updateAttachmentUrlsToLocalPaths(updatedJsonContent);
+          updatedJsonContent = updateAttachmentUrlsToLocalPaths(
+            updatedJsonContent,
+            allowedAttachments,
+          );
         }
 
         const pageTitle = getSafePageTitle(page.title);

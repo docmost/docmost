@@ -1,6 +1,6 @@
 import { MultipartFile } from '@fastify/multipart';
 import * as path from 'path';
-import { AttachmentType } from './attachment.constants';
+import { AttachmentType, DiagramType } from './attachment.constants';
 import { bufferMultipartFile, sanitizeFileName } from '../../common/helpers';
 import { getMimeType } from '../../common/helpers';
 
@@ -13,9 +13,15 @@ export interface PreparedFile {
   multiPartFile?: MultipartFile;
 }
 
+export function diagramFileName(name: string, type: DiagramType): string | null {
+  const stem = sanitizeFileName(name.trim(), { preserveSpaces: true });
+  const fileName = `${stem}.${type}.svg`;
+  return stem && Buffer.byteLength(fileName) <= 255 ? fileName : null;
+}
+
 export async function prepareFile(
   filePromise: Promise<MultipartFile>,
-  options: { skipBuffer?: boolean } = {},
+  options: { skipBuffer?: boolean; preserveSpaces?: boolean } = {},
 ): Promise<PreparedFile> {
   const file = await filePromise;
 
@@ -32,7 +38,9 @@ export async function prepareFile(
       fileSize = buffer.length;
     }
 
-    const sanitizedFilename = sanitizeFileName(file.filename);
+    const sanitizedFilename = sanitizeFileName(file.filename, {
+      preserveSpaces: options.preserveSpaces,
+    });
     const fileName = sanitizedFilename.slice(0, 255);
     const fileExtension = path.extname(file.filename).toLowerCase();
 

@@ -5,13 +5,43 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
 } from 'class-validator';
-import { AttachmentType } from '../attachment.constants';
+import { AttachmentType, type DiagramType } from '../attachment.constants';
 
 export class AttachmentInfoDto {
   @IsNotEmpty()
   @IsUUID()
   attachmentId: string;
+}
+
+export class DiagramHistoryDto extends AttachmentInfoDto {
+  @IsOptional()
+  @IsUUID()
+  before?: string;
+}
+
+export class DiagramDraftDto {
+  @IsUUID()
+  draftId: string;
+
+  @IsIn(['drawio', 'excalidraw'])
+  type: DiagramType;
+
+  @IsOptional()
+  @IsString()
+  pageId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  templateId?: string;
+}
+
+export class RenameDiagramDto extends AttachmentInfoDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  name: string;
 }
 
 export class DeleteAttachmentDto {

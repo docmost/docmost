@@ -19,6 +19,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { DiagramDraftService } from './services/diagram-draft.service';
 import { AttachmentService } from './services/attachment.service';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { ModuleRef } from '@nestjs/core';
@@ -37,6 +38,7 @@ import {
 } from '@docmost/db/types/entity.types';
 import { StorageService } from '../../integrations/storage/storage.service';
 import {
+  diagramFileName,
   getAttachmentFolderPath,
   validAttachmentTypes,
 } from './attachment.utils';
@@ -70,6 +72,9 @@ import {
   DeleteAttachmentDto,
   PageIdDto,
   RemoveIconDto,
+  RenameDiagramDto,
+  DiagramDraftDto,
+  DiagramHistoryDto,
 } from './dto/attachment.dto';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
 import { PageAccessService } from '../page/page-access/page-access.service';
@@ -100,6 +105,7 @@ export class AttachmentController {
     private readonly templateRepo: TemplateRepo,
     private readonly spaceMemberRepo: SpaceMemberRepo,
     private readonly moduleRef: ModuleRef,
+    private readonly diagramDrafts: DiagramDraftService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -135,52 +141,52 @@ export class AttachmentController {
     const pageId = file.fields?.pageId?.value || undefined;
     const templateId = file.fields?.templateId?.value || undefined;
 
-    if (!pageId && !templateId) {
-      throw new BadRequestException('PageId is required');
-    }
-
-    if (pageId && templateId) {
-      throw new BadRequestException('Use either pageId or templateId');
-    }
-
-    if (templateId && !isValidUUID(templateId)) {
-      throw new BadRequestException('Invalid template id');
-    }
-
-    let page: Page;
-    let spaceId: string | null;
-    if (templateId) {
-      const template = await this.findEditableTemplate(
-        templateId,
-        user,
-        workspace,
+    if (file.fields?.attachmentId) {
+      throw new BadRequestException(
+        'Existing attachments cannot be overwritten',
       );
-      spaceId = template.spaceId;
-    } else {
-      page = await this.pageRepo.findById(pageId);
-
-      if (!page) {
-        throw new NotFoundException('Page not found');
-      }
-
-      await this.pageAccessService.validateCanEdit(page, user);
-
-      spaceId = page.spaceId;
+    }
+    const { page, spaceId } = await this.editableTarget(
+      pageId,
+      templateId,
+      user,
+      workspace,
+    );
+    const previousAttachmentId = file.fields?.previousAttachmentId?.value;
+    const draftId = file.fields?.draftId?.value;
+    if (
+      (previousAttachmentId && !isValidUUID(previousAttachmentId)) ||
+      (draftId && !isValidUUID(draftId)) ||
+      (draftId && previousAttachmentId)
+    ) {
+      throw new BadRequestException('Invalid diagram id');
     }
 
-    const attachmentId = file.fields?.attachmentId?.value;
-    if (attachmentId && !isValidUUID(attachmentId)) {
-      throw new BadRequestException('Invalid attachment id');
-    }
-
-    const type = file.fields?.type?.value;
+    const type: unknown = file.fields?.type?.value ?? AttachmentType.File;
     const isCover = type === AttachmentType.PageCover;
-    const isFile = type === undefined || type === AttachmentType.File;
-    if ((!isFile && !isCover) || (isCover && (attachmentId || templateId))) {
+    const diagramType =
+      type === 'drawio' || type === 'excalidraw' ? type : undefined;
+    if (
+      (type !== AttachmentType.File && !isCover && !diagramType) ||
+      ((previousAttachmentId || draftId) && !diagramType) ||
+      (isCover && templateId)
+    ) {
       throw new BadRequestException('Invalid attachment type');
     }
 
     try {
+      if (draftId) {
+        const key = this.draftKey(
+          workspace,
+          user,
+          page?.id,
+          templateId,
+          diagramType,
+          draftId,
+        );
+        await this.diagramDrafts.write(key, file);
+        return res.status(HttpStatus.NO_CONTENT).send();
+      }
       const fileResponse = await this.attachmentService.uploadFile({
         filePromise: file,
         pageId: page?.id,
@@ -188,14 +194,15 @@ export class AttachmentController {
         spaceId: spaceId,
         userId: user.id,
         workspaceId: workspace.id,
-        attachmentId: attachmentId,
+        previousAttachmentId,
         type: isCover ? AttachmentType.PageCover : AttachmentType.File,
+        diagramType,
       });
 
       this.auditService.log({
         event: AuditEvent.ATTACHMENT_UPLOADED,
         resourceType: AuditResource.ATTACHMENT,
-        resourceId: fileResponse?.id ?? attachmentId,
+        resourceId: fileResponse.id,
         spaceId: spaceId ?? undefined,
         metadata: {
           fileName: fileResponse?.fileName,
@@ -210,8 +217,7 @@ export class AttachmentController {
         url: this.buildFileUrl(workspace, fileResponse),
       });
     } catch (err: any) {
-      // cover uploads tell the user why they were refused
-      if (isCover && err instanceof HttpException) {
+      if ((isCover || diagramType) && err instanceof HttpException) {
         throw err;
       }
       if (err?.statusCode === 413) {
@@ -222,6 +228,54 @@ export class AttachmentController {
       this.logger.error(err);
       throw new BadRequestException('Error processing file upload.');
     }
+  }
+
+  @Post('attachments/diagram-draft')
+  @UseGuards(JwtAuthGuard)
+  @OAuthScope('write')
+  async readDiagramDraft(
+    @Body() dto: DiagramDraftDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+    @Res() res: FastifyReply,
+  ) {
+    const key = await this.resolveDraft(dto, user, workspace);
+    const stream = await this.diagramDrafts.read(key);
+    res.header('Cache-Control', 'private, no-store');
+    if (!stream) return res.status(HttpStatus.NO_CONTENT).send();
+    return res
+      .status(HttpStatus.OK)
+      .type('application/octet-stream')
+      .header('X-Content-Type-Options', 'nosniff')
+      .send(stream);
+  }
+
+  @Post('attachments/discard-diagram-draft')
+  @UseGuards(JwtAuthGuard)
+  @OAuthScope('write')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async discardDiagramDraft(
+    @Body() dto: DiagramDraftDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const key = await this.resolveDraft(dto, user, workspace);
+    await this.diagramDrafts.discard(key);
+  }
+
+  @Post('attachments/diagram-history')
+  @UseGuards(JwtAuthGuard)
+  @OAuthScope('read')
+  @HttpCode(HttpStatus.OK)
+  async diagramHistory(
+    @Body() dto: DiagramHistoryDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const attachment = await this.getAttachmentInfo(dto, workspace, user);
+    if (!attachment.diagramType)
+      throw new NotFoundException('Diagram not found');
+    return this.attachmentRepo.findDiagramHistory(attachment, dto.before);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -497,6 +551,46 @@ export class AttachmentController {
 
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
+  @Post('attachments/rename-diagram')
+  @OAuthScope('write')
+  async renameDiagram(
+    @Body() dto: RenameDiagramDto,
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    const attachment = await this.attachmentRepo.findById(dto.attachmentId);
+    if (
+      !attachment ||
+      attachment.workspaceId !== workspace.id ||
+      attachment.type !== AttachmentType.File ||
+      (attachment.diagramType !== 'drawio' &&
+        attachment.diagramType !== 'excalidraw') ||
+      (!attachment.pageId && !attachment.templateId)
+    ) {
+      throw new NotFoundException('Diagram not found');
+    }
+
+    if (attachment.templateId) {
+      await this.findEditableTemplate(attachment.templateId, user, workspace);
+    } else {
+      const page = await this.pageRepo.findById(attachment.pageId);
+      if (!page) throw new NotFoundException('Page not found');
+      await this.pageAccessService.validateCanEdit(page, user);
+    }
+
+    const fileName = diagramFileName(dto.name, attachment.diagramType);
+    if (!fileName) throw new BadRequestException('Invalid diagram name');
+
+    const updated = await this.attachmentRepo.updateAttachment(
+      { fileName, updatedAt: new Date() },
+      attachment.id,
+    );
+    if (!updated) throw new NotFoundException('Diagram not found');
+    return updated;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   @Post('pages/attachments')
   @OAuthScope('read')
   async getPageAttachments(
@@ -631,6 +725,87 @@ export class AttachmentController {
 
   private buildFileUrl(workspace: Workspace, attachment: Attachment): string {
     return `${this.domainService.getUrl(workspace.hostname)}/api/files/${attachment.id}/${encodeURIComponent(attachment.fileName)}`;
+  }
+
+  private async editableTarget(
+    pageId: string | undefined,
+    templateId: string | undefined,
+    user: User,
+    workspace: Workspace,
+  ) {
+    if (!pageId && !templateId) {
+      throw new BadRequestException('PageId is required');
+    }
+
+    if (pageId && templateId) {
+      throw new BadRequestException('Use either pageId or templateId');
+    }
+
+    if (templateId && !isValidUUID(templateId)) {
+      throw new BadRequestException('Invalid template id');
+    }
+
+    let page: Page;
+    let spaceId: string | null;
+    if (templateId) {
+      const template = await this.findEditableTemplate(
+        templateId,
+        user,
+        workspace,
+      );
+      spaceId = template.spaceId;
+    } else {
+      page = await this.pageRepo.findById(pageId);
+
+      if (!page || page.workspaceId !== workspace.id) {
+        throw new NotFoundException('Page not found');
+      }
+
+      await this.pageAccessService.validateCanEdit(page, user);
+
+      spaceId = page.spaceId;
+    }
+
+    return { page, spaceId };
+  }
+
+  private draftKey(
+    workspace: Workspace,
+    user: User,
+    pageId: string | undefined,
+    templateId: string | undefined,
+    type: string,
+    id: string,
+  ) {
+    return [
+      workspace.id,
+      user.id,
+      templateId ? 'template' : 'page',
+      templateId ?? pageId,
+      type,
+      id,
+    ].join('/');
+  }
+
+  private async resolveDraft(
+    dto: DiagramDraftDto,
+    user: User,
+    workspace: Workspace,
+  ) {
+    const { page } = await this.editableTarget(
+      dto.pageId,
+      dto.templateId,
+      user,
+      workspace,
+    );
+    return this.draftKey(
+      workspace,
+      user,
+      page?.id,
+      dto.templateId,
+      dto.type,
+      dto.draftId,
+    );
   }
 
   private async findEditableTemplate(

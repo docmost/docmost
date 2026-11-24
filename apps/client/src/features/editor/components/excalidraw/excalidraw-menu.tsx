@@ -1,23 +1,14 @@
 import { NodeBubbleMenu } from "@/features/editor/components/bubble-menu/node-bubble-menu";
 import { findParentNode, posToDOMRect, useEditorState } from "@tiptap/react";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import { useSetAtom } from "jotai";
 import { Node as PMNode } from "@tiptap/pm/model";
 import { isEditorReady } from "@docmost/editor-ext";
 import {
   EditorMenuProps,
   ShouldShowProps,
-} from "@/features/editor/components/table/types/types.ts";
-import {
-  ActionIcon,
-  Button,
-  Group,
-  Text,
-  Tooltip,
-  useComputedColorScheme,
-} from "@mantine/core";
-import { modals } from "@mantine/modals";
-import { useDisclosure } from "@mantine/hooks";
+} from "@/features/editor/components/table/types/types";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import clsx from "clsx";
 import {
   IconLayoutAlignCenter,
@@ -29,51 +20,19 @@ import {
   IconZoomIn,
 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
-import { getFileUrl } from "@/lib/config.ts";
-import { uploadFile } from "@/features/page/services/page-service.ts";
-import { getEditorUploadTarget } from "@/features/editor/utils/upload-target";
-import { svgStringToFile } from "@/lib";
-import "@excalidraw/excalidraw/index.css";
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { IAttachment } from "@/features/attachments/types/attachment.types";
-import ReactClearModal from "react-clear-modal";
-import { useHandleLibrary } from "@excalidraw/excalidraw";
-import { localStorageLibraryAdapter } from "@/features/editor/components/excalidraw/excalidraw-utils.ts";
-import { useAltTextControl } from "@/features/editor/components/common/use-alt-text-control.tsx";
-import { notifyDiagramSaveError } from "@/features/editor/components/common/diagram-save-error";
+import { getFileUrl } from "@/lib/config";
+import { useAltTextControl } from "../common/use-alt-text-control";
 import { lightboxRequestAtom } from "@/features/editor/atoms/editor-atoms";
-import {
-  diagramSizeAt,
-  diagramZoom,
-  drawingSize,
-} from "@/features/editor/components/common/diagram-size";
+import { RenameDiagramButton } from "../common/rename-diagram-button";
+import { DiagramHistoryButton } from "../common/diagram-history-button";
+import { useDiagramEditor } from "../common/use-diagram-editor";
+import { ExcalidrawEditor } from "./excalidraw-editor";
 import classes from "../common/toolbar-menu.module.css";
-
-const ExcalidrawComponent = lazy(() =>
-  import("@excalidraw/excalidraw").then((module) => ({
-    default: module.Excalidraw,
-  })),
-);
 
 export function ExcalidrawMenu({ editor }: EditorMenuProps) {
   const { t } = useTranslation();
   const setLightboxRequest = useSetAtom(lightboxRequestAtom);
-  const [opened, { open, close }] = useDisclosure(false);
-  const [excalidrawAPI, setExcalidrawAPI] =
-    useState<ExcalidrawImperativeAPI>(null);
-  useHandleLibrary({
-    excalidrawAPI,
-    adapter: localStorageLibraryAdapter,
-  });
-  const [excalidrawData, setExcalidrawData] = useState<any>(null);
-  const computedColorScheme = useComputedColorScheme();
-  const isDirtyRef = useRef(false);
-  const isSavingRef = useRef(false);
-  const zoomRef = useRef<number | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const isInitialLoadRef = useRef(true);
-  const lastFingerprintRef = useRef("");
+  const editing = useDiagramEditor(editor, "excalidraw");
 
   const editorState = useEditorState({
     editor,
@@ -177,142 +136,6 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
     currentAlt: editorState?.alt || "",
   });
 
-  const handleOpen = useCallback(async () => {
-    if (!editorState?.src) return;
-
-    setIsLoading(true);
-    zoomRef.current = null;
-    try {
-      const url = getFileUrl(editorState.src);
-      const request = await fetch(url, {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      const blob = await request.blob();
-      zoomRef.current = diagramZoom(
-        editor.getAttributes("excalidraw").width,
-        drawingSize(await blob.text()),
-      );
-
-      const { loadFromBlob } = await import("@excalidraw/excalidraw");
-      const data = await loadFromBlob(blob, null, null);
-      setExcalidrawData(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-      isDirtyRef.current = false;
-      isInitialLoadRef.current = true;
-      open();
-    }
-  }, [editor, editorState?.src, open]);
-
-  const saveData = useCallback(async () => {
-    if (!excalidrawAPI || isSavingRef.current) {
-      return;
-    }
-
-    isSavingRef.current = true;
-    setIsSaving(true);
-
-    try {
-      const { exportScene } = await import("@excalidraw/excalidraw");
-
-      const svg = await exportScene({
-        type: "svg",
-        data: {
-          elements: excalidrawAPI?.getSceneElements(),
-          files: excalidrawAPI?.getFiles(),
-        },
-        config: {
-          embedScene: true,
-          theme: "light",
-        },
-      });
-
-      const serializer = new XMLSerializer();
-      let svgString = serializer.serializeToString(svg);
-
-      svgString = svgString.replace(
-        /https:\/\/unpkg\.com\/@excalidraw\/excalidraw@undefined/g,
-        "https://unpkg.com/@excalidraw/excalidraw@latest",
-      );
-
-      const fileName = "diagram.excalidraw.svg";
-      const excalidrawSvgFile = await svgStringToFile(svgString, fileName);
-
-      const uploadTarget = getEditorUploadTarget(editor);
-      if (!uploadTarget) return;
-      const attachmentId = editorState?.attachmentId;
-
-      let attachment: IAttachment = null;
-      if (attachmentId) {
-        attachment = await uploadFile(excalidrawSvgFile, uploadTarget, attachmentId);
-      } else {
-        attachment = await uploadFile(excalidrawSvgFile, uploadTarget);
-      }
-
-      editor.commands.updateAttributes("excalidraw", {
-        src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
-        title: attachment.fileName,
-        size: attachment.fileSize,
-        attachmentId: attachment.id,
-        ...diagramSizeAt(zoomRef.current, drawingSize(svgString)),
-      });
-
-      isDirtyRef.current = false;
-    } finally {
-      isSavingRef.current = false;
-      setIsSaving(false);
-    }
-  }, [editor, excalidrawAPI, editorState?.attachmentId]);
-
-  const handleSaveAndExit = useCallback(async () => {
-    try {
-      await saveData();
-      close();
-    } catch (err) {
-      // save failed, modal stays open
-      notifyDiagramSaveError(err);
-    }
-  }, [saveData, close]);
-
-  const handleClose = useCallback(() => {
-    if (!isDirtyRef.current) {
-      close();
-      return;
-    }
-
-    modals.openConfirmModal({
-      title: t("Unsaved changes"),
-      children: (
-        <Text size="sm">
-          {t("You have unsaved changes that will be lost.")}
-        </Text>
-      ),
-      centered: true,
-      labels: { confirm: t("Discard"), cancel: t("Cancel") },
-      confirmProps: { color: "red" },
-      onConfirm: () => {
-        isDirtyRef.current = false;
-        close();
-      },
-    });
-  }, [close, t]);
-
-  useEffect(() => {
-    if (!opened) return;
-
-    const interval = setInterval(() => {
-      if (isDirtyRef.current && !isSavingRef.current) {
-        saveData().catch(() => {});
-      }
-    }, 60_000);
-
-    return () => clearInterval(interval);
-  }, [opened, saveData]);
-
   return (
     <>
       <NodeBubbleMenu
@@ -334,166 +157,130 @@ export function ExcalidrawMenu({ editor }: EditorMenuProps) {
           altTextPanel
         ) : (
           <div className={classes.toolbar}>
-          <Tooltip position="top" label={t("Align left")} withinPortal={false}>
-            <ActionIcon
-              onClick={alignLeft}
-              size="lg"
-              aria-label={t("Align left")}
-              variant="subtle"
-              className={clsx({
-                [classes.active]: editorState?.isAlignLeft,
-              })}
+            <Tooltip
+              position="top"
+              label={t("Align left")}
+              withinPortal={false}
             >
-              <IconLayoutAlignLeft size={18} />
-            </ActionIcon>
-          </Tooltip>
+              <ActionIcon
+                onClick={alignLeft}
+                size="lg"
+                aria-label={t("Align left")}
+                variant="subtle"
+                className={clsx({
+                  [classes.active]: editorState?.isAlignLeft,
+                })}
+              >
+                <IconLayoutAlignLeft size={18} />
+              </ActionIcon>
+            </Tooltip>
 
-          <Tooltip
-            position="top"
-            label={t("Align center")}
-            withinPortal={false}
-          >
-            <ActionIcon
-              onClick={alignCenter}
-              size="lg"
-              aria-label={t("Align center")}
-              variant="subtle"
-              className={clsx({
-                [classes.active]: editorState?.isAlignCenter,
-              })}
+            <Tooltip
+              position="top"
+              label={t("Align center")}
+              withinPortal={false}
             >
-              <IconLayoutAlignCenter size={18} />
-            </ActionIcon>
-          </Tooltip>
+              <ActionIcon
+                onClick={alignCenter}
+                size="lg"
+                aria-label={t("Align center")}
+                variant="subtle"
+                className={clsx({
+                  [classes.active]: editorState?.isAlignCenter,
+                })}
+              >
+                <IconLayoutAlignCenter size={18} />
+              </ActionIcon>
+            </Tooltip>
 
-          <Tooltip position="top" label={t("Align right")} withinPortal={false}>
-            <ActionIcon
-              onClick={alignRight}
-              size="lg"
-              aria-label={t("Align right")}
-              variant="subtle"
-              className={clsx({
-                [classes.active]: editorState?.isAlignRight,
-              })}
+            <Tooltip
+              position="top"
+              label={t("Align right")}
+              withinPortal={false}
             >
-              <IconLayoutAlignRight size={18} />
-            </ActionIcon>
-          </Tooltip>
+              <ActionIcon
+                onClick={alignRight}
+                size="lg"
+                aria-label={t("Align right")}
+                variant="subtle"
+                className={clsx({
+                  [classes.active]: editorState?.isAlignRight,
+                })}
+              >
+                <IconLayoutAlignRight size={18} />
+              </ActionIcon>
+            </Tooltip>
 
-          <div className={classes.divider} />
+            <div className={classes.divider} />
 
-          {altTextButton}
+            {altTextButton}
 
-          <div className={classes.divider} />
+            <div className={classes.divider} />
 
-          <Tooltip position="top" label={t("Expand")} withinPortal={false}>
-            <ActionIcon
-              onClick={() =>
-                editorState?.src &&
-                setLightboxRequest({
-                  src: getFileUrl(editorState.src),
-                  type: "image",
-                })
-              }
-              size="lg"
-              aria-label={t("Expand")}
-              variant="subtle"
-            >
-              <IconZoomIn size={18} />
-            </ActionIcon>
-          </Tooltip>
+            <Tooltip position="top" label={t("Expand")} withinPortal={false}>
+              <ActionIcon
+                onClick={() =>
+                  editorState?.src &&
+                  setLightboxRequest({
+                    src: getFileUrl(editorState.src),
+                    type: "image",
+                  })
+                }
+                size="lg"
+                aria-label={t("Expand")}
+                variant="subtle"
+              >
+                <IconZoomIn size={18} />
+              </ActionIcon>
+            </Tooltip>
 
-          <Tooltip position="top" label={t("Edit")} withinPortal={false}>
-            <ActionIcon
-              onClick={handleOpen}
-              size="lg"
-              aria-label={t("Edit")}
-              variant="subtle"
-              loading={isLoading}
-            >
-              <IconEdit size={18} />
-            </ActionIcon>
-          </Tooltip>
+            <Tooltip position="top" label={t("Edit")} withinPortal={false}>
+              <ActionIcon
+                onClick={editing.openSelected}
+                size="lg"
+                aria-label={t("Edit")}
+                variant="subtle"
+                loading={editing.loading}
+              >
+                <IconEdit size={18} />
+              </ActionIcon>
+            </Tooltip>
 
-          <Tooltip position="top" label={t("Download")} withinPortal={false}>
-            <ActionIcon
-              onClick={handleDownload}
-              size="lg"
-              aria-label={t("Download")}
-              variant="subtle"
-            >
-              <IconDownload size={18} />
-            </ActionIcon>
-          </Tooltip>
+            {editorState?.attachmentId && (
+              <DiagramHistoryButton editor={editor} type="excalidraw" />
+            )}
+            {editorState?.attachmentId && (
+              <RenameDiagramButton editor={editor} type="excalidraw" />
+            )}
 
-          <Tooltip position="top" label={t("Delete")} withinPortal={false}>
-            <ActionIcon
-              onClick={handleDelete}
-              size="lg"
-              aria-label={t("Delete")}
-              variant="subtle"
-            >
-              <IconTrash size={18} />
-            </ActionIcon>
-          </Tooltip>
+            <Tooltip position="top" label={t("Download")} withinPortal={false}>
+              <ActionIcon
+                onClick={handleDownload}
+                size="lg"
+                aria-label={t("Download")}
+                variant="subtle"
+              >
+                <IconDownload size={18} />
+              </ActionIcon>
+            </Tooltip>
+
+            <Tooltip position="top" label={t("Delete")} withinPortal={false}>
+              <ActionIcon
+                onClick={handleDelete}
+                size="lg"
+                aria-label={t("Delete")}
+                variant="subtle"
+              >
+                <IconTrash size={18} />
+              </ActionIcon>
+            </Tooltip>
           </div>
         )}
       </NodeBubbleMenu>
 
-      <ReactClearModal
-        style={{
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-          padding: 0,
-          zIndex: 200,
-        }}
-        isOpen={opened}
-        onRequestClose={handleClose}
-        disableCloseOnBgClick={true}
-        contentProps={{
-          style: {
-            padding: 0,
-            width: "90vw",
-          },
-        }}
-      >
-        <Group
-          justify="flex-end"
-          wrap="nowrap"
-          bg="var(--mantine-color-body)"
-          p="xs"
-        >
-          <Button onClick={handleSaveAndExit} size={"compact-sm"} loading={isSaving}>
-            {t("Save & Exit")}
-          </Button>
-          <Button onClick={handleClose} color="red" size={"compact-sm"}>
-            {t("Exit")}
-          </Button>
-        </Group>
-        <div style={{ height: "90vh" }}>
-          <Suspense fallback={null}>
-            <ExcalidrawComponent
-              onExcalidrawAPI={(api) => setExcalidrawAPI(api)}
-              onChange={(elements, _appState, files) => {
-                const fingerprint = `${elements.length}:${elements.reduce((s, e) => s + (e.version || 0), 0)}:${Object.keys(files).length}`;
-                if (isInitialLoadRef.current) {
-                  lastFingerprintRef.current = fingerprint;
-                  isInitialLoadRef.current = false;
-                  return;
-                }
-                if (fingerprint !== lastFingerprintRef.current) {
-                  lastFingerprintRef.current = fingerprint;
-                  isDirtyRef.current = true;
-                }
-              }}
-              initialData={{
-                ...excalidrawData,
-                scrollToContent: true,
-              }}
-              theme={computedColorScheme}
-            />
-          </Suspense>
-        </div>
-      </ReactClearModal>
+      {editing.session && (
+        <ExcalidrawEditor session={editing.session} onClose={editing.close} />
+      )}
     </>
   );
 }

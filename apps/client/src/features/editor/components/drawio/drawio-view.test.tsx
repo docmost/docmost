@@ -7,10 +7,15 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { MantineProvider } from "@mantine/core";
 import type { NodeViewProps } from "@tiptap/react";
 import { uploadFile } from "@/features/page/services/page-service.ts";
+import {
+  writeDiagramDraft,
+  discardDiagramDraft,
+  readDiagramDraft,
+} from "@/features/attachments/services/diagram-service";
 import DrawioView from "./drawio-view";
 
 vi.mock("react-i18next", () => ({
@@ -22,6 +27,12 @@ vi.mock("@/i18n.ts", () => ({ default: { t: (key: string) => key } }));
 
 vi.mock("@/features/page/services/page-service.ts", () => ({
   uploadFile: vi.fn(),
+}));
+
+vi.mock("@/features/attachments/services/diagram-service", () => ({
+  writeDiagramDraft: vi.fn(() => Promise.resolve()),
+  discardDiagramDraft: vi.fn(() => Promise.resolve()),
+  readDiagramDraft: vi.fn(() => Promise.resolve(null)),
 }));
 
 const svg =
@@ -38,24 +49,58 @@ const saveAndExitExport = {
 
 const attachment = {
   id: "att-1",
-  fileName: "diagram.drawio.svg",
+  fileName: "Architecture_100%_café.svg",
   fileSize: 10,
   updatedAt: "2026-01-01T00:00:00.000Z",
 } as Awaited<ReturnType<typeof uploadFile>>;
 
-const onPage = { isEditable: true, storage: { pageId: "page-1" } };
+const onPage = {
+  isEditable: true,
+  storage: { pageId: "page-1" },
+  state: { doc: { descendants: () => {} } },
+};
 const updateAttributes = vi.fn();
 
 // stands in for the node view: saved attributes come back as the node's attrs
-function Host({ editor }: { editor: object }) {
-  const [attrs, setAttrs] = useState<Record<string, unknown>>({});
+function Host({
+  editor,
+  initial = {},
+}: {
+  editor: typeof onPage | any;
+  initial?: Record<string, unknown>;
+}) {
+  const [attrs, setAttrs] = useState<Record<string, unknown>>(initial);
+  const node = { type: { name: "drawio" }, attrs };
+  const currentNode = useRef(node);
+  currentNode.current = node;
+  const tr = {
+    saved: {} as Record<string, unknown>,
+    setNodeAttribute(_pos: number, key: string, value: unknown) {
+      this.saved[key] = value;
+      return this;
+    },
+  };
   const props = {
-    node: { attrs },
-    editor,
+    node,
     selected: false,
-    updateAttributes: (saved: Record<string, unknown>) => {
-      updateAttributes(saved);
-      setAttrs((current) => ({ ...current, ...saved }));
+    getPos: () => 0,
+    editor: {
+      ...editor,
+      state: {
+        ...editor.state,
+        tr,
+        doc: {
+          ...editor.state?.doc,
+          nodeAt: () => currentNode.current,
+          content: { size: 1 },
+        },
+      },
+      view: {
+        dispatch: (transaction: typeof tr) => {
+          updateAttributes(transaction.saved);
+          setAttrs((current) => ({ ...current, ...transaction.saved }));
+        },
+      },
     },
   } as unknown as NodeViewProps;
 
@@ -66,10 +111,17 @@ function Host({ editor }: { editor: object }) {
   );
 }
 
-const openEditor = () =>
+const openNameDialog = () =>
   fireEvent.click(screen.getByText("Double-click to edit Draw.io diagram"), {
     detail: 2,
   });
+
+const openEditor = (name?: string) => {
+  openNameDialog();
+  const input = screen.getByRole("textbox", { name: "Name" });
+  if (name) fireEvent.change(input, { target: { value: name } });
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+};
 
 const diagramEditor = () => document.querySelector("iframe.diagrams-iframe");
 
@@ -100,40 +152,83 @@ beforeAll(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("a draw.io diagram that has not been saved yet", () => {
-  it("opens its editor on a page", () => {
+  it("opens its editor on a page", async () => {
     render(<Host editor={onPage} />);
 
     openEditor();
 
-    expect(diagramEditor()).not.toBeNull();
+    await waitFor(() => expect(diagramEditor()).not.toBeNull());
+  });
+
+  it("accepts a name when the page ID becomes available after the initial render", () => {
+    const storage: { pageId?: string } = {};
+    render(<Host editor={{ ...onPage, storage }} />);
+    storage.pageId = "page-1";
+    fireEvent.click(screen.getByRole("button", { name: "Edit diagram" }));
+    expect(screen.getByRole("textbox", { name: "Name" })).toBeTruthy();
   });
 
   it("does not open its editor where there is no page to save to", () => {
     render(<Host editor={{ isEditable: true, storage: {} }} />);
 
-    openEditor();
+    openNameDialog();
 
+    expect(screen.queryByRole("textbox", { name: "Name" })).toBeNull();
     expect(diagramEditor()).toBeNull();
   });
 
-  it("saves over its own first save instead of making another attachment", async () => {
-    vi.mocked(uploadFile).mockResolvedValue(attachment);
+  it("autosaves twice to one private draft without publishing a file or changing the preview", async () => {
     render(<Host editor={onPage} />);
-    openEditor();
-
-    await fromDrawio(autosaveExport);
-    await waitFor(() =>
-      expect(updateAttributes).toHaveBeenCalledWith({ attachmentId: "att-1" }),
+    openEditor("Architecture 100% café");
+    await waitFor(() => expect(diagramEditor()).not.toBeNull());
+    for (let i = 0; i < 2; i++) {
+      await fromDrawio({ event: "autosave" });
+      await fromDrawio(autosaveExport);
+      await waitFor(() =>
+        expect(writeDiagramDraft).toHaveBeenCalledTimes(i + 1),
+      );
+    }
+    const [[first, file], [second]] = vi.mocked(writeDiagramDraft).mock.calls;
+    expect(first).toEqual({
+      pageId: "page-1",
+      type: "drawio",
+      draftId: expect.any(String),
+    });
+    expect(second).toEqual(first);
+    expect(file.name).toBe("Architecture 100% café.drawio.svg");
+    expect(uploadFile).not.toHaveBeenCalled();
+    expect(updateAttributes).not.toHaveBeenCalledWith(
+      expect.objectContaining({ attachmentId: expect.anything() }),
     );
-    await fromDrawio(autosaveExport);
-    await waitFor(() => expect(uploadFile).toHaveBeenCalledTimes(2));
+  });
 
-    const [first, second] = vi.mocked(uploadFile).mock.calls;
-    expect(first[2]).toBeUndefined();
-    expect(second[2]).toBe("att-1");
+  it("suggests an unused name across both diagram types and catches a duplicate", () => {
+    const doc = {
+      descendants: (visit: (node: object) => void) => {
+        visit({
+          type: { name: "excalidraw" },
+          attrs: { title: "Drawio diagram.excalidraw.svg" },
+        });
+      },
+    };
+    render(<Host editor={{ ...onPage, state: { doc } }} />);
+    openNameDialog();
+    const input = screen.getByRole("textbox", {
+      name: "Name",
+    }) as HTMLInputElement;
+    expect(input.value).toBe("Drawio diagram 2");
+    fireEvent.change(input, { target: { value: "drawio diagram" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(
+      screen.getByText("A diagram on this page already uses this name."),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(diagramEditor()).toBeNull();
+    expect(uploadFile).not.toHaveBeenCalled();
   });
 
   it("uploads once for one Save & Exit", async () => {
@@ -141,39 +236,83 @@ describe("a draw.io diagram that has not been saved yet", () => {
     render(<Host editor={onPage} />);
     openEditor();
 
+    await waitFor(() => expect(diagramEditor()).not.toBeNull());
     await fromDrawio(saveAndExitExport);
     await waitFor(() => expect(diagramEditor()).toBeNull());
 
     expect(uploadFile).toHaveBeenCalledTimes(1);
-  });
-
-  it("saves a Save & Exit that arrives while an autosave is still uploading", async () => {
-    const uploads: Array<(saved: typeof attachment) => void> = [];
-    vi.mocked(uploadFile).mockImplementation(
-      () => new Promise((resolve) => uploads.push(resolve)),
-    );
-    render(<Host editor={onPage} />);
-    openEditor();
-
-    await fromDrawio(autosaveExport);
-    await waitFor(() => expect(uploads).toHaveLength(1));
-    await fromDrawio(saveAndExitExport);
-
-    // the editor waits for its turn instead of closing unsaved
-    expect(diagramEditor()).not.toBeNull();
-
-    await act(async () => uploads[0](attachment));
-    await waitFor(() => expect(uploads).toHaveLength(2));
-    expect(diagramEditor()).not.toBeNull();
-
-    await act(async () => uploads[1](attachment));
-    await waitFor(() => expect(diagramEditor()).toBeNull());
-
-    expect(vi.mocked(uploadFile).mock.calls[1][2]).toBe("att-1");
-    expect(updateAttributes).toHaveBeenLastCalledWith(
+    expect(updateAttributes).toHaveBeenCalledWith(
       expect.objectContaining({
-        src: expect.stringContaining("/api/files/att-1/"),
+        src: "/api/files/att-1/Architecture_100%25_caf%C3%A9.svg",
+        title: attachment.fileName,
       }),
     );
   });
+
+  it("saves a Save & Exit that arrives while an autosave is still uploading", async () => {
+    let checkpoint!: () => void;
+    vi.mocked(writeDiagramDraft).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          checkpoint = resolve;
+        }),
+    );
+    vi.mocked(uploadFile).mockResolvedValue(attachment);
+    render(<Host editor={onPage} />);
+    openEditor();
+    await waitFor(() => expect(diagramEditor()).not.toBeNull());
+    await fromDrawio({ event: "autosave" });
+    await fromDrawio(autosaveExport);
+    await waitFor(() => expect(writeDiagramDraft).toHaveBeenCalledOnce());
+    await fromDrawio(saveAndExitExport);
+    expect(uploadFile).not.toHaveBeenCalled();
+    await act(async () => checkpoint());
+    await waitFor(() => expect(diagramEditor()).toBeNull());
+    expect(uploadFile).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(uploadFile).mock.calls[0][2]).toEqual({
+      type: "drawio",
+      previousAttachmentId: undefined,
+    });
+    expect(discardDiagramDraft).toHaveBeenCalledOnce();
+  });
+
+  it.each([false, true])(
+    "opens a published diagram with a recovered draft = %s",
+    async (recovered) => {
+      const original = new Blob([svg], { type: "image/svg+xml" });
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({ ok: true, blob: async () => original })),
+      );
+      vi.mocked(readDiagramDraft).mockResolvedValueOnce(
+        recovered ? original : null,
+      );
+      vi.mocked(uploadFile).mockResolvedValue(attachment);
+      render(
+        <Host
+          editor={onPage}
+          initial={{
+            attachmentId: "original",
+            draftId: "my-diagram",
+            title: "Network.drawio.svg",
+            src: "/api/files/original/Network.drawio.svg",
+          }}
+        />,
+      );
+      openEditor();
+      await waitFor(() => expect(diagramEditor()).not.toBeNull());
+      await fromDrawio(saveAndExitExport);
+      await waitFor(() => expect(diagramEditor()).toBeNull());
+      expect(uploadFile).toHaveBeenCalledTimes(recovered ? 1 : 0);
+      expect(readDiagramDraft).toHaveBeenCalledWith({
+        pageId: "page-1",
+        type: "drawio",
+        draftId: "my-diagram",
+      });
+      if (recovered)
+        expect(
+          vi.mocked(uploadFile).mock.calls[0][2]?.previousAttachmentId,
+        ).toBe("original");
+    },
+  );
 });

@@ -1,0 +1,141 @@
+.modal {
+  display: flex;
+  flex-direction: column;
+  height: min(90dvh, rem(900px));
+  overflow: hidden;
+}
+
+.header {
+  flex-shrink: 0;
+  padding-inline: var(--mantine-spacing-lg);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.title {
+  font-size: var(--mantine-font-size-lg);
+  font-weight: 600;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: rem(250px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  padding: 0;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-inline-end: 1px solid var(--mantine-color-default-border);
+}
+
+.listHeading {
+  margin: var(--mantine-spacing-md) var(--mantine-spacing-lg)
+    var(--mantine-spacing-xs);
+}
+
+.list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+}
+
+.revision {
+  width: 100%;
+  display: block;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  margin-block: rem(2px);
+  border-inline-start: rem(3px) solid transparent;
+  border-radius: var(--mantine-radius-sm);
+
+  @mixin hover {
+    background-color: var(--mantine-color-default-hover);
+  }
+
+  &[aria-pressed="true"] {
+    background-color: light-dark(
+      var(--mantine-color-gray-1),
+      var(--mantine-color-dark-5)
+    );
+    border-inline-start-color: var(--mantine-primary-color-filled);
+  }
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 var(--mantine-spacing-lg) var(--mantine-spacing-lg);
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-8)
+  );
+}
+
+.toolbar {
+  min-height: rem(60px);
+  flex-shrink: 0;
+
+  & button {
+    flex-shrink: 0;
+  }
+}
+
+.formatIcon {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.canvas {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  place-items: center;
+  padding: clamp(12px, 2vw, 32px);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  /* Transparent diagram exports can contain dark ink in either color scheme. */
+  color-scheme: light;
+  background: var(--mantine-color-white);
+
+  & > * {
+    grid-area: 1 / 1;
+  }
+
+  & img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+.empty {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+}
+
+@media (max-width: 800px) {
+  .modal {
+    height: 100dvh;
+  }
+
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .picker {
+    padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+    border-bottom: 1px solid var(--mantine-color-default-border);
+  }
+
+  .preview {
+    padding: 0 var(--mantine-spacing-sm)
+      max(var(--mantine-spacing-sm), env(safe-area-inset-bottom));
+  }
+}

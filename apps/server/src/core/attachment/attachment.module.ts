@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AttachmentService } from './services/attachment.service';
+import { DiagramDraftService } from './services/diagram-draft.service';
 import { AttachmentController } from './attachment.controller';
 import { StorageModule } from '../../integrations/storage/storage.module';
 import { UserModule } from '../user/user.module';
@@ -10,7 +11,7 @@ import { TokenModule } from '../auth/token.module';
 @Module({
   imports: [StorageModule, UserModule, WorkspaceModule, TokenModule],
   controllers: [AttachmentController],
-  providers: [AttachmentService, AttachmentProcessor],
+  providers: [AttachmentService, AttachmentProcessor, DiagramDraftService],
   exports: [AttachmentService],
 })
 export class AttachmentModule {}

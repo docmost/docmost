@@ -35,31 +35,30 @@ export function getSafePageTitle(title: string): string {
   return sanitized || 'untitled';
 }
 
-export function updateAttachmentUrlsToLocalPaths(prosemirrorJson: any) {
+export function updateAttachmentUrlsToLocalPaths(
+  prosemirrorJson: any,
+  attachments?: ReadonlyMap<string, { fileName: string }>,
+) {
   const doc = jsonToNode(prosemirrorJson);
   if (!doc) return null;
 
-  // Helper function to replace specific URL prefixes
   const replacePrefix = (url: string): string => {
-    const prefixes = ['/files', '/api/files'];
-    for (const prefix of prefixes) {
-      if (url.startsWith(prefix)) {
-        return url.replace(prefix, 'files');
-      }
-    }
-    return url;
+    const local = url.replace(/^\/(?:api\/)?files\//, 'files/');
+    const match = /^files\/([^/]+)\/[^?#]+([?#].*)?$/.exec(local);
+    const attachment = match && attachments?.get(match[1]);
+    if (!attachment) return local;
+    return `files/${match[1]}/${encodeURIComponent(attachment.fileName)}${match[2] || ''}`;
   };
 
   doc?.descendants((node: Node) => {
     if (isAttachmentNode(node.type.name)) {
-      if (node.attrs.src) {
-        // @ts-ignore
-        node.attrs.src = replacePrefix(node.attrs.src);
+      const attrs = node.attrs as Record<string, string>;
+      if (node.type.name === 'drawio' || node.type.name === 'excalidraw') {
+        const attachment = attachments?.get(attrs.attachmentId);
+        if (attachment) attrs.title = attachment.fileName;
       }
-      if (node.attrs.url) {
-        // @ts-ignore
-        node.attrs.url = replacePrefix(node.attrs.url);
-      }
+      if (attrs.src) attrs.src = replacePrefix(attrs.src);
+      if (attrs.url) attrs.url = replacePrefix(attrs.url);
     }
   });
 

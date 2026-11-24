@@ -14,6 +14,32 @@
     }
   }
 
+  &[contenteditable="true"] [data-empty-diagram] {
+    min-width: 10rem;
+    max-width: 100%;
+    min-height: 2.5rem;
+    outline: 1px dashed var(--mantine-color-dimmed);
+
+    img {
+      min-width: 100%;
+      height: 2.5rem !important;
+      object-fit: contain;
+    }
+
+    &::after {
+      content: attr(data-empty-diagram);
+      position: absolute;
+      inset: 0;
+      padding: 0.5rem 0.75rem;
+      color: var(--mantine-color-dimmed);
+      font-size: var(--mantine-font-size-sm);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      pointer-events: none;
+    }
+  }
+
   .attachment-placeholder {
     display: flex;
     align-items: center;

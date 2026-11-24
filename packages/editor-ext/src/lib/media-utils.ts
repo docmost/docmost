@@ -17,6 +17,19 @@ export function getFileNameFromUrl(url: string | undefined): string {
   }
 }
 
+// Both editors export an empty scene as a fixed-size transparent image.
+export function syncEmptyDiagramLabel(
+  wrapper: HTMLElement,
+  image: HTMLImageElement,
+  emptySize: number,
+) {
+  if (image.naturalWidth === emptySize && image.naturalHeight === emptySize) {
+    wrapper.dataset.emptyDiagram = image.title || image.alt;
+  } else {
+    delete wrapper.dataset.emptyDiagram;
+  }
+}
+
 export function syncAltBadge(wrapper: HTMLElement, alt: unknown): void {
   const existing = wrapper.querySelector<HTMLElement>(
     ":scope > .media-alt-badge",

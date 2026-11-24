@@ -14,7 +14,10 @@ import { saveAs } from "file-saver";
 import { InfiniteData } from "@tanstack/react-query";
 import { IFileTask } from '@/features/file-task/types/file-task.types.ts';
 import type { UploadTarget } from "@docmost/editor-ext";
-import { IAttachment } from '@/features/attachments/types/attachment.types.ts';
+import type {
+  DiagramType,
+  IAttachment,
+} from "@/features/attachments/types/attachment.types.ts";
 
 export async function createPage(data: Partial<IPage>): Promise<IPage> {
   const req = await api.post<IPage>("/pages/create", data);
@@ -197,11 +200,14 @@ export async function getAttachmentInfo(
 export async function uploadFile(
   file: File,
   uploadTarget: UploadTarget,
-  attachmentId?: string,
+  options?: { type: DiagramType; previousAttachmentId?: string },
 ): Promise<IAttachment> {
   const formData = new FormData();
-  if (attachmentId) {
-    formData.append("attachmentId", attachmentId);
+  if (options?.previousAttachmentId) {
+    formData.append("previousAttachmentId", options.previousAttachmentId);
+  }
+  if (options?.type) {
+    formData.append("type", options.type);
   }
   if ("pageId" in uploadTarget) {
     formData.append("pageId", uploadTarget.pageId);

@@ -263,7 +263,7 @@ function ReviewChangesContent({
           )}
           {showsDiagramNote && (
             <Text size="sm">
-              {t("Diagrams always show their latest drawing.")}
+              {t("Diagrams edited before diagram history was available may show the same drawing in both versions.")}
             </Text>
           )}
         </div>
