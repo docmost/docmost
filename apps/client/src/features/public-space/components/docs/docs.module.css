@@ -1,10 +1,8 @@
-/* Design tokens for the public docs surface. Declared on :root (not .root)
- * because mobile drawers and the spotlight render in portals outside the shell
- * subtree. The accent pair is overridden at runtime by docs-theme.ts. */
+/* Set docs tokens on the document while the shell is mounted so portals inherit them. */
 /* light-dark() cannot live in a bare :root block (the transform emits a
  * descendant selector that never matches :root), so dark values get their own
  * attribute-qualified block; flipping semantics ride Mantine's own vars. */
-:root {
+:root:has(.root) {
   --docs-header-h: 56px;
   --docs-sidebar-w: 280px;
   --docs-toc-w: 240px;
@@ -26,7 +24,7 @@
   --docs-header-bg: color-mix(in srgb, var(--docs-bg) 78%, transparent);
 }
 
-:root[data-mantine-color-scheme="dark"] {
+:root[data-mantine-color-scheme="dark"]:has(.root) {
   --docs-bg: var(--mantine-color-body);
   --docs-fg: oklch(90% 0 0);
   --docs-nav-fg: oklch(72% 0 0);
