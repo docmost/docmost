@@ -1,6 +1,7 @@
 import type { JSONContent } from '@tiptap/core';
 import type { Node } from '@tiptap/pm/model';
-import type { CalloutType, StatusColor } from '@docmost/editor-ext';
+import type { StatusColor } from '@docmost/editor-ext';
+import type { BlockRefIndex } from './block-refs';
 
 export type BlockEditType =
   | 'replace'
@@ -11,7 +12,7 @@ export type BlockEditType =
   | 'move_after'
   | 'move_into'
   | 'replace_text'
-  | 'update_callout'
+  | 'set_attrs'
   | 'update_cells'
   | 'replace_document'
   | 'append_document'
@@ -28,8 +29,7 @@ export type BlockEdit = {
   newText?: string;
   occurrence?: number;
   changes?: CellEdit[];
-  calloutType?: CalloutType;
-  icon?: string | null;
+  attrs?: Record<string, unknown>;
 };
 
 export type CellEdit = {
@@ -47,14 +47,41 @@ export type UpdatedCell = {
 
 export type MoveDestination = { parentRef: string; parentType: string };
 
+export type BlockEditChange = {
+  operation: number;
+  type: BlockEditType;
+  refs: string[];
+  attrs?: Record<string, unknown>;
+  text?: string;
+  textTruncated?: true;
+  destination?: {
+    parentType: string;
+    parentRef?: string;
+    targetRef?: string;
+    /** One-based index of the first moved block in its saved parent. */
+    index: number;
+  };
+};
+
+export type BlockEditFailure = {
+  ok: false;
+  error: string;
+  code?: string;
+  operation?: number;
+  column?: number;
+  currentRevision?: string;
+};
+
 export type BlockEditResult =
   | {
       ok: true;
+      contentRevision: string;
+      changes: BlockEditChange[];
       insertedRefs: string[][];
       updatedCells?: UpdatedCell[];
       movedInto?: MoveDestination[];
     }
-  | { ok: false; error: string };
+  | BlockEditFailure;
 
 export type ExpectedNode = {
   path: number[];
@@ -114,8 +141,11 @@ export type BlockEditPlan =
       ok: true;
       doc: Node;
       splices: EditSplice[];
+      sourceRefs?: BlockRefIndex;
+      resultRefs?: BlockRefIndex;
+      textTargets: { edit: number; path: number[]; from: number }[];
       insertedRefs: string[][];
       updatedCells?: UpdatedCell[];
       movedInto?: MoveDestination[];
     }
-  | { ok: false; error: string };
+  | BlockEditFailure;

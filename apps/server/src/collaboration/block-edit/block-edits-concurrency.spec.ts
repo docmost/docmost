@@ -59,7 +59,7 @@ it('merges an icon edit with offline typing and a callout style change in either
   const child = note.get(0);
   const plan = planBlockEdits(
     before,
-    [{ type: 'update_callout', ref: 'b1', icon: '👩🏽‍💻' }],
+    [{ type: 'set_attrs', ref: 'b1', attrs: { icon: '👩🏽‍💻', type: 'note' } }],
     pageRevision(before),
   );
   if (plan.ok === false) throw new Error(plan.error);
@@ -125,6 +125,11 @@ const cases: { name: string; edit: BlockEdit; accepted: boolean }[] = [
       ref: 'b1',
       content: [{ ...marked(), attrs: { textAlign: 'center' } }],
     },
+    accepted: true,
+  },
+  {
+    name: 'native alignment change',
+    edit: { type: 'set_attrs', ref: 'b1', attrs: { textAlign: 'right' } },
     accepted: true,
   },
   {

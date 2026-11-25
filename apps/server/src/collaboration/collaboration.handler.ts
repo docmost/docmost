@@ -9,13 +9,8 @@ import {
 import { setYjsMark, updateYjsMarkAttribute, YjsSelection } from './yjs.util';
 import * as Y from 'yjs';
 import { User } from '@docmost/db/types/entity.types';
-import { applyBlockSplices, planBlockEdits } from './block-edit/block-edits';
-import { editableDocument } from './block-edit/block-refs';
-import {
-  BlockEdit,
-  BlockEditPlan,
-  BlockEditResult,
-} from './block-edit/block-edits.types';
+import { applyBlockEditsToYDoc } from './block-edit/block-edit-receipt';
+import { BlockEdit, BlockEditResult } from './block-edit/block-edits.types';
 
 export type CollabEventHandlers = ReturnType<
   CollaborationHandler['getHandlers']
@@ -151,6 +146,7 @@ export class CollaborationHandler {
         if (!expectedRevision) {
           return {
             ok: false,
+            code: 'stale_revision',
             error: 'Read the page to get its revision before editing it.',
           };
         }
@@ -160,41 +156,12 @@ export class CollaborationHandler {
           documentName,
           { user },
           (doc) => {
-            let plan: BlockEditPlan;
-            try {
-              const content = TiptapTransformer.fromYdoc(doc, 'default');
-              plan = planBlockEdits(
-                editableDocument(content),
-                edits,
-                expectedRevision,
+            result = applyBlockEditsToYDoc(doc, edits, expectedRevision);
+            if (result.ok === false && result.code === 'collab_conflict') {
+              this.logger.warn(
+                `Block edits on ${documentName}: ${result.error}`,
               );
-            } catch (error) {
-              const message =
-                error instanceof Error ? error.message : String(error);
-              this.logger.warn(`Block edits on ${documentName}: ${message}`);
-              result = {
-                ok: false,
-                error: `The page could not be edited: ${message}`,
-              };
-              return;
             }
-            if (!plan.ok) {
-              result = plan;
-              return;
-            }
-            const fragment = doc.getXmlFragment('default');
-            result = applyBlockSplices(fragment, plan.splices)
-              ? {
-                  ok: true,
-                  insertedRefs: plan.insertedRefs,
-                  ...(plan.updatedCells && { updatedCells: plan.updatedCells }),
-                  ...(plan.movedInto && { movedInto: plan.movedInto }),
-                }
-              : {
-                  ok: false,
-                  error:
-                    'This part of the page contains content that cannot be edited safely. Read the page again.',
-                };
           },
         );
         return result;

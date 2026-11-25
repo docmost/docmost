@@ -1,9 +1,9 @@
 import { Fragment, Node } from '@tiptap/pm/model';
 import { ReplaceStep, Transform } from '@tiptap/pm/transform';
 import { TiptapTransformer } from '@hocuspocus/transformer';
-import { CALLOUT_TYPES } from '@docmost/editor-ext';
 import * as Y from 'yjs';
 import { tiptapExtensions } from '../collaboration.util';
+import { validateBlockAttributes } from './block-attributes';
 import {
   CellChange,
   editableCellValue,
@@ -22,8 +22,8 @@ import {
   pageRevision,
 } from './block-refs';
 import {
-  AttributeSplice,
   BlockEdit,
+  BlockEditFailure,
   BlockEditPlan,
   BlockEditType,
   BlockSplice,
@@ -62,7 +62,7 @@ type ResolvedEdit = {
   insert: BlockSplice['insert'];
   text?: TextChange;
   cells?: CellChange[];
-  callout?: AttributeSplice;
+  attrs?: Record<string, unknown>;
 };
 
 type PlannedSplice = {
@@ -87,11 +87,13 @@ const nodeAt = (doc: Node, path: number[]) =>
 const messageOf = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
-// Match a single emoji sequence, including flags, keycaps and joined emoji.
-const calloutIcon = new RegExp(
-  '^(?:\\p{RGI_Emoji}|\\p{Extended_Pictographic})$',
-  'v',
-);
+function invalidEdit(
+  operation: number,
+  message: string,
+  code = 'invalid_operation',
+): BlockEditFailure {
+  return { ok: false, code, operation, error: `Edit ${operation}: ${message}` };
+}
 
 const isInside = (path: number[], { parentPath, from, to }: BlockRange) =>
   path.length > parentPath.length &&
@@ -134,7 +136,7 @@ function expectedShape(doc: Node, splice: BlockSplice): ExpectedNode[] {
   return [...shapeAlong(doc, parentPath), ...removed, ...sources];
 }
 
-const yNodeAt = (fragment: Y.XmlFragment, path: number[]) => {
+export const yNodeAt = (fragment: Y.XmlFragment, path: number[]) => {
   let node = fragment;
   for (const index of path) {
     const child = node.get(index);
@@ -157,19 +159,18 @@ const matchesShape = (
 function buildContent(
   doc: Node,
   edit: BlockEdit,
-  n: number,
   parentPath: number[],
 ): Node[] | string {
   if (!edit.content?.length) {
     return edit.type === 'replace'
-      ? `Edit ${n}: replace produced no content; use delete to remove blocks.`
-      : `Edit ${n}: ${edit.type} produced no content.`;
+      ? 'replace produced no content; use delete to remove blocks.'
+      : `${edit.type} produced no content.`;
   }
   try {
     return edit.content.map((json) => editableNode(json, doc.type.schema));
   } catch (error) {
     const parentType = nodeAt(doc, parentPath).type.name;
-    return `Edit ${n}: ${parentType} cannot contain that content here (${messageOf(error)}).`;
+    return `${parentType} cannot contain that content here (${messageOf(error)}).`;
   }
 }
 
@@ -179,15 +180,15 @@ function resolveEdit(
   edit: BlockEdit,
   n: number,
   indexes: ReturnType<typeof indexTextEdits>,
-): ResolvedEdit | string {
+): ResolvedEdit | BlockEditFailure {
   if (isDocumentEdit(edit)) {
-    const nodes = buildContent(doc, edit, n, []);
-    if (typeof nodes === 'string') return nodes;
+    const nodes = buildContent(doc, edit, []);
+    if (typeof nodes === 'string') return invalidEdit(n, nodes);
     const location =
       edit.type === 'replace_document'
         ? { index: 0 }
         : documentInsertion(doc, nodes, edit.type === 'prepend_document');
-    if (typeof location === 'string') return `Edit ${n}: ${location}`;
+    if (typeof location === 'string') return invalidEdit(n, location);
     return {
       range: { parentPath: [], from: 0, to: doc.childCount - 1 },
       removes: edit.type === 'replace_document',
@@ -212,41 +213,40 @@ function resolveEdit(
     end.slice(0, -1).join() !== range.parentPath.join() ||
     range.to < range.from
   ) {
-    return `Edit ${n}: endRef "${edit.endRef}" must be a later sibling of ref "${edit.ref}".`;
+    return invalidEdit(
+      n,
+      `endRef "${edit.endRef}" must be a later sibling of ref "${edit.ref}".`,
+    );
   }
   const anchors = [start, end];
 
   switch (edit.type) {
-    case 'update_callout': {
+    case 'set_attrs': {
       const node = nodeAt(doc, start);
-      if (node.type.name !== 'callout' || edit.endRef || edit.targetRef)
-        return `Edit ${n}: update_callout takes a single callout ref.`;
-      const { icon, calloutType } = edit;
-      if (icon === undefined && calloutType === undefined)
-        return `Edit ${n}: supply icon or calloutType.`;
-      if (icon != null && (typeof icon !== 'string' || !calloutIcon.test(icon)))
-        return `Edit ${n}: icon must be one emoji, or null to restore the default.`;
-      if (calloutType !== undefined && !CALLOUT_TYPES.includes(calloutType))
-        return `Edit ${n}: unknown callout type.`;
-      const attributes = changedAttributes(node.attrs, {
-        ...node.attrs,
-        ...(icon !== undefined && { icon }),
-        ...(calloutType !== undefined && { type: calloutType }),
-      });
+      if (edit.endRef !== undefined || edit.targetRef !== undefined)
+        return invalidEdit(n, 'set_attrs takes a single block ref.');
+      const attrs = validateBlockAttributes(node.type.name, edit.attrs);
+      if (typeof attrs === 'string')
+        return invalidEdit(n, attrs, 'invalid_attributes');
       return {
         range,
         removes: false,
         anchors: [start],
         nodes: [],
         insert: [],
-        callout: { path: start, attributes, expected: [] },
+        attrs,
       };
     }
     case 'update_cells': {
       if (edit.endRef || edit.targetRef)
-        return `Edit ${n}: update_cells takes a single table row ref.`;
+        return invalidEdit(n, 'update_cells takes a single table row ref.');
       const cells = resolveCellChanges(nodeAt(doc, start), start, edit.changes);
-      if (typeof cells === 'string') return `Edit ${n}: ${cells}`;
+      if (!Array.isArray(cells)) {
+        return {
+          ...invalidEdit(n, cells.error, cells.code),
+          ...(cells.column !== undefined && { column: cells.column }),
+        };
+      }
       return {
         range,
         removes: false,
@@ -258,7 +258,7 @@ function resolveEdit(
     }
     case 'replace_text': {
       if (edit.endRef || edit.targetRef)
-        return `Edit ${n}: replace_text takes a single block ref.`;
+        return invalidEdit(n, 'replace_text takes a single block ref.');
       const text = findTextChange(
         nodeAt(doc, start),
         start,
@@ -267,7 +267,7 @@ function resolveEdit(
         edit.occurrence,
         indexes.get(edit),
       );
-      if (typeof text === 'string') return `Edit ${n}: ${text}`;
+      if (typeof text === 'string') return invalidEdit(n, text);
       return {
         range,
         removes: false,
@@ -282,8 +282,8 @@ function resolveEdit(
     case 'replace':
     case 'insert_before':
     case 'insert_after': {
-      const nodes = buildContent(doc, edit, n, range.parentPath);
-      if (typeof nodes === 'string') return nodes;
+      const nodes = buildContent(doc, edit, range.parentPath);
+      if (typeof nodes === 'string') return invalidEdit(n, nodes);
       const index = edit.type === 'insert_after' ? range.to + 1 : range.from;
       return {
         range,
@@ -297,17 +297,24 @@ function resolveEdit(
     case 'move_before':
     case 'move_after':
     case 'move_into': {
-      if (!edit.targetRef) return `Edit ${n}: ${edit.type} needs a targetRef.`;
+      if (!edit.targetRef)
+        return invalidEdit(n, `${edit.type} needs a targetRef.`);
       const { node: targetNode, path: target } = refs.byRef.get(edit.targetRef);
       if (isInside(target, range)) {
-        return `Edit ${n}: targetRef "${edit.targetRef}" is inside the blocks being moved.`;
+        return invalidEdit(
+          n,
+          `targetRef "${edit.targetRef}" is inside the blocks being moved.`,
+        );
       }
       let position: BlockPosition;
       if (edit.type === 'move_into') {
         if (edit.position !== 'start' && edit.position !== 'end')
-          return `Edit ${n}: move_into needs position "start" or "end".`;
+          return invalidEdit(n, 'move_into needs position "start" or "end".');
         if (targetNode.isAtom || targetNode.inlineContent)
-          return `Edit ${n}: ${targetNode.type.name} is not a block container. Use a container ref for move_into.`;
+          return invalidEdit(
+            n,
+            `${targetNode.type.name} is not a block container. Use a container ref for move_into.`,
+          );
         position = {
           parentPath: target,
           index: edit.position === 'start' ? 0 : targetNode.childCount,
@@ -334,11 +341,11 @@ function resolveEdit(
       };
     }
     default:
-      return `Edit ${n}: unknown edit type "${edit.type}".`;
+      return invalidEdit(n, `unknown edit type "${edit.type}".`);
   }
 }
 
-function findOverlap(resolved: ResolvedEdit[]): string | undefined {
+function findOverlap(resolved: ResolvedEdit[]): BlockEditFailure | undefined {
   for (const [i, edit] of resolved.entries()) {
     const text = edit.text;
     const j = resolved.findIndex(
@@ -346,9 +353,10 @@ function findOverlap(resolved: ResolvedEdit[]): string | undefined {
         k !== i &&
         ((edit.removes &&
           other.anchors.some((path) => isInside(path, edit.range))) ||
-          (edit.callout &&
-            other.callout &&
-            comparePaths(edit.callout.path, other.callout.path) === 0) ||
+          (edit.attrs &&
+            other.attrs &&
+            comparePaths(edit.anchors[0], other.anchors[0]) === 0 &&
+            Object.keys(edit.attrs).some((key) => key in other.attrs)) ||
           (edit.cells &&
             (other.cells || other.text) &&
             edit.anchors.some((path) =>
@@ -362,7 +370,10 @@ function findOverlap(resolved: ResolvedEdit[]): string | undefined {
             other.text.matchFrom < text.matchTo)),
     );
     if (j !== -1) {
-      return `Edit ${Math.max(i, j) + 1}: it overlaps edit ${Math.min(i, j) + 1}; merge them into one edit.`;
+      return invalidEdit(
+        Math.max(i, j) + 1,
+        `it overlaps edit ${Math.min(i, j) + 1}; merge them into one edit.`,
+      );
     }
   }
   return undefined;
@@ -734,7 +745,10 @@ const contentError = (node: Node) => {
   }
 };
 
-function findSchemaError(newDoc: Node, parents: ChangedParent[]) {
+function findSchemaError(
+  newDoc: Node,
+  parents: ChangedParent[],
+): BlockEditFailure | undefined {
   try {
     newDoc.check();
     return undefined;
@@ -749,10 +763,13 @@ function findSchemaError(newDoc: Node, parents: ChangedParent[]) {
     });
     // No failing parent means the invalid content predates these edits.
     if (failures.length === 0) return undefined;
-    return failures
-      .sort((a, b) => a.i - b.i)
-      .map(({ line }) => line)
-      .join('\n');
+    failures.sort((a, b) => a.i - b.i);
+    return {
+      ok: false,
+      code: 'invalid_operation',
+      operation: failures[0].i + 1,
+      error: failures.map(({ line }) => line).join('\n'),
+    };
   }
 }
 
@@ -818,9 +835,15 @@ function duplicatePageId(before: Node, after: Node, edits: ResolvedEdit[]) {
   });
   if (!duplicate) return;
   if (duplicate.type === 'transclusionSource') {
-    return `Edit ${duplicate.edit}: a synced block can only exist once on a page. Edit the existing source by its ref.`;
+    return invalidEdit(
+      duplicate.edit,
+      'a synced block can only exist once on a page. Edit the existing source by its ref.',
+    );
   }
-  return `Edit ${duplicate.edit}: the ${duplicate.type} ID "${duplicate.id}" is already used on this page.`;
+  return invalidEdit(
+    duplicate.edit,
+    `the ${duplicate.type} ID "${duplicate.id}" is already used on this page.`,
+  );
 }
 
 function insertedContent(splices: EditSplice[]) {
@@ -886,6 +909,8 @@ export function planBlockEdits(
   ) {
     return {
       ok: false,
+      code: 'stale_revision',
+      currentRevision: pageRevision(doc),
       error:
         'The page changed since you read it. Read the page again and retry with the new revision.',
     };
@@ -894,10 +919,10 @@ export function planBlockEdits(
   for (const [i, edit] of edits.entries()) {
     if (isDocumentEdit(edit)) {
       if (edits.length !== 1 || edit.ref || edit.endRef || edit.targetRef) {
-        return {
-          ok: false,
-          error: `Edit ${i + 1}: a document edit must be submitted alone without block refs.`,
-        };
+        return invalidEdit(
+          i + 1,
+          'a document edit must be submitted alone without block refs.',
+        );
       }
       continue;
     }
@@ -908,10 +933,11 @@ export function planBlockEdits(
       ...(isMoveEdit(edit.type) && edit.targetRef ? [edit.targetRef] : []),
     ].filter((ref) => !refs.byRef.has(ref));
     if (missing.length > 0) {
-      return {
-        ok: false,
-        error: `Edit ${i + 1}: block ref "${missing[0]}" was not found in this revision. Read the page again to get its block refs.`,
-      };
+      return invalidEdit(
+        i + 1,
+        `block ref "${missing[0]}" was not found in this revision. Read the page again to get its block refs.`,
+        'unknown_ref',
+      );
     }
   }
 
@@ -919,12 +945,12 @@ export function planBlockEdits(
   const indexes = indexTextEdits(edits, refs);
   for (const [i, edit] of edits.entries()) {
     const result = resolveEdit(doc, refs, edit, i + 1, indexes);
-    if (typeof result === 'string') return { ok: false, error: result };
+    if ('ok' in result) return result;
     resolved.push(result);
   }
 
   const overlap = findOverlap(resolved);
-  if (overlap) return { ok: false, error: overlap };
+  if (overlap) return overlap;
   const planned = groupSplices(doc, resolved);
   const textChanges = resolved
     .flatMap((edit) => edit.text ?? [])
@@ -937,16 +963,17 @@ export function planBlockEdits(
   const splices: EditSplice[] = [];
   const updatedCells: UpdatedCell[] = [];
   for (const [i, edit] of resolved.entries()) {
-    if (edit.callout && Object.keys(edit.callout.attributes).length) {
-      const { path, attributes } = edit.callout;
-      editedDoc = updateAt(editedDoc, path, (node) =>
-        node.type.create(
-          { ...node.attrs, ...attributes },
-          node.content,
-          node.marks,
-        ),
-      );
-      splices.push(edit.callout);
+    if (edit.attrs) {
+      const path = edit.anchors[0];
+      const node = nodeAt(editedDoc, path);
+      const attrs = { ...node.attrs, ...edit.attrs };
+      const attributes = changedAttributes(node.attrs, attrs);
+      if (Object.keys(attributes).length) {
+        editedDoc = updateAt(editedDoc, path, () =>
+          node.type.create(attrs, node.content, node.marks),
+        );
+        splices.push({ path, attributes, expected: [] });
+      }
     }
     for (const { cell, column, path, splice, color } of edit.cells ?? []) {
       if (splice) {
@@ -970,7 +997,7 @@ export function planBlockEdits(
   const { newDoc, parents } = simulateSplices(editedDoc, planned);
   const error =
     findSchemaError(newDoc, parents) ?? duplicatePageId(doc, newDoc, resolved);
-  if (error) return { ok: false, error };
+  if (error) return error;
 
   for (const change of planned) {
     const removal = resolved[change.removal];
@@ -983,16 +1010,17 @@ export function planBlockEdits(
       !explicitRemoval &&
       steps.some((step) => 'deleteCount' in step && step.deleteCount > 0)
     ) {
-      return {
-        ok: false,
-        error: `Edit ${change.removal + 1}: this replacement would detach existing collaborative content. Pending edits to those nodes could disappear from the page. No edits in this batch were applied. Use update_cells for table fields or replace_text for text, keeping the existing nodes in place.`,
-      };
+      return invalidEdit(
+        change.removal + 1,
+        'this replacement would detach existing collaborative content. Pending edits to those nodes could disappear from the page. No edits in this batch were applied. Use set_attrs for block properties, update_cells for table fields or replace_text for text, keeping the existing nodes in place.',
+      );
     }
     splices.push(...steps);
   }
   if (recreatesDeletedBlock(doc, edits, resolved, splices)) {
     return {
       ok: false,
+      code: 'invalid_operation',
       error:
         'This batch would detach and recreate a deleted block. Use move_before or move_after to place existing blocks beside a target, or move_into to place them inside a container.',
     };
@@ -1015,16 +1043,29 @@ export function planBlockEdits(
     if (edit.move !== 'move_into') continue;
     const destination = moveDestination(edit, planned, newDoc, newRefs);
     if (!destination)
-      return {
-        ok: false,
-        error: `Edit ${i + 1}: the blocks could not be placed inside the specified container.`,
-      };
+      return invalidEdit(
+        i + 1,
+        'the blocks could not be placed inside the specified container.',
+      );
     movedInto.push(destination);
   }
   return {
     ok: true,
     doc: newDoc,
     splices,
+    sourceRefs: refs,
+    resultRefs: newRefs,
+    textTargets: resolved.flatMap(({ text }, edit) =>
+      text
+        ? [
+            {
+              edit,
+              path: text.splice.path,
+              from: text.blockOffset + text.matchFrom,
+            },
+          ]
+        : [],
+    ),
     ...(updatedCells.length > 0 && { updatedCells }),
     ...(movedInto.length > 0 && { movedInto }),
     insertedRefs: resolved.map(({ nodes }) =>
@@ -1038,6 +1079,7 @@ export function planBlockEdits(
 export function applyBlockSplices(
   fragment: Y.XmlFragment,
   changes: EditSplice[],
+  movedElements?: Map<Y.XmlElement, Y.XmlElement>,
 ): boolean {
   if (
     !changes.every(({ expected }) =>
@@ -1099,11 +1141,13 @@ export function applyBlockSplices(
   const steps = splices.map((splice) => ({
     splice,
     parent: yNodeAt(fragment, splice.parentPath),
-    elements: splice.insert.map((item) =>
-      'movedFrom' in item
-        ? (yNodeAt(fragment, item.movedFrom) as Y.XmlElement).clone()
-        : created.get(next++).clone(),
-    ),
+    elements: splice.insert.map((item) => {
+      if ('json' in item) return created.get(next++).clone();
+      const source = yNodeAt(fragment, item.movedFrom) as Y.XmlElement;
+      const moved = source.clone();
+      movedElements?.set(source, moved);
+      return moved;
+    }),
   }));
 
   for (const { element, patch } of attributes) {

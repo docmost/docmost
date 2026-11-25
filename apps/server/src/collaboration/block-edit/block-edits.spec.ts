@@ -3,6 +3,7 @@ import type { Node } from '@tiptap/pm/model';
 import { TiptapTransformer } from '@hocuspocus/transformer';
 import * as Y from 'yjs';
 import { jsonToNode, tiptapExtensions } from '../collaboration.util';
+import { getWritableAttributes } from './block-attributes';
 import { computeBlockRefs, pageRevision } from './block-refs';
 import { applyBlockSplices, planBlockEdits } from './block-edits';
 import type { BlockEdit, BlockEditPlan } from './block-edits.types';
@@ -69,6 +70,49 @@ function livePage(json: JSONContent) {
 }
 
 describe('block edits', () => {
+  it('exposes serializable constraints and editor defaults for writable fields', () => {
+    expect(getWritableAttributes('heading')).toEqual({
+      level: { type: 'integer', minimum: 1, maximum: 6, default: 1 },
+      textAlign: {
+        type: 'string',
+        enum: ['left', 'center', 'right', 'justify'],
+        default: null,
+      },
+    });
+    expect(getWritableAttributes('embed')).toEqual({
+      align: {
+        type: 'string',
+        enum: ['left', 'center', 'right'],
+        default: 'center',
+      },
+      widthPercent: {
+        type: 'number',
+        exclusiveMinimum: 0,
+        maximum: 100,
+        default: null,
+      },
+    });
+    const callout = getWritableAttributes('callout');
+    expect(JSON.parse(JSON.stringify(callout))).toEqual(callout);
+    expect(callout.icon).toEqual({
+      type: 'string',
+      format: 'emoji',
+      default: null,
+    });
+    expect(callout.type).toMatchObject({
+      enum: expect.arrayContaining(['note', 'warning']),
+      default: 'info',
+    });
+    for (const nodeType of [
+      'tableCell',
+      'transclusionSource',
+      'constructor',
+      '__proto__',
+    ]) {
+      expect(getWritableAttributes(nodeType)).toEqual({});
+    }
+  });
+
   it('composes a callout style change with child text edits and rejects conflicting or mistargeted patches', () => {
     const page = livePage(
       doc({
@@ -79,12 +123,12 @@ describe('block edits', () => {
     );
     const ref = page.refAt(0);
     const child = page.refAt(0, 0);
-    const patch = { type: 'update_callout' as const, ref, icon: '📌' };
+    const patch = { type: 'set_attrs' as const, ref, attrs: { icon: '📌' } };
     const before = page.state();
     expect(page.edit([{ ...patch, ref: child }])).toMatchObject({ ok: false });
-    expect(page.edit([patch, { ...patch, icon: '🔔' }])).toMatchObject({
-      ok: false,
-    });
+    expect(
+      page.edit([patch, { ...patch, attrs: { icon: '🔔' } }]),
+    ).toMatchObject({ ok: false, code: 'invalid_operation', operation: 2 });
     expect(page.edit([patch, { type: 'delete', ref }])).toMatchObject({
       ok: false,
     });
@@ -103,6 +147,217 @@ describe('block edits', () => {
     const saved = page.state();
     expect(page.edit([patch])).toMatchObject({ ok: true, splices: [] });
     expect(page.state()).toEqual(saved);
+    expect(
+      page.edit([{ ...patch, attrs: { icon: null, type: null } }]).ok,
+    ).toBe(true);
+    expect(page.read().firstChild.attrs).toMatchObject({
+      icon: null,
+      type: 'info',
+    });
+  });
+
+  it('sets and resets native attributes while preserving block and inline identities', () => {
+    const mention = { type: 'mention', attrs: { id: 'member', label: 'Lee' } };
+    const page = livePage(
+      doc(
+        {
+          type: 'heading',
+          attrs: { id: 'heading-anchor', level: 2 },
+          content: [
+            text('Hello ', [
+              { type: 'bold' },
+              { type: 'comment', attrs: { commentId: 'c1', resolved: false } },
+            ]),
+            mention,
+          ],
+        },
+        {
+          type: 'embed',
+          attrs: {
+            src: 'https://example.com/chart',
+            provider: 'chart',
+            width: 720,
+          },
+        },
+        {
+          type: 'taskList',
+          content: [
+            { type: 'taskItem', content: [paragraph('Send the notes')] },
+          ],
+        },
+        {
+          type: 'details',
+          content: [
+            { type: 'detailsSummary', content: [text('Details')] },
+            {
+              type: 'detailsContent',
+              content: [paragraph('More information')],
+            },
+          ],
+        },
+      ),
+    );
+    const heading = page.fragment.get(0) as Y.XmlElement;
+    const children = heading.toArray();
+    const embed = page.fragment.get(1);
+    const source = page.read().firstChild.content.toJSON();
+    const set = (path: number[], attrs: BlockEdit['attrs']): BlockEdit => ({
+      type: 'set_attrs',
+      ref: page.refAt(...path),
+      attrs,
+    });
+    expect(
+      page.edit([
+        set([0], { level: 6 }),
+        set([0], { textAlign: 'justify' }),
+        set([1], { align: 'right', widthPercent: 37.5 }),
+        set([2, 0], { checked: true }),
+        set([3], { open: true }),
+      ]).ok,
+    ).toBe(true);
+    expect(page.fragment.get(0)).toBe(heading);
+    children.forEach((child, i) => expect(heading.get(i)).toBe(child));
+    expect(page.fragment.get(1)).toBe(embed);
+    const saved = page.read();
+    expect(saved.child(0).attrs).toMatchObject({
+      id: 'heading-anchor',
+      level: 6,
+      textAlign: 'justify',
+    });
+    expect(saved.child(0).content.toJSON()).toEqual(source);
+    expect(saved.child(1).attrs).toMatchObject({
+      src: 'https://example.com/chart',
+      provider: 'chart',
+      align: 'right',
+      width: 720,
+      widthPercent: 37.5,
+    });
+    expect(saved.child(2).firstChild.attrs.checked).toBe(true);
+    expect(saved.child(3).attrs.open).toBe(true);
+    const reset = [
+      set([0], { level: null, textAlign: null }),
+      set([1], { align: null, widthPercent: null }),
+      set([2, 0], { checked: null }),
+      set([3], { open: null }),
+    ];
+    expect(page.edit(reset).ok).toBe(true);
+    const restored = page.read();
+    expect(restored.child(0).attrs).toMatchObject({
+      level: 1,
+      textAlign: null,
+    });
+    expect(restored.child(1).attrs).toMatchObject({
+      align: 'center',
+      widthPercent: null,
+    });
+    expect(restored.child(2).firstChild.attrs.checked).toBe(false);
+    expect(restored.child(3).attrs.open).toBe(false);
+    const unchanged = page.state();
+    expect(page.edit(reset)).toMatchObject({ ok: true, splices: [] });
+    expect(page.state()).toEqual(unchanged);
+    expect(
+      page.edit([set([0], { level: 1 }), set([0], { level: 2 })]),
+    ).toMatchObject({
+      ok: false,
+      code: 'invalid_operation',
+      operation: 2,
+    });
+    expect(page.edit([set([2, 0], { checked: 'false' })])).toMatchObject({
+      ok: false,
+      code: 'invalid_attributes',
+      operation: 1,
+    });
+    expect(page.state()).toEqual(unchanged);
+  });
+
+  it('rejects malformed or protected attributes atomically and identifies the failing operation', () => {
+    const page = livePage(
+      doc(
+        paragraph('Keep this'),
+        { type: 'heading', content: [text('Title')] },
+        { type: 'embed', attrs: { src: 'https://example.com' } },
+        { type: 'callout', content: [paragraph('Note')] },
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'tableRow',
+              content: [{ type: 'tableCell', content: [paragraph('Cell')] }],
+            },
+          ],
+        },
+      ),
+    );
+    const valid: BlockEdit = {
+      type: 'set_attrs',
+      ref: page.refAt(0),
+      attrs: { textAlign: 'center' },
+    };
+    const invalid: [string, unknown[]][] = [
+      [
+        page.refAt(1),
+        [
+          {},
+          null,
+          [],
+          'left',
+          ...[undefined, '2', 1.5, 0, 7].map((level) => ({ level })),
+          { id: null },
+          { textAlign: 'centre' },
+          { constructor: null },
+          { prototype: null },
+          JSON.parse('{"level":2,"__proto__":null}'),
+          Object.assign(Object.create({ id: 'x' }), { level: 2 }),
+        ],
+      ],
+      [
+        page.refAt(2),
+        [
+          ...[0, 101, '75', NaN, Infinity].map((widthPercent) => ({
+            widthPercent,
+          })),
+          { align: 'justify' },
+          { src: 'https://example.com/new' },
+          { provider: 'changed' },
+        ],
+      ],
+      [
+        page.refAt(3),
+        [{ icon: 'two words' }, { icon: '🔔🔔' }, { type: 'red' }],
+      ],
+      [page.refAt(4, 0), [{ colspan: 2 }, { rowspan: 2 }]],
+    ];
+    const before = page.state();
+    for (const [ref, cases] of invalid) {
+      for (const attrs of cases) {
+        expect(
+          page.edit([
+            valid,
+            { type: 'set_attrs', ref, attrs: attrs as BlockEdit['attrs'] },
+          ]),
+        ).toMatchObject({
+          ok: false,
+          code: 'invalid_attributes',
+          operation: 2,
+        });
+      }
+    }
+    expect(page.edit([valid, { ...valid, ref: 'missing' }])).toMatchObject({
+      ok: false,
+      code: 'unknown_ref',
+      operation: 2,
+    });
+    expect(
+      page.edit([
+        valid,
+        { ...valid, ref: page.refAt(1), endRef: page.refAt(2) },
+      ]),
+    ).toMatchObject({
+      ok: false,
+      code: 'invalid_operation',
+      operation: 2,
+    });
+    expect(page.state()).toEqual(before);
   });
 
   it('replaces one block and leaves the rest untouched', () => {
@@ -342,13 +597,17 @@ describe('block edits', () => {
         paragraph('outside'),
       ),
     );
+    const callout = page.fragment.get(0);
     const plan = page.edit([
       { type: 'insert_after', ref: 'b3', content: [paragraph('new')] },
       { type: 'move_after', ref: 'b2', targetRef: 'b3' },
+      { type: 'set_attrs', ref: 'b1', attrs: { type: 'warning' } },
     ]);
     expect(plan.ok).toBe(true);
     expect(textsOf(page.read())).toEqual(['', 'outside', 'new', 'inside']);
     expect(page.read().firstChild.firstChild.type.name).toBe('paragraph');
+    expect(page.fragment.get(0)).toBe(callout);
+    expect(page.read().firstChild.attrs.type).toBe('warning');
   });
 
   it('removes an emptied list when moving its last item to another list', () => {
@@ -478,6 +737,8 @@ describe('block edits', () => {
 
     expect(plan).toEqual({
       ok: false,
+      code: 'stale_revision',
+      currentRevision: pageRevision(page.read()),
       error: expect.stringMatching(/page changed.*read.*again/i),
     });
     expect(page.state()).toEqual(before);
@@ -494,6 +755,8 @@ describe('block edits', () => {
 
     expect(plan).toEqual({
       ok: false,
+      code: 'invalid_operation',
+      operation: 2,
       error: 'Edit 2: it overlaps edit 1; merge them into one edit.',
     });
     expect(page.state()).toEqual(before);
@@ -511,6 +774,8 @@ describe('block edits', () => {
 
     expect(plan).toEqual({
       ok: false,
+      code: 'invalid_operation',
+      operation: 1,
       error: `Edit 1: targetRef "${inside}" is inside the blocks being moved.`,
     });
   });
@@ -523,6 +788,8 @@ describe('block edits', () => {
 
     expect(plan).toEqual({
       ok: false,
+      code: 'invalid_operation',
+      operation: 1,
       error: `Edit 1: endRef "${first}" must be a later sibling of ref "${second}".`,
     });
   });

@@ -509,6 +509,7 @@ export class PageService {
   ): Promise<BlockEditResult> {
     const unavailable: BlockEditResult = {
       ok: false,
+      code: 'collab_unavailable',
       error: 'The page could not be edited right now.',
     };
     try {
