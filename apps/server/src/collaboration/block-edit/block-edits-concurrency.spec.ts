@@ -32,6 +32,62 @@ function cellContent(doc: Y.Doc, column: number) {
   return (cell.get(0) as Y.XmlElement).get(0);
 }
 
+it('merges an icon edit with offline typing and a callout style change in either delivery order', () => {
+  const original = TiptapTransformer.toYdoc(
+    {
+      type: 'doc',
+      content: [
+        { type: 'callout', attrs: { type: 'note' }, content: [marked()] },
+      ],
+    },
+    'default',
+    tiptapExtensions,
+  );
+  const base = Y.encodeStateAsUpdate(original);
+  const clock = Y.encodeStateVector(original);
+  const server = replica(base);
+  const peer = replica(base);
+  const peerCallout = peer.getXmlFragment('default').get(0) as Y.XmlElement;
+  const peerText = (peerCallout.get(0) as Y.XmlElement).get(0) as Y.XmlText;
+  peer.transact(() => {
+    peerCallout.setAttribute('type', 'warning');
+    peerText.insert(0, 'Peer ');
+  });
+  const before = read(server);
+  const fragment = server.getXmlFragment('default');
+  const note = fragment.get(0) as Y.XmlElement;
+  const child = note.get(0);
+  const plan = planBlockEdits(
+    before,
+    [{ type: 'update_callout', ref: 'b1', icon: '👩🏽‍💻' }],
+    pageRevision(before),
+  );
+  if (plan.ok === false) throw new Error(plan.error);
+  expect(plan.splices).toEqual([
+    expect.objectContaining({ attributes: { icon: '👩🏽‍💻' } }),
+  ]);
+  server.transact(() =>
+    expect(applyBlockSplices(fragment, plan.splices)).toBe(true),
+  );
+  expect(fragment.get(0)).toBe(note);
+  expect(note.get(0)).toBe(child);
+  const updates = [server, peer].map((doc) =>
+    Y.encodeStateAsUpdate(doc, clock),
+  );
+  for (const order of [updates, [...updates].reverse()]) {
+    const merged = replica(base);
+    order.forEach((update) => Y.applyUpdate(merged, update));
+    const final = read(merged).firstChild;
+    expect(final.attrs).toMatchObject({ type: 'warning', icon: '👩🏽‍💻' });
+    expect(final.content.toJSON()).toEqual(
+      read(peer).firstChild.content.toJSON(),
+    );
+    expect(final.textContent).toBe('Peer Left old right');
+    merged.destroy();
+  }
+  for (const doc of [original, server, peer]) doc.destroy();
+});
+
 const cases: { name: string; edit: BlockEdit; accepted: boolean }[] = [
   {
     name: 'adjacent move',
@@ -39,9 +95,9 @@ const cases: { name: string; edit: BlockEdit; accepted: boolean }[] = [
     accepted: true,
   },
   {
-    name: 'nonadjacent move',
-    edit: { type: 'move_after', ref: 'b1', targetRef: 'b3' },
-    accepted: false,
+    name: 'move of another block',
+    edit: { type: 'move_after', ref: 'b2', targetRef: 'b3' },
+    accepted: true,
   },
   {
     name: 'exact text',

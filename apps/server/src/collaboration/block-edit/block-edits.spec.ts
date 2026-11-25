@@ -69,6 +69,42 @@ function livePage(json: JSONContent) {
 }
 
 describe('block edits', () => {
+  it('composes a callout style change with child text edits and rejects conflicting or mistargeted patches', () => {
+    const page = livePage(
+      doc({
+        type: 'callout',
+        attrs: { type: 'note' },
+        content: [paragraph('Keep this')],
+      }),
+    );
+    const ref = page.refAt(0);
+    const child = page.refAt(0, 0);
+    const patch = { type: 'update_callout' as const, ref, icon: '📌' };
+    const before = page.state();
+    expect(page.edit([{ ...patch, ref: child }])).toMatchObject({ ok: false });
+    expect(page.edit([patch, { ...patch, icon: '🔔' }])).toMatchObject({
+      ok: false,
+    });
+    expect(page.edit([patch, { type: 'delete', ref }])).toMatchObject({
+      ok: false,
+    });
+    expect(page.state()).toEqual(before);
+    expect(
+      page.edit([
+        patch,
+        { type: 'replace_text', ref: child, oldText: 'this', newText: 'both' },
+      ]).ok,
+    ).toBe(true);
+    expect(page.read().firstChild.attrs).toMatchObject({
+      icon: '📌',
+      type: 'note',
+    });
+    expect(page.read().textContent).toBe('Keep both');
+    const saved = page.state();
+    expect(page.edit([patch])).toMatchObject({ ok: true, splices: [] });
+    expect(page.state()).toEqual(saved);
+  });
+
   it('replaces one block and leaves the rest untouched', () => {
     const page = livePage(
       doc(paragraph('one'), paragraph('two'), paragraph('three')),
@@ -158,7 +194,7 @@ describe('block edits', () => {
     expect(textsOf(page.read())).toEqual(['a', 'd']);
   });
 
-  it('preserves the original block, comment and range when a nonadjacent move is refused', () => {
+  it('moves a sibling range after another block with its comment and original order', () => {
     const comment = {
       type: 'comment',
       attrs: { commentId: 'comment-1', resolved: false },
@@ -170,33 +206,121 @@ describe('block edits', () => {
         paragraph('three'),
       ),
     );
-    const before = page.state();
+    const before = page.read();
+    const third = page.fragment.get(2);
     const plan = page.edit([
-      { type: 'move_after', ref: 'b1', targetRef: 'b3' },
+      { type: 'move_after', ref: 'b1', endRef: 'b2', targetRef: 'b3' },
     ]);
-    expect(plan).toMatchObject({
-      ok: false,
-      error: expect.stringMatching(/detach/),
-    });
-    expect(page.state()).toEqual(before);
-    expect(page.read().child(0).child(0).marks[0].toJSON()).toEqual(comment);
+    expect(plan).toMatchObject({ ok: true, insertedRefs: [['b2', 'b3']] });
+    expect(textsOf(page.read())).toEqual(['three', 'noted', 'two']);
+    expect(page.read().child(1).toJSON()).toEqual(before.child(0).toJSON());
+    expect(page.fragment.get(0)).toBe(third);
   });
 
-  it('refuses moves across parents before applying any other edit', () => {
+  it('leaves an editable paragraph when moving the last block out of an isolating container', () => {
     const page = livePage(
       doc(
         { type: 'callout', content: [paragraph('inside')] },
         paragraph('outside'),
       ),
     );
-    const before = page.state();
     const plan = page.edit([
-      { type: 'insert_after', ref: 'b3', content: [paragraph('unused')] },
+      { type: 'insert_after', ref: 'b3', content: [paragraph('new')] },
       { type: 'move_after', ref: 'b2', targetRef: 'b3' },
     ]);
-    expect(plan).toMatchObject({
+    expect(plan.ok).toBe(true);
+    expect(textsOf(page.read())).toEqual(['', 'outside', 'new', 'inside']);
+    expect(page.read().firstChild.firstChild.type.name).toBe('paragraph');
+  });
+
+  it('removes an emptied list when moving its last item to another list', () => {
+    const page = livePage(
+      doc(bulletList('one'), paragraph('gap'), bulletList('two')),
+    );
+    const plan = page.edit([
+      {
+        type: 'move_after',
+        ref: page.refAt(0, 0),
+        targetRef: page.refAt(2, 0),
+      },
+    ]);
+    expect(plan.ok).toBe(true);
+    expect(textsOf(page.read())).toEqual(['gap', 'twoone']);
+    expect(textsOf(page.read().lastChild)).toEqual(['two', 'one']);
+  });
+
+  it('fits a move out of nested quotes at the drop position left by the editor', () => {
+    const inner = { type: 'blockquote', content: [paragraph('quoted')] };
+    const page = livePage(
+      doc(paragraph('top'), { type: 'blockquote', content: [inner] }),
+    );
+    const result = page.edit([
+      {
+        type: 'move_before',
+        ref: page.refAt(1, 0, 0),
+        targetRef: page.refAt(1, 0),
+      },
+    ]);
+    expect(result).toMatchObject({ ok: true, insertedRefs: [['b2']] });
+    expect(page.read().lastChild.type.name).toBe('paragraph');
+    expect(textsOf(page.read())).toEqual(['top', 'quoted']);
+  });
+
+  it('moves beside a block being edited in place in the same batch', () => {
+    const page = livePage(
+      doc(paragraph('anchor'), paragraph('note'), paragraph('move me')),
+    );
+    const originalNote = page.fragment.get(1);
+    const result = page.edit([
+      { type: 'move_after', ref: 'b3', targetRef: 'b1' },
+      { type: 'replace', ref: 'b2', content: [paragraph('updated note')] },
+    ]);
+    expect(result.ok).toBe(true);
+    expect(textsOf(page.read())).toEqual(['anchor', 'move me', 'updated note']);
+    expect(page.fragment.get(2)).toBe(originalNote);
+  });
+
+  it('fits the source once when two moves together empty the only list in a column', () => {
+    const page = livePage(
+      doc({
+        type: 'columns',
+        content: [
+          { type: 'column', content: [bulletList('one', 'two')] },
+          { type: 'column', content: [bulletList('target')] },
+        ],
+      }),
+    );
+    const targetRef = page.refAt(0, 1, 0, 0);
+    const result = page.edit([
+      { type: 'move_after', ref: page.refAt(0, 0, 0, 0), targetRef },
+      { type: 'move_after', ref: page.refAt(0, 0, 0, 1), targetRef },
+    ]);
+    expect(result.ok).toBe(true);
+    const columns = page.read().firstChild;
+    expect(columns.firstChild.firstChild.type.name).toBe('paragraph');
+    expect(textsOf(columns.lastChild.firstChild)).toEqual([
+      'target',
+      'one',
+      'two',
+    ]);
+  });
+
+  it('rejects an invalid move destination before applying other edits in the batch', () => {
+    const page = livePage(
+      doc(paragraph('intro'), bulletList('one', 'two'), paragraph('tail')),
+    );
+    const before = page.state();
+    const result = page.edit([
+      {
+        type: 'insert_before',
+        ref: page.refAt(2),
+        content: [paragraph('new')],
+      },
+      { type: 'move_after', ref: 'b1', targetRef: page.refAt(1, 0) },
+    ]);
+    expect(result).toMatchObject({
       ok: false,
-      error: expect.stringMatching(/move/),
+      error: expect.stringMatching(/bulletList cannot contain/),
     });
     expect(page.state()).toEqual(before);
   });

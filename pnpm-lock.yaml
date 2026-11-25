@@ -889,6 +889,9 @@ importers:
       p-limit:
         specifier: 7.3.0
         version: 7.3.0
+      parse5:
+        specifier: 7.3.0
+        version: 7.3.0
       passport-google-oauth20:
         specifier: 2.0.0
         version: 2.0.0

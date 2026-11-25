@@ -1,6 +1,6 @@
 import type { JSONContent } from '@tiptap/core';
 import type { Node } from '@tiptap/pm/model';
-import type { StatusColor } from '@docmost/editor-ext';
+import type { CalloutType, StatusColor } from '@docmost/editor-ext';
 
 export type BlockEditType =
   | 'replace'
@@ -10,6 +10,7 @@ export type BlockEditType =
   | 'move_before'
   | 'move_after'
   | 'replace_text'
+  | 'update_callout'
   | 'update_cells'
   | 'replace_document'
   | 'append_document'
@@ -25,6 +26,8 @@ export type BlockEdit = {
   newText?: string;
   occurrence?: number;
   changes?: CellEdit[];
+  calloutType?: CalloutType;
+  icon?: string | null;
 };
 
 export type CellEdit = {
@@ -54,7 +57,7 @@ export type BlockSplice = {
   parentPath: number[];
   index: number;
   deleteCount: number;
-  insert: JSONContent[];
+  insert: Array<{ json: JSONContent } | { movedFrom: number[] }>;
   expected: ExpectedNode[];
 };
 

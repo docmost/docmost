@@ -1,5 +1,7 @@
 import { Fragment, Node } from '@tiptap/pm/model';
+import { ReplaceStep, Transform } from '@tiptap/pm/transform';
 import { TiptapTransformer } from '@hocuspocus/transformer';
+import { CALLOUT_TYPES } from '@docmost/editor-ext';
 import * as Y from 'yjs';
 import { tiptapExtensions } from '../collaboration.util';
 import {
@@ -20,6 +22,7 @@ import {
   pageRevision,
 } from './block-refs';
 import {
+  AttributeSplice,
   BlockEdit,
   BlockEditPlan,
   BlockSplice,
@@ -57,6 +60,7 @@ type ResolvedEdit = {
   insert: BlockSplice['insert'];
   text?: TextChange;
   cells?: CellChange[];
+  callout?: AttributeSplice;
 };
 
 type PlannedSplice = {
@@ -75,6 +79,12 @@ const nodeAt = (doc: Node, path: number[]) =>
 
 const messageOf = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
+
+// Match a single emoji sequence, including flags, keycaps and joined emoji.
+const calloutIcon = new RegExp(
+  '^(?:\\p{RGI_Emoji}|\\p{Extended_Pictographic})$',
+  'v',
+);
 
 const isInside = (path: number[], { parentPath, from, to }: BlockRange) =>
   path.length > parentPath.length &&
@@ -106,7 +116,15 @@ function expectedShape(doc: Node, splice: BlockSplice): ExpectedNode[] {
   const removed = Array.from({ length: deleteCount }, (_, k) =>
     typeAt(doc, [...parentPath, index + k]),
   );
-  return [...shapeAlong(doc, parentPath), ...removed];
+  const sources = splice.insert.flatMap((item) =>
+    'movedFrom' in item
+      ? [
+          ...shapeAlong(doc, item.movedFrom.slice(0, -1)),
+          typeAt(doc, item.movedFrom),
+        ]
+      : [],
+  );
+  return [...shapeAlong(doc, parentPath), ...removed, ...sources];
 }
 
 const yNodeAt = (fragment: Y.XmlFragment, path: number[]) => {
@@ -173,7 +191,7 @@ function resolveEdit(
       },
       footnotesAt: location.footnotesAt,
       nodes,
-      insert: edit.content,
+      insert: edit.content.map((json) => ({ json })),
     };
   }
   const start = refs.byRef.get(edit.ref).path;
@@ -192,6 +210,31 @@ function resolveEdit(
   const anchors = [start, end];
 
   switch (edit.type) {
+    case 'update_callout': {
+      const node = nodeAt(doc, start);
+      if (node.type.name !== 'callout' || edit.endRef || edit.targetRef)
+        return `Edit ${n}: update_callout takes a single callout ref.`;
+      const { icon, calloutType } = edit;
+      if (icon === undefined && calloutType === undefined)
+        return `Edit ${n}: supply icon or calloutType.`;
+      if (icon != null && (typeof icon !== 'string' || !calloutIcon.test(icon)))
+        return `Edit ${n}: icon must be one emoji, or null to restore the default.`;
+      if (calloutType !== undefined && !CALLOUT_TYPES.includes(calloutType))
+        return `Edit ${n}: unknown callout type.`;
+      const attributes = changedAttributes(node.attrs, {
+        ...node.attrs,
+        ...(icon !== undefined && { icon }),
+        ...(calloutType !== undefined && { type: calloutType }),
+      });
+      return {
+        range,
+        removes: false,
+        anchors: [start],
+        nodes: [],
+        insert: [],
+        callout: { path: start, attributes, expected: [] },
+      };
+    }
     case 'update_cells': {
       if (edit.endRef || edit.targetRef)
         return `Edit ${n}: update_cells takes a single table row ref.`;
@@ -241,7 +284,7 @@ function resolveEdit(
         anchors,
         position: { parentPath: range.parentPath, index },
         nodes,
-        insert: edit.content,
+        insert: edit.content.map((json) => ({ json })),
       };
     }
     case 'move_before':
@@ -267,7 +310,7 @@ function resolveEdit(
         },
         nodes: paths.map((path) => nodeAt(doc, path)),
         move: true,
-        insert: [],
+        insert: paths.map((movedFrom) => ({ movedFrom })),
       };
     }
     default:
@@ -283,6 +326,9 @@ function findOverlap(resolved: ResolvedEdit[]): string | undefined {
         k !== i &&
         ((edit.removes &&
           other.anchors.some((path) => isInside(path, edit.range))) ||
+          (edit.callout &&
+            other.callout &&
+            comparePaths(edit.callout.path, other.callout.path) === 0) ||
           (edit.cells &&
             (other.cells || other.text) &&
             edit.anchors.some((path) =>
@@ -303,7 +349,6 @@ function findOverlap(resolved: ResolvedEdit[]): string | undefined {
 }
 
 function requiresMove(edit: ResolvedEdit, resolved: ResolvedEdit[]) {
-  if (!edit.move) return false;
   const destination = edit.position;
   const inPlace =
     comparePaths(destination.parentPath, edit.range.parentPath) === 0 &&
@@ -320,7 +365,28 @@ function requiresMove(edit: ResolvedEdit, resolved: ResolvedEdit[]) {
   );
 }
 
-function groupSplices(resolved: ResolvedEdit[]): PlannedSplice[] {
+// Ask the editor how deleting a dragged range fits the source tree. A cut
+// can remove empty wrappers or supply default content in a required parent.
+function dragCut(doc: Node, range: BlockRange) {
+  let start = doc.resolve(0);
+  for (const index of range.parentPath) {
+    start = doc.resolve(start.posAtIndex(index) + 1);
+  }
+  const [step] = new Transform(doc).deleteRange(
+    start.posAtIndex(range.from),
+    start.posAtIndex(range.to + 1),
+  ).steps;
+  if (!(step instanceof ReplaceStep) || step.slice.openStart || step.slice.openEnd) return;
+  const from = doc.resolve(step.from);
+  const to = doc.resolve(step.to);
+  if (!from.sameParent(to) || from.textOffset || to.textOffset) return;
+  return {
+    range: { parentPath: range.parentPath.slice(0, from.depth), from: from.index(), to: to.index() - 1 },
+    fill: step.slice.content,
+  };
+}
+
+function groupSplices(doc: Node, resolved: ResolvedEdit[]): PlannedSplice[] {
   const planned = new Map<string, PlannedSplice>();
   const at = ({ parentPath, index }: BlockPosition) => {
     const key = [...parentPath, index].join();
@@ -333,17 +399,23 @@ function groupSplices(resolved: ResolvedEdit[]): PlannedSplice[] {
     return entry;
   };
 
+  const moveParents = new Map<string, { path: number[]; edit: number }>();
   resolved.forEach((edit, i) => {
-    if (edit.move) return;
+    const { range, position } = edit;
+    if (edit.move) {
+      if (!requiresMove(edit, resolved)) return;
+      const path = edit.range.parentPath;
+      moveParents.set(path.join(), { path, edit: i });
+    }
     if (edit.removes) {
-      const { parentPath, from, to } = edit.range;
+      const { parentPath, from, to } = range;
       const removal = at({ parentPath, index: from });
       removal.splice.deleteCount = to - from + 1;
       removal.removal = i;
       removal.edits.push(i);
     }
-    if (edit.position) {
-      const insertion = at(edit.position);
+    if (position) {
+      const insertion = at(position);
       const length =
         edit.footnotesAt === undefined
           ? edit.nodes.length
@@ -360,6 +432,66 @@ function groupSplices(resolved: ResolvedEdit[]): PlannedSplice[] {
     }
   });
 
+  for (const { path, edit } of [...moveParents.values()].sort(
+    (a, b) => b.path.length - a.path.length,
+  )) {
+    const local = [...planned.values()].filter(
+      ({ splice }) => comparePaths(splice.parentPath, path) === 0,
+    );
+    if (!local.length || local.some((change) => change.nodes.length)) continue;
+    const from = Math.min(...local.map(({ splice }) => splice.index));
+    const count = local.reduce((n, { splice }) => n + splice.deleteCount, 0);
+    const to = Math.max(
+      ...local.map(({ splice }) => splice.index + splice.deleteCount),
+    );
+    if (to - from !== count || nodeAt(doc, path).canReplace(from, to)) continue;
+    const source = { parentPath: path, from, to: to - 1 };
+    const cut = dragCut(doc, source);
+    if (!cut) continue;
+
+    // Keep a wrapper that another edit explicitly fills. A destination inside
+    // a wrapper removed by this move maps to the gap left by the editor cut.
+    for (const { splice } of planned.values()) {
+      if (
+        isInside(splice.parentPath, cut.range) &&
+        splice.insert.some(
+          (item) => 'json' in item || !isInside(item.movedFrom, source),
+        )
+      ) {
+        const depth = splice.parentPath.length;
+        cut.range = {
+          parentPath: path.slice(0, depth),
+          from: path[depth],
+          to: path[depth],
+        };
+        cut.fill = Fragment.empty;
+      }
+    }
+    const destination = at({
+      parentPath: cut.range.parentPath,
+      index: cut.range.from,
+    });
+    const lifted: PlannedSplice[] = [];
+    if (cut.range.parentPath.length < path.length) {
+      for (const [key, change] of planned) {
+        if (!isInside(change.splice.parentPath, cut.range)) continue;
+        planned.delete(key);
+        if (change.nodes.length) lifted.push(change);
+      }
+      destination.splice.deleteCount = cut.range.to - cut.range.from + 1;
+      destination.removal = edit;
+      destination.edits.push(edit);
+    }
+    cut.fill.forEach((node) => {
+      destination.nodes.push(node);
+      destination.splice.insert.push({ json: node.toJSON() });
+    });
+    for (const change of lifted) {
+      destination.nodes.push(...change.nodes);
+      destination.splice.insert.push(...change.splice.insert);
+      destination.edits.push(...change.edits);
+    }
+  }
   return [...planned.values()].sort((a, b) =>
     comparePaths(
       [...b.splice.parentPath, b.splice.index],
@@ -402,6 +534,7 @@ function simulateSplices(doc: Node, planned: PlannedSplice[]) {
 function replacementSplices(
   doc: Node,
   { splice, nodes }: PlannedSplice,
+  replacement: ResolvedEdit,
 ): EditSplice[] {
   if (!splice.deleteCount || !nodes.length) return [splice];
   const steps: EditSplice[] = [];
@@ -435,7 +568,9 @@ function replacementSplices(
         parentPath: path,
         index: index + from,
         deleteCount: oldTo - from,
-        insert: children.slice(from, newTo).map((node) => node.toJSON()),
+        insert: children
+          .slice(from, newTo)
+          .map((node) => ({ json: node.toJSON() })),
         expected: [],
       });
     };
@@ -513,13 +648,30 @@ function replacementSplices(
     }
     add(start, end, end);
   }
+  // An insertion beside the preceding sibling can share the replacement's
+  // index. Apply it separately so the replacement still edits its live nodes.
+  const start = nodes.indexOf(replacement.nodes[0]);
+  const end = start + replacement.nodes.length;
+  if (end < nodes.length)
+    steps.push({
+      ...splice,
+      index: splice.index + splice.deleteCount,
+      deleteCount: 0,
+      insert: splice.insert.slice(end),
+    });
   diff(
     nodeAt(doc, splice.parentPath),
     splice.parentPath,
     splice.index,
     splice.deleteCount,
-    nodes,
+    replacement.nodes,
   );
+  if (start > 0)
+    steps.push({
+      ...splice,
+      deleteCount: 0,
+      insert: splice.insert.slice(0, start),
+    });
   return steps;
 }
 
@@ -595,7 +747,7 @@ function pageIdCounts(doc: Node, addedIds: Set<string>) {
 function duplicatePageId(before: Node, after: Node, edits: ResolvedEdit[]) {
   const additions: { id: string; type: string; edit: number }[] = [];
   edits.forEach((change, i) => {
-    if (!change.insert.length) return;
+    if (change.move || !change.insert.length) return;
     for (const node of change.nodes) {
       visitPageIds(node, (id, type) =>
         additions.push({ id, type, edit: i + 1 }),
@@ -621,6 +773,14 @@ function duplicatePageId(before: Node, after: Node, edits: ResolvedEdit[]) {
   return `Edit ${duplicate.edit}: the ${duplicate.type} ID "${duplicate.id}" is already used on this page.`;
 }
 
+function insertedContent(splices: EditSplice[]) {
+  return splices.flatMap((step) =>
+    'insert' in step
+      ? step.insert.flatMap((item) => ('json' in item ? [item.json] : []))
+      : [],
+  );
+}
+
 function recreatesDeletedBlock(
   doc: Node,
   edits: BlockEdit[],
@@ -628,9 +788,7 @@ function recreatesDeletedBlock(
   splices: EditSplice[],
 ): boolean {
   if (!edits.some((edit) => edit.type === 'delete')) return false;
-  const additions = splices.flatMap((step) =>
-    'insert' in step ? step.insert : [],
-  );
+  const additions = insertedContent(splices);
   if (!additions.length) return false;
   const inserted = additions.map((json) => doc.type.schema.nodeFromJSON(json));
   const insertedTypes = new Set(inserted.map((node) => node.type));
@@ -718,14 +876,7 @@ export function planBlockEdits(
 
   const overlap = findOverlap(resolved);
   if (overlap) return { ok: false, error: overlap };
-  const move = resolved.findIndex((edit) => requiresMove(edit, resolved));
-  if (move !== -1)
-    return {
-      ok: false,
-      error: `Edit ${move + 1}: this move would detach existing collaborative blocks and could discard edits still syncing. Keep these blocks in their current order.`,
-    };
-
-  const planned = groupSplices(resolved);
+  const planned = groupSplices(doc, resolved);
   const textChanges = resolved
     .flatMap((edit) => edit.text ?? [])
     .sort(
@@ -733,13 +884,24 @@ export function planBlockEdits(
         comparePaths(b.splice.path, a.splice.path) ||
         b.blockOffset + b.matchFrom - a.blockOffset - a.matchFrom,
     );
-  let textDoc = doc;
+  let editedDoc = doc;
   const splices: EditSplice[] = [];
   const updatedCells: UpdatedCell[] = [];
   for (const [i, edit] of resolved.entries()) {
+    if (edit.callout && Object.keys(edit.callout.attributes).length) {
+      const { path, attributes } = edit.callout;
+      editedDoc = updateAt(editedDoc, path, (node) =>
+        node.type.create(
+          { ...node.attrs, ...attributes },
+          node.content,
+          node.marks,
+        ),
+      );
+      splices.push(edit.callout);
+    }
     for (const { cell, column, path, splice, color } of edit.cells ?? []) {
       if (splice) {
-        textDoc = updateAt(textDoc, path, () => cell);
+        editedDoc = updateAt(editedDoc, path, () => cell);
         splices.push(splice);
       }
       updatedCells.push({
@@ -751,23 +913,25 @@ export function planBlockEdits(
     }
   }
   for (const change of textChanges) {
-    textDoc = updateAt(textDoc, change.splice.path, (node) =>
+    editedDoc = updateAt(editedDoc, change.splice.path, (node) =>
       applyTextChange(node, change),
     );
     splices.push(change.splice);
   }
-  const { newDoc, parents } = simulateSplices(textDoc, planned);
+  const { newDoc, parents } = simulateSplices(editedDoc, planned);
   const error =
     findSchemaError(newDoc, parents) ?? duplicatePageId(doc, newDoc, resolved);
   if (error) return { ok: false, error };
 
   for (const change of planned) {
-    const explicitDelete = edits[change.removal]?.type === 'delete';
-    const steps = explicitDelete
+    const removal = resolved[change.removal];
+    const explicitRemoval =
+      removal?.move || edits[change.removal]?.type === 'delete';
+    const steps = explicitRemoval
       ? [change.splice]
-      : replacementSplices(doc, change);
+      : replacementSplices(doc, change, removal);
     if (
-      !explicitDelete &&
+      !explicitRemoval &&
       steps.some((step) => 'deleteCount' in step && step.deleteCount > 0)
     ) {
       return {
@@ -781,7 +945,7 @@ export function planBlockEdits(
     return {
       ok: false,
       error:
-        'This batch would detach and recreate a deleted block, which could discard edits still syncing. Keep the original block in place.',
+        'This batch would detach and recreate a deleted block. To move existing blocks, use move_before or move_after with the source and target refs.',
     };
   }
   for (const splice of splices) {
@@ -834,7 +998,7 @@ export function applyBlockSplices(
   );
   if (statusSteps.some((step) => !step)) return false;
 
-  const json = splices.flatMap(({ insert }) => insert);
+  const json = insertedContent(splices);
   const formats = changes.filter(
     (step): step is FormatSplice => 'format' in step,
   );
@@ -872,7 +1036,11 @@ export function applyBlockSplices(
   const steps = splices.map((splice) => ({
     splice,
     parent: yNodeAt(fragment, splice.parentPath),
-    elements: splice.insert.map(() => created.get(next++).clone()),
+    elements: splice.insert.map((item) =>
+      'movedFrom' in item
+        ? (yNodeAt(fragment, item.movedFrom) as Y.XmlElement).clone()
+        : created.get(next++).clone(),
+    ),
   }));
 
   for (const { element, patch } of attributes) {
