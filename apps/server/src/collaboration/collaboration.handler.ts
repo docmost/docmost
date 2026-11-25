@@ -188,6 +188,7 @@ export class CollaborationHandler {
                   ok: true,
                   insertedRefs: plan.insertedRefs,
                   ...(plan.updatedCells && { updatedCells: plan.updatedCells }),
+                  ...(plan.movedInto && { movedInto: plan.movedInto }),
                 }
               : {
                   ok: false,

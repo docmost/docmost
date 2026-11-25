@@ -25,10 +25,12 @@ import {
   AttributeSplice,
   BlockEdit,
   BlockEditPlan,
+  BlockEditType,
   BlockSplice,
   EditSplice,
   ExpectedNode,
   FormatSplice,
+  MoveDestination,
   UpdatedCell,
 } from './block-edits.types';
 import {
@@ -55,7 +57,7 @@ type ResolvedEdit = {
   anchors: number[][];
   position?: BlockPosition;
   footnotesAt?: number;
-  move?: boolean;
+  move?: 'move_before' | 'move_after' | 'move_into';
   nodes: Node[];
   insert: BlockSplice['insert'];
   text?: TextChange;
@@ -68,11 +70,16 @@ type PlannedSplice = {
   nodes: Node[];
   edits: number[];
   removal?: number;
+  keepParent?: boolean;
 };
 
 type ChangedParent = { node: Node; edits: number[] };
 
 const lastOf = (path: number[]) => path[path.length - 1];
+
+export function isMoveEdit(type: BlockEditType): boolean {
+  return type === 'move_before' || type === 'move_after' || type === 'move_into';
+}
 
 const nodeAt = (doc: Node, path: number[]) =>
   path.reduce((node, index) => node.child(index), doc);
@@ -288,28 +295,41 @@ function resolveEdit(
       };
     }
     case 'move_before':
-    case 'move_after': {
+    case 'move_after':
+    case 'move_into': {
       if (!edit.targetRef) return `Edit ${n}: ${edit.type} needs a targetRef.`;
-      const target = refs.byRef.get(edit.targetRef).path;
+      const { node: targetNode, path: target } = refs.byRef.get(edit.targetRef);
       if (isInside(target, range)) {
         return `Edit ${n}: targetRef "${edit.targetRef}" is inside the blocks being moved.`;
+      }
+      let position: BlockPosition;
+      if (edit.type === 'move_into') {
+        if (edit.position !== 'start' && edit.position !== 'end')
+          return `Edit ${n}: move_into needs position "start" or "end".`;
+        if (targetNode.isAtom || targetNode.inlineContent)
+          return `Edit ${n}: ${targetNode.type.name} is not a block container. Use a container ref for move_into.`;
+        position = {
+          parentPath: target,
+          index: edit.position === 'start' ? 0 : targetNode.childCount,
+        };
+      } else {
+        position = {
+          parentPath: target.slice(0, -1),
+          index: lastOf(target) + (edit.type === 'move_after' ? 1 : 0),
+        };
       }
       const count = range.to - range.from + 1;
       const paths = Array.from({ length: count }, (_, k) => [
         ...range.parentPath,
         range.from + k,
       ]);
-      const offset = edit.type === 'move_after' ? 1 : 0;
       return {
         range,
         removes: true,
         anchors: [...anchors, target],
-        position: {
-          parentPath: target.slice(0, -1),
-          index: lastOf(target) + offset,
-        },
+        position,
         nodes: paths.map((path) => nodeAt(doc, path)),
-        move: true,
+        move: edit.type,
         insert: paths.map((movedFrom) => ({ movedFrom })),
       };
     }
@@ -416,6 +436,7 @@ function groupSplices(doc: Node, resolved: ResolvedEdit[]): PlannedSplice[] {
     }
     if (position) {
       const insertion = at(position);
+      if (edit.move === 'move_into') insertion.keepParent = true;
       const length =
         edit.footnotesAt === undefined
           ? edit.nodes.length
@@ -449,14 +470,14 @@ function groupSplices(doc: Node, resolved: ResolvedEdit[]): PlannedSplice[] {
     const cut = dragCut(doc, source);
     if (!cut) continue;
 
-    // Keep a wrapper that another edit explicitly fills. A destination inside
-    // a wrapper removed by this move maps to the gap left by the editor cut.
-    for (const { splice } of planned.values()) {
+    // Keep an explicitly targeted container. A sibling drop in an emptied wrapper can map to the cut gap.
+    for (const { splice, keepParent } of planned.values()) {
       if (
         isInside(splice.parentPath, cut.range) &&
-        splice.insert.some(
-          (item) => 'json' in item || !isInside(item.movedFrom, source),
-        )
+        (keepParent ||
+          splice.insert.some(
+            (item) => 'json' in item || !isInside(item.movedFrom, source),
+          ))
       ) {
         const depth = splice.parentPath.length;
         cut.range = {
@@ -498,6 +519,35 @@ function groupSplices(doc: Node, resolved: ResolvedEdit[]): PlannedSplice[] {
       [...a.splice.parentPath, a.splice.index],
     ),
   );
+}
+
+// Follow the target through the batch and confirm it still directly contains the moved range.
+function moveDestination(
+  edit: ResolvedEdit,
+  planned: PlannedSplice[],
+  doc: Node,
+  refs: BlockRefIndex,
+): MoveDestination | undefined {
+  const path = [...edit.position.parentPath];
+  for (const { splice } of planned) {
+    const { parentPath, index, deleteCount, insert } = splice;
+    if (!isInside(path, { parentPath, from: index, to: Infinity })) continue;
+    const depth = parentPath.length;
+    if (path[depth] < index + deleteCount) return;
+    path[depth] += insert.length - deleteCount;
+  }
+  const parent = nodeAt(doc, path);
+  const parentRef = refs.byNode.get(parent);
+  const first = parent.children.indexOf(edit.nodes[0]);
+  if (
+    parentRef &&
+    first >= 0 &&
+    edit.nodes.every(
+      (node, offset) => parent.maybeChild(first + offset) === node,
+    )
+  ) {
+    return { parentRef, parentType: parent.type.name };
+  }
 }
 
 function updateAt(
@@ -852,11 +902,10 @@ export function planBlockEdits(
       continue;
     }
     refs ??= computeBlockRefs(doc);
-    const moves = edit.type === 'move_before' || edit.type === 'move_after';
     const missing = [
       edit.ref,
       edit.endRef ?? edit.ref,
-      ...(moves && edit.targetRef ? [edit.targetRef] : []),
+      ...(isMoveEdit(edit.type) && edit.targetRef ? [edit.targetRef] : []),
     ].filter((ref) => !refs.byRef.has(ref));
     if (missing.length > 0) {
       return {
@@ -945,7 +994,7 @@ export function planBlockEdits(
     return {
       ok: false,
       error:
-        'This batch would detach and recreate a deleted block. To move existing blocks, use move_before or move_after with the source and target refs.',
+        'This batch would detach and recreate a deleted block. Use move_before or move_after to place existing blocks beside a target, or move_into to place them inside a container.',
     };
   }
   for (const splice of splices) {
@@ -961,13 +1010,27 @@ export function planBlockEdits(
   const newRefs = resolved.some(({ nodes }) => nodes.length)
     ? computeBlockRefs(newDoc)
     : undefined;
+  const movedInto: MoveDestination[] = [];
+  for (const [i, edit] of resolved.entries()) {
+    if (edit.move !== 'move_into') continue;
+    const destination = moveDestination(edit, planned, newDoc, newRefs);
+    if (!destination)
+      return {
+        ok: false,
+        error: `Edit ${i + 1}: the blocks could not be placed inside the specified container.`,
+      };
+    movedInto.push(destination);
+  }
   return {
     ok: true,
     doc: newDoc,
     splices,
     ...(updatedCells.length > 0 && { updatedCells }),
+    ...(movedInto.length > 0 && { movedInto }),
     insertedRefs: resolved.map(({ nodes }) =>
-      nodes.map((node) => newRefs.byNode.get(node)),
+      nodes
+        .map((node) => newRefs.byNode.get(node))
+        .filter((ref) => ref !== undefined),
     ),
   };
 }

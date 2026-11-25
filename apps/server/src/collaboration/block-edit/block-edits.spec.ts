@@ -217,6 +217,124 @@ describe('block edits', () => {
     expect(page.fragment.get(0)).toBe(third);
   });
 
+  it('moves a sibling range into a container in order and reports its new parent ref', () => {
+    const page = livePage(
+      doc(paragraph('one'), paragraph('two'), {
+        type: 'blockquote',
+        content: [paragraph('existing')],
+      }),
+    );
+    const result = page.edit([
+      {
+        type: 'move_into',
+        ref: page.refAt(0),
+        endRef: page.refAt(1),
+        targetRef: page.refAt(2),
+        position: 'start',
+      },
+    ]);
+    expect(result).toMatchObject({
+      ok: true,
+      movedInto: [{ parentRef: 'b1', parentType: 'blockquote' }],
+      insertedRefs: [['b2', 'b3']],
+    });
+    expect(textsOf(page.read().firstChild)).toEqual(['one', 'two', 'existing']);
+    const state = page.state();
+    expect(
+      page.edit([
+        {
+          type: 'move_into',
+          ref: page.refAt(0, 0),
+          endRef: page.refAt(0, 1),
+          targetRef: page.refAt(0),
+          position: 'start',
+        },
+      ]),
+    ).toMatchObject({ ok: true, splices: [] });
+    expect(page.state()).toEqual(state);
+  });
+
+  it('retains the requested ancestor when moving the last paragraph out of its nested quotes', () => {
+    const quote = (child: JSONContent) => ({
+      type: 'blockquote',
+      content: [child],
+    });
+    const page = livePage(
+      doc(quote(quote(paragraph('quoted'))), paragraph('after')),
+    );
+    const destination = page.fragment.get(0);
+    const result = page.edit([
+      {
+        type: 'move_into',
+        ref: page.refAt(0, 0, 0),
+        targetRef: page.refAt(0),
+        position: 'end',
+      },
+    ]);
+    expect(result).toMatchObject({
+      ok: true,
+      movedInto: [{ parentRef: 'b1', parentType: 'blockquote' }],
+    });
+    expect(page.fragment.get(0)).toBe(destination);
+    expect(page.read().firstChild.firstChild.type.name).toBe('paragraph');
+    expect(textsOf(page.read())).toEqual(['quoted', 'after']);
+  });
+
+  it('reports the list item when moved children have no individual refs', () => {
+    const page = livePage(doc(paragraph('extra'), bulletList('item')));
+    const result = page.edit([
+      {
+        type: 'move_into',
+        ref: page.refAt(0),
+        targetRef: page.refAt(1, 0),
+        position: 'end',
+      },
+    ]);
+    expect(result).toMatchObject({
+      ok: true,
+      movedInto: [{ parentRef: 'b2', parentType: 'listItem' }],
+      insertedRefs: [[]],
+    });
+    expect(textsOf(page.read().firstChild.firstChild)).toEqual([
+      'item',
+      'extra',
+    ]);
+  });
+
+  it('rejects invalid move_into targets, cycles, positions and target deletion atomically', () => {
+    const page = livePage(
+      doc(paragraph('intro'), bulletList('item'), { type: 'horizontalRule' }),
+    );
+    const state = page.state();
+    const move: BlockEdit = {
+      type: 'move_into',
+      ref: page.refAt(0),
+      targetRef: page.refAt(1, 0),
+      position: 'end',
+    };
+    const cases: [BlockEdit[], RegExp][] = [
+      [[{ ...move, ref: page.refAt(1) }], /inside the blocks/i],
+      [[{ ...move, targetRef: move.ref }], /inside the blocks/i],
+      [[{ ...move, targetRef: 'missing' }], /ref.*not found/i],
+      [[{ ...move, position: undefined }], /position/i],
+      [[{ ...move, targetRef: page.refAt(2) }], /horizontalRule|container/i],
+      [[{ ...move, targetRef: page.refAt(1) }], /bulletList cannot contain/i],
+      [[move, { type: 'delete', ref: move.targetRef }], /overlap/i],
+    ];
+    for (const [operations, error] of cases) {
+      const change: BlockEdit = {
+        type: 'insert_after',
+        ref: page.refAt(2),
+        content: [paragraph('unrelated')],
+      };
+      expect(page.edit([change, ...operations])).toMatchObject({
+        ok: false,
+        error: expect.stringMatching(error),
+      });
+      expect(page.state()).toEqual(state);
+    }
+  });
+
   it('leaves an editable paragraph when moving the last block out of an isolating container', () => {
     const page = livePage(
       doc(

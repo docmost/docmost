@@ -9,6 +9,7 @@ export type BlockEditType =
   | 'delete'
   | 'move_before'
   | 'move_after'
+  | 'move_into'
   | 'replace_text'
   | 'update_callout'
   | 'update_cells'
@@ -21,6 +22,7 @@ export type BlockEdit = {
   ref: string;
   endRef?: string;
   targetRef?: string;
+  position?: 'start' | 'end';
   content?: JSONContent[];
   oldText?: string;
   newText?: string;
@@ -43,8 +45,15 @@ export type UpdatedCell = {
   color?: StatusColor;
 };
 
+export type MoveDestination = { parentRef: string; parentType: string };
+
 export type BlockEditResult =
-  | { ok: true; insertedRefs: string[][]; updatedCells?: UpdatedCell[] }
+  | {
+      ok: true;
+      insertedRefs: string[][];
+      updatedCells?: UpdatedCell[];
+      movedInto?: MoveDestination[];
+    }
   | { ok: false; error: string };
 
 export type ExpectedNode = {
@@ -107,5 +116,6 @@ export type BlockEditPlan =
       splices: EditSplice[];
       insertedRefs: string[][];
       updatedCells?: UpdatedCell[];
+      movedInto?: MoveDestination[];
     }
   | { ok: false; error: string };
