@@ -71,6 +71,8 @@ export function SearchSpotlightFilters({
   const [titleOnly, setTitleOnly] = useState(false);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  // drop the filter if the license goes away while the dialog is open
+  const verifiedOnlyActive = hasPageVerification && verifiedOnly;
   const filterMenuTargetRef = useRef<HTMLButtonElement>(null);
   const [openedFilter, setOpenedFilter] = useState<string | null>(null);
   const [visibleFilters, setVisibleFilters] = useState<string[]>([]);
@@ -106,7 +108,7 @@ export function SearchSpotlightFilters({
       labelIds: selectedLabelIds,
       titleOnly,
       includeArchived,
-      verifiedOnly,
+      verifiedOnly: verifiedOnlyActive,
     });
   }, [
     selectedSpaceId,
@@ -116,19 +118,19 @@ export function SearchSpotlightFilters({
     selectedLabelIds,
     titleOnly,
     includeArchived,
-    verifiedOnly,
+    verifiedOnlyActive,
     onFiltersChange,
   ]);
 
   // the chip can push the open menu's target out of the scrolled row
   useLayoutEffect(() => {
-    if (includeArchived || verifiedOnly) {
+    if (includeArchived || verifiedOnlyActive) {
       filterMenuTargetRef.current?.scrollIntoView({
         block: "nearest",
         inline: "nearest",
       });
     }
-  }, [includeArchived, verifiedOnly]);
+  }, [includeArchived, verifiedOnlyActive]);
 
   const handleSpaceSelect = (spaceId: string | null) => {
     setSelectedSpaceId(spaceId);
@@ -382,7 +384,7 @@ export function SearchSpotlightFilters({
         return null;
       })}
 
-      {!isAiMode && verifiedOnly && (
+      {!isAiMode && verifiedOnlyActive && (
         <Button
           variant="light"
           color="blue"
