@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventName } from '../../../common/events/event.contants';
 import { KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { QueueJob, QueueName } from '../../../integrations/queue/constants';
 import { IVerificationInvalidatedJob } from '../../../integrations/queue/constants/queue.interface';
@@ -24,6 +26,7 @@ export class PageVerificationInvalidationService {
     @InjectQueue(QueueName.NOTIFICATION_QUEUE)
     private readonly notificationQueue: Queue,
     private readonly pageHistoryRepo: PageHistoryRepo,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async invalidateForEdit(
@@ -103,6 +106,10 @@ export class PageVerificationInvalidationService {
     actorId: string | null,
     source: 'content' | 'title',
   ): Promise<void> {
+    this.eventEmitter.emit(EventName.PAGE_UPDATED, {
+      pageIds: [invalidation.pageId],
+      workspaceId: invalidation.workspaceId,
+    });
     const job: IVerificationInvalidatedJob = {
       ...invalidation,
       actorId,

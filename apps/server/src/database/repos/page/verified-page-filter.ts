@@ -1,10 +1,10 @@
-import { sql } from 'kysely';
 import type { Expression, ExpressionBuilder, SqlBool } from 'kysely';
 import type { DB } from '@docmost/db/types/db';
 
-// keep in step with the status rules behind the page verification badge
+// keep in step with the status rules behind the page verification badge and resolveVerifiedUntil; the filter and the badge use the app clock
 export function verifiedPageFilter(
   eb: ExpressionBuilder<DB, 'pages'>,
+  now: Date = new Date(),
 ): Expression<SqlBool> {
   return eb.exists(
     eb
@@ -23,7 +23,7 @@ export function verifiedPageFilter(
             eb('pageVerifications.invalidatedAt', 'is', null),
             eb.or([
               eb('pageVerifications.expiresAt', 'is', null),
-              eb('pageVerifications.expiresAt', '>', sql<Date>`now()`),
+              eb('pageVerifications.expiresAt', '>', now),
             ]),
           ]),
         ]),
