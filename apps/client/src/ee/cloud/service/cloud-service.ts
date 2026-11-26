@@ -6,6 +6,10 @@ export async function getJoinedWorkspaces(): Promise<Partial<IWorkspace[]>> {
   return req.data;
 }
 
+export async function removeJoinedWorkspace(workspaceId: string): Promise<void> {
+  await api.post("/workspace/joined/remove", { workspaceId });
+}
+
 export async function findWorkspacesByEmail(email: string): Promise<void> {
   await api.post("/workspace/find-by-email", { email });
 }

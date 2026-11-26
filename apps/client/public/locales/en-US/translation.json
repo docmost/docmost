@@ -2391,5 +2391,8 @@
   "Recently updated settings": "Recently updated settings",
   "Refresh recently updated pages": "Refresh recently updated pages",
   "Updated by {{name}}": "Updated by {{name}}",
-  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value."
+  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.",
+  "Remove from list": "Remove from list",
+  "Remove {{name}} from list": "Remove {{name}} from list",
+  "Failed to remove workspace from list": "Failed to remove workspace from list"
 }
