@@ -1,7 +1,11 @@
 import { createHash } from 'crypto';
 import { Logger } from '@nestjs/common';
 import { LinkPreviewService } from './link-preview.service';
-import { OutboundUrlError } from '../outbound/outbound-url.guard';
+import {
+  OutboundUrlError,
+  OutboundUrlGuard,
+} from '../outbound/outbound-url.guard';
+import { OutboundAgentFactory } from '../outbound/outbound-agent.factory';
 
 const keyFor = (url: string) =>
   'link-preview:' + createHash('sha256').update(url).digest('hex');
@@ -69,11 +73,12 @@ describe('LinkPreviewService', () => {
     );
   });
 
-  it('leases each hop under the shared outbound policy, through a configured proxy', async () => {
+  it('leases each hop for public addresses only, through a configured proxy', async () => {
     fetchFn.mockResolvedValue(html('Hello'));
     await build().getPreview('https://example.com/a');
     expect(lease).toHaveBeenCalledWith('https://example.com/a', undefined, {
       viaProxy: true,
+      publicOnly: true,
     });
   });
 
@@ -135,6 +140,31 @@ describe('LinkPreviewService', () => {
     );
     expect(release).toHaveBeenCalledTimes(1);
   });
+
+  it.each(['10.0.0.5', '127.0.0.1'])(
+    'skips a host on %s even when ALLOWED_PRIVATE_NETWORKS allows it',
+    async (address) => {
+      const env = {
+        isCloud: () => false,
+        getAllowedPrivateNetworks: () => 'all,127.0.0.0/8',
+      };
+      const guard = new OutboundUrlGuard(env as any, async () => [
+        { address, family: 4 },
+      ]);
+      const service = new LinkPreviewService(
+        new OutboundAgentFactory(guard),
+        env as any,
+        { getOrThrow: () => redis } as any,
+        fetchFn as any,
+      );
+      (service as any).resolver = { resolve4, resolve6 };
+
+      const result = await service.getPreview('http://intranet.example/');
+
+      expect(result).toBeNull();
+      expect(fetchFn).not.toHaveBeenCalled();
+    },
+  );
 
   it('gives up after five redirects', async () => {
     fetchFn.mockImplementation(async () => redirect('/loop', 302));

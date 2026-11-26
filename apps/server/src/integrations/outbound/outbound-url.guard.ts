@@ -13,6 +13,9 @@ export const OUTBOUND_LOOKUP = 'OUTBOUND_LOOKUP';
 export type ResolvedAddress = { address: string; family: number };
 export type LookupFn = (hostname: string) => Promise<ResolvedAddress[]>;
 export type PinnedAddress = { hostname: string; address: string; family: 4 | 6 };
+export type OutboundValidateOptions = {
+  publicOnly?: boolean; // Refuses every private and reserved address, whatever ALLOWED_PRIVATE_NETWORKS says.
+};
 
 /** A rejected URL. Only transient resolution failures are retryable. */
 export class OutboundUrlError extends Error {
@@ -195,7 +198,10 @@ export class OutboundUrlGuard {
   }
 
   /** Validates the URL and returns the address used to pin the connection. */
-  async validate(rawUrl: string): Promise<PinnedAddress> {
+  async validate(
+    rawUrl: string,
+    options?: OutboundValidateOptions,
+  ): Promise<PinnedAddress> {
     let url: URL;
     try {
       url = new URL(rawUrl);
@@ -235,7 +241,7 @@ export class OutboundUrlGuard {
       );
     }
 
-    if (isCloud) {
+    if (isCloud || options?.publicOnly) {
       const blocked = resolved.some((r) =>
         isPrivateAddress(embeddedNat64Ipv4(r.address) ?? r.address),
       );

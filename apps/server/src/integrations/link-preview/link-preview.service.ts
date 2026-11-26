@@ -171,6 +171,7 @@ export class LinkPreviewService {
 
     const lease = await this.agentFactory.lease(url, undefined, {
       viaProxy: true,
+      publicOnly: true,
     });
     try {
       const response = await this.fetchFn(url, {

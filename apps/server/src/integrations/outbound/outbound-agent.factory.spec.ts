@@ -11,9 +11,19 @@ describe('OutboundAgentFactory', () => {
 
     const lease = await factory.lease('https://siem.example.com/ingest', { caCert: undefined, rejectUnauthorized: true });
 
-    expect(validate).toHaveBeenCalledWith('https://siem.example.com/ingest');
+    expect(validate).toHaveBeenCalledWith('https://siem.example.com/ingest', { publicOnly: undefined });
     expect(lease.dispatcher).toBeInstanceOf(Agent);
     await expect(lease.release()).resolves.toBeUndefined();
+  });
+
+  it('asks the guard for a public address when publicOnly is set', async () => {
+    const validate = jest.fn().mockResolvedValue({ hostname: 'example.com', address: '93.184.216.34', family: 4 });
+    const factory = new OutboundAgentFactory({ validate } as any);
+
+    const lease = await factory.lease('https://example.com/', undefined, { publicOnly: true });
+
+    expect(validate).toHaveBeenCalledWith('https://example.com/', { publicOnly: true });
+    await lease.release();
   });
 
   it('propagates guard rejections', async () => {

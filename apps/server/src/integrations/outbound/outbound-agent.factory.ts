@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Agent, Dispatcher } from 'undici';
 import { createEnvProxyAgent, hasProxyEnv } from '../../common/proxy-fetch';
-import { OutboundUrlGuard } from './outbound-url.guard';
+import {
+  OutboundUrlGuard,
+  OutboundValidateOptions,
+} from './outbound-url.guard';
 
 export const OUTBOUND_REQUEST_TIMEOUT_MS = 10_000;
 
@@ -15,7 +18,7 @@ export type AgentLease = {
   release: () => Promise<void>;
 };
 
-export type OutboundLeaseOptions = {
+export type OutboundLeaseOptions = OutboundValidateOptions & {
   viaProxy?: boolean; // Uses HTTP(S)_PROXY when set; hosts it skips still connect to the pinned address.
 };
 
@@ -37,7 +40,9 @@ export class OutboundAgentFactory implements IOutboundAgentFactory {
     tls?: OutboundTlsOptions,
     leaseOptions?: OutboundLeaseOptions,
   ): Promise<AgentLease> {
-    const pinned = await this.urlGuard.validate(url);
+    const pinned = await this.urlGuard.validate(url, {
+      publicOnly: leaseOptions?.publicOnly,
+    });
 
     const lookup = (_hostname: string, options: any, callback: any) => {
       if (options?.all) {

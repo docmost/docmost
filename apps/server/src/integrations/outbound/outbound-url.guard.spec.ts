@@ -531,3 +531,43 @@ describe('OutboundUrlGuard.validate with NAT64 addresses', () => {
     ).resolves.toMatchObject({ address: '18.154.84.6' });
   });
 });
+
+describe('OutboundUrlGuard.validate for public addresses only', () => {
+  const policy = 'all,127.0.0.0/8,::1/128,[64:ff9b::/96]';
+
+  it.each([
+    '10.1.2.3',
+    '192.168.1.10',
+    '100.64.0.1',
+    'fc00::1',
+    '127.0.0.1',
+    '::1',
+    '64:ff9b::a00:5',
+    '169.254.169.254',
+  ])('refuses %s whatever the policy allows', async (address) => {
+    const err = await guard(false, [{ address, family: family(address) }], policy)
+      .validate('http://x.example.com', { publicOnly: true })
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(OutboundUrlError);
+    expect(err.message).toBe(
+      'Destination host "x.example.com" resolves to a private or reserved address, which is not allowed',
+    );
+  });
+
+  it.each(['8.8.8.8', '2606:4700::1111', '64:ff9b::129a:5406'])(
+    'allows the public address %s over http on self-hosted',
+    async (address) => {
+      await expect(
+        guard(false, [{ address, family: family(address) }]).validate('http://x.example.com', {
+          publicOnly: true,
+        }),
+      ).resolves.toMatchObject({ address });
+    },
+  );
+
+  it('leaves the policy in charge without the option', async () => {
+    await expect(
+      guard(false, [{ address: '10.1.2.3', family: 4 }], policy).validate('http://x.example.com'),
+    ).resolves.toMatchObject({ address: '10.1.2.3' });
+  });
+});
