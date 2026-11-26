@@ -2391,5 +2391,11 @@
   "Recently updated settings": "Настройки блока \"Недавно обновленные\"",
   "Refresh recently updated pages": "Обновить недавно обновленные страницы",
   "Updated by {{name}}": "Обновлено пользователем {{name}}",
-  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Используйте до {{maxValues}} значений на фильтр и до {{maxLength}} символов на значение."
+  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Используйте до {{maxValues}} значений на фильтр и до {{maxLength}} символов на значение.",
+  "Refresh preview": "Refresh preview",
+  "Couldn't refresh the preview": "Couldn't refresh the preview",
+  "Link actions": "Link actions",
+  "Remove from list": "Remove from list",
+  "Remove {{name}} from list": "Remove {{name}} from list",
+  "Failed to remove workspace from list": "Failed to remove workspace from list"
 }
