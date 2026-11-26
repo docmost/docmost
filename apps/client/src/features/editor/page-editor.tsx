@@ -97,6 +97,7 @@ import MicrosoftFolderMenu from "@/features/editor/components/microsoft/microsof
 import { MicrosoftFullscreenModal } from "@/features/editor/components/microsoft/microsoft-fullscreen-modal.tsx";
 import { getInstalledIntegrations } from "@/features/integration/services/integration-service";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
+import { syncEditable } from "@/features/editor/page-editor.utils";
 import { useTranslation } from "react-i18next";
 import {
   acquireCollabSocket,
@@ -493,7 +494,7 @@ function CollabPageEditor({
 
   useLayoutEffect(() => {
     if (!editor || editor.isDestroyed) return;
-    if (editor.isEditable !== canType) editor.setEditable(canType, false);
+    syncEditable(editor, canType);
     if (showStatic) return;
 
     Object.assign(editor.storage, { pageId });
