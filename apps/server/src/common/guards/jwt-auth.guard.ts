@@ -19,7 +19,12 @@ import { REQUIRE_SESSION_AUTH_KEY } from '../decorators/require-session-auth.dec
 import { JwtType } from '../../core/auth/dto/jwt-payload';
 import { Reflector } from '@nestjs/core';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
-import { addDays } from 'date-fns';
+import {
+  JOINED_WORKSPACES_COOKIE,
+  moveJoinedWorkspaceToFront,
+  parseJoinedWorkspaceIds,
+  writeJoinedWorkspacesCookie,
+} from '../helpers/joined-workspaces.utils';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -108,32 +113,16 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   setJoinedWorkspacesCookie(user: any, ctx: ExecutionContext) {
-    if (this.environmentService.isCloud()) {
-      const req = ctx.switchToHttp().getRequest();
-      const res = ctx.switchToHttp().getResponse();
+    const workspaceId = user?.workspace?.id;
+    if (!this.environmentService.isCloud() || !workspaceId) return;
 
-      const workspaceId = user?.workspace?.id;
-      let workspaceIds = [];
-      try {
-        workspaceIds = req.cookies.joinedWorkspaces
-          ? JSON.parse(req.cookies.joinedWorkspaces)
-          : [];
-      } catch (err) {
-        /* empty */
-      }
+    const req = ctx.switchToHttp().getRequest();
+    const res = ctx.switchToHttp().getResponse();
 
-      if (!workspaceIds.includes(workspaceId)) {
-        workspaceIds.push(workspaceId);
-      }
-
-      res.setCookie('joinedWorkspaces', JSON.stringify(workspaceIds), {
-        httpOnly: false,
-        sameSite: 'lax',
-        domain: '.' + this.environmentService.getSubdomainHost(),
-        path: '/',
-        expires: addDays(new Date(), 365),
-        secure: this.environmentService.isHttps(),
-      });
-    }
+    const workspaceIds = moveJoinedWorkspaceToFront(
+      parseJoinedWorkspaceIds(req.cookies?.[JOINED_WORKSPACES_COOKIE]),
+      workspaceId,
+    );
+    writeJoinedWorkspacesCookie(res, workspaceIds, this.environmentService);
   }
 }
