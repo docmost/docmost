@@ -44,6 +44,7 @@ describe('SearchController public-space-search gate', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     );
     return { controller, searchService, publicSpaceService, pageRepo };
   }
@@ -79,6 +80,7 @@ describe('SearchController public-space-search gate', () => {
         shareId: 'share1',
         creatorId: 'u1',
         labelIds: ['l1'],
+        verifiedOnly: true,
       } as any,
       workspace,
     );
@@ -149,6 +151,7 @@ describe('SearchController share-search gate', () => {
       {} as any,
       shareService as any,
       shareRepo as any,
+      {} as any,
       {} as any,
     );
     const searchTypesense = jest

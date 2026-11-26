@@ -15,6 +15,9 @@ export interface ITemplate {
   };
   createdAt: string;
   updatedAt: string;
+  permissions?: {
+    canEdit: boolean;
+  };
 }
 
 export type TemplateVariableValues = Record<string, string>;

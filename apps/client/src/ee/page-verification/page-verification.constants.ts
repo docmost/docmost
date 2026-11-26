@@ -7,5 +7,11 @@ export const LOCKED_VERIFICATION_STATUSES: VerificationStatus[] = [
   "expiring",
 ];
 
+export const VERIFIED_STATUSES: VerificationStatus[] = [
+  "verified",
+  "expiring",
+  "approved",
+];
+
 // node types whose drawing lives in a file both review sides share
 export const DIAGRAM_NODE_TYPES = new Set(["drawio", "excalidraw"]);

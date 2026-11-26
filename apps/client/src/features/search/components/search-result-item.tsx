@@ -10,7 +10,11 @@ import {
 } from "@mantine/core";
 import { Spotlight } from "@mantine/spotlight";
 import { Link } from "react-router-dom";
-import { IconFile, IconDownload } from "@tabler/icons-react";
+import {
+  IconFile,
+  IconDownload,
+  IconRosetteDiscountCheckFilled,
+} from "@tabler/icons-react";
 import { buildPageUrl } from "@/features/page/page.utils";
 import { getPageIcon } from "@/lib";
 import {
@@ -20,6 +24,11 @@ import {
 import DOMPurify from "dompurify";
 import { useTranslation } from "react-i18next";
 import { timeAgo } from "@/lib/time.ts";
+import { VERIFIED_STATUSES } from "@/ee/page-verification/page-verification.constants";
+import {
+  getStatusCssColor,
+  getStatusLabel,
+} from "@/ee/page-verification/components/verification-status";
 
 interface SearchResultItemProps {
   result: IPageSearch | IAttachmentSearch;
@@ -125,6 +134,12 @@ export function SearchResultItem({
     );
   } else {
     const pageResult = result as IPageSearch;
+    const verificationStatus = pageResult.verificationStatus;
+    const isVerified =
+      !!verificationStatus && VERIFIED_STATUSES.includes(verificationStatus);
+    const verificationLabel = isVerified
+      ? getStatusLabel(verificationStatus, t)
+      : undefined;
     return (
       <Spotlight.Action
         component={Link}
@@ -145,7 +160,24 @@ export function SearchResultItem({
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <Group justify="space-between" wrap="nowrap" gap="xs">
-              <Text truncate>{pageResult.title || t("Untitled")}</Text>
+              <Group gap={4} wrap="nowrap" miw={0}>
+                {isVerified && (
+                  <Tooltip
+                    label={verificationLabel}
+                    zIndex={getDefaultZIndex("max")}
+                    withArrow
+                  >
+                    <IconRosetteDiscountCheckFilled
+                      size={16}
+                      role="img"
+                      aria-label={verificationLabel}
+                      color={getStatusCssColor(verificationStatus)}
+                      style={{ flexShrink: 0 }}
+                    />
+                  </Tooltip>
+                )}
+                <Text truncate>{pageResult.title || t("Untitled")}</Text>
+              </Group>
               <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
                 {timeAgo(pageResult.updatedAt)}
               </Text>

@@ -34,6 +34,8 @@ import { PublicSpaceService } from '../public-space/public-space.service';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { ShareService } from '../share/share.service';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
+import { LicenseCheckService } from '../../integrations/environment/license-check.service';
+import { Feature } from '../../common/features';
 
 @UseGuards(JwtAuthGuard)
 @Controller('search')
@@ -49,6 +51,7 @@ export class SearchController {
     private readonly shareService: ShareService,
     private readonly shareRepo: ShareRepo,
     private moduleRef: ModuleRef,
+    private readonly licenseCheckService: LicenseCheckService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -61,6 +64,16 @@ export class SearchController {
   ) {
     delete searchDto.shareId;
 
+    const hasPageVerification = this.licenseCheckService.hasFeature(
+      workspace.licenseKey,
+      Feature.PAGE_VERIFICATION,
+      workspace.plan,
+    );
+
+    if (searchDto.verifiedOnly && !hasPageVerification) {
+      throw new ForbiddenException('This feature requires a valid license');
+    }
+
     if (searchDto.spaceId) {
       const ability = await this.spaceAbility.createForUser(
         user,
@@ -72,17 +85,15 @@ export class SearchController {
       }
     }
 
-    if (this.environmentService.getSearchDriver() === 'typesense') {
-      return this.searchTypesense(searchDto, {
-        userId: user.id,
-        workspaceId: workspace.id,
-      });
-    }
+    const opts = { userId: user.id, workspaceId: workspace.id };
+    const result =
+      this.environmentService.getSearchDriver() === 'typesense'
+        ? await this.searchTypesense(searchDto, opts)
+        : await this.searchService.searchPage(searchDto, opts);
 
-    return this.searchService.searchPage(searchDto, {
-      userId: user.id,
-      workspaceId: workspace.id,
-    });
+    if (!hasPageVerification) return result;
+
+    return { items: await this.searchService.withVerificationStatus(result.items) };
   }
 
   @HttpCode(HttpStatus.OK)
@@ -104,6 +115,7 @@ export class SearchController {
     @AuthWorkspace() workspace: Workspace,
   ) {
     delete searchDto.spaceId;
+    delete searchDto.verifiedOnly;
     if (!searchDto.shareId) {
       throw new BadRequestException('shareId is required');
     }
@@ -136,10 +148,12 @@ export class SearchController {
   ) {
     delete searchDto.spaceId;
     delete searchDto.shareId;
-    // Member-facing filters stay internal: creator identities and label
-    // taxonomy must not become a grouping oracle on the anonymous surface.
+    // Member-facing filters stay internal: creator identities, label
+    // taxonomy and verification state must not become a grouping oracle on
+    // the anonymous surface.
     delete searchDto.creatorId;
     delete searchDto.labelIds;
+    delete searchDto.verifiedOnly;
 
     const { space } = await this.publicSpaceService.getPublicSpace(
       searchDto.spaceSlug,
