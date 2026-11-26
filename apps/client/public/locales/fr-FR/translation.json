@@ -2391,5 +2391,11 @@
   "Recently updated settings": "Paramètres des pages récemment mises à jour",
   "Refresh recently updated pages": "Actualiser les pages récemment mises à jour",
   "Updated by {{name}}": "Mis à jour par {{name}}",
-  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Utilisez jusqu’à {{maxValues}} valeurs par filtre et {{maxLength}} caractères par valeur."
+  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Utilisez jusqu’à {{maxValues}} valeurs par filtre et {{maxLength}} caractères par valeur.",
+  "Refresh preview": "Refresh preview",
+  "Couldn't refresh the preview": "Couldn't refresh the preview",
+  "Link actions": "Link actions",
+  "Remove from list": "Remove from list",
+  "Remove {{name}} from list": "Remove {{name}} from list",
+  "Failed to remove workspace from list": "Failed to remove workspace from list"
 }
