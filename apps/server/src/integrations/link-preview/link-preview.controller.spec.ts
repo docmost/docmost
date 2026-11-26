@@ -86,23 +86,23 @@ describe('LinkPreviewController throttling', () => {
     }
   }
 
-  it('allows 60 requests per user per minute and rejects the next one', async () => {
-    await hit('user-a', 60);
+  it('allows 30 requests per user per minute and rejects the next one', async () => {
+    await hit('user-a', 30);
     await expect(guard.canActivate(contextFor('user-a'))).rejects.toThrow(
       ThrottlerException,
     );
   });
 
   it('tracks users separately when they share an IP', async () => {
-    await hit('user-a', 60);
+    await hit('user-a', 30);
     await expect(guard.canActivate(contextFor('user-b'))).resolves.toBe(true);
   });
 
   it('counts only the link preview throttler, over 60 seconds', async () => {
     await hit('user-a', 1);
     expect(res.header.mock.calls).toEqual([
-      [`X-RateLimit-Limit-${LINK_PREVIEW_THROTTLER}`, 60],
-      [`X-RateLimit-Remaining-${LINK_PREVIEW_THROTTLER}`, 59],
+      [`X-RateLimit-Limit-${LINK_PREVIEW_THROTTLER}`, 30],
+      [`X-RateLimit-Remaining-${LINK_PREVIEW_THROTTLER}`, 29],
       [`X-RateLimit-Reset-${LINK_PREVIEW_THROTTLER}`, 60],
     ]);
   });

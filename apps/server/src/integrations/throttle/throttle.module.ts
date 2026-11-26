@@ -44,7 +44,7 @@ import Redis from 'ioredis';
             { name: MICROSOFT_GRAPH_THROTTLER, ttl: 60_000, limit: 120 },
             { name: UNSPLASH_THROTTLER, ttl: 60_000, limit: 30 },
             { name: TEMPLATE_USE_THROTTLER, ttl: 60_000, limit: 20 },
-            { name: LINK_PREVIEW_THROTTLER, ttl: 60_000, limit: 60 },
+            { name: LINK_PREVIEW_THROTTLER, ttl: 60_000, limit: 30 },
           ],
           errorMessage: 'Too many requests',
           storage: new ThrottlerStorageRedisService(
