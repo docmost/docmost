@@ -555,7 +555,8 @@ function MainPanel({
       property.type === "longText" ||
       property.type === "checkbox" ||
       property.type === "url" ||
-      property.type === "email");
+      property.type === "email" ||
+      property.type === "relation");
 
   const typeDef = propertyTypes.find((pt) => pt.type === property.type);
   const TypeIcon = typeDef?.icon;
@@ -582,7 +583,7 @@ function MainPanel({
           </Text>
         </Group>
       )}
-      {!isSystem && !isPending && !property.isPrimary && (
+      {!isSystem && !isPending && !property.isPrimary && property.type !== "relation" && (
         <UnstyledButton
           className={cellClasses.menuItem}
           onClick={onChangeType}

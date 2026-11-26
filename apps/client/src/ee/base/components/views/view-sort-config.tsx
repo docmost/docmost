@@ -44,7 +44,9 @@ export function ViewSortConfigPopover({
   }, [opened]);
 
   // Page props sort by raw UUID; hide until title-based sort is supported.
-  const sortableProperties = properties.filter((p) => p.type !== "page");
+  const sortableProperties = properties.filter(
+    (p) => p.type !== "page" && p.type !== "relation",
+  );
 
   const propertyOptions = sortableProperties.map((p) => ({
     value: p.id,

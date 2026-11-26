@@ -1,6 +1,7 @@
 import {
   InfiniteData,
   QueryClient,
+  keepPreviousData,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -132,9 +133,11 @@ export function useResolveRelationRows(args: {
   });
 }
 
-export function useRelationTargetsQuery(query: string) {
+export function useRelationTargetsQuery(query: string, enabled = true) {
   return useQuery({
     queryKey: ["base-relations", "targets", query],
     queryFn: () => searchRelationTargets(query),
+    enabled,
+    placeholderData: keepPreviousData,
   });
 }

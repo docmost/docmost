@@ -137,3 +137,29 @@ describe("changing a property to a date", () => {
     expect(screen.queryByRole("combobox", { name: "Date format" })).toBeNull();
   });
 });
+
+describe("a relation property", () => {
+  it("the change type menu is not offered for a relation property", () => {
+    const project = {
+      ...notes,
+      name: "Project",
+      type: "relation",
+      typeOptions: {
+        relationId: "r1",
+        targetBaseId: "base-2",
+        direction: "source",
+        inversePropertyId: null,
+        allowMultiple: true,
+      },
+    } as IBaseProperty;
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MantineProvider env="test">
+          <PropertyMenuContent property={project} opened onClose={vi.fn()} pageId="base-1" />
+        </MantineProvider>
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByText("Relation")).toBeNull();
+    expect(screen.getByText("Options")).toBeTruthy();
+  });
+});
