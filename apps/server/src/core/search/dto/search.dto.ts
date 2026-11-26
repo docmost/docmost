@@ -42,6 +42,10 @@ export class SearchDTO {
   @IsBoolean()
   titleOnly?: boolean;
 
+  @IsOptional()
+  @IsBoolean()
+  verifiedOnly?: boolean;
+
   // searches without a spaceId leave archived spaces out unless this is set
   @IsOptional()
   @IsBoolean()

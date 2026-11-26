@@ -42,12 +42,18 @@ export function useUnifiedSearch(
     enabled:
       (!!params.query ||
         (params.labelIds?.length ?? 0) > 0 ||
-        !!params.creatorId) &&
+        !!params.creatorId ||
+        !!params.verifiedOnly) &&
       enabled,
     // keep previous results only within the same search type; page results
     // rendered as attachments (or vice versa) crash on missing fields
     placeholderData: (previousData, previousQuery) => {
-      if (!params.query && !params.labelIds?.length && !params.creatorId)
+      if (
+        !params.query &&
+        !params.labelIds?.length &&
+        !params.creatorId &&
+        !params.verifiedOnly
+      )
         return undefined;
       if (previousQuery && previousQuery.queryKey[1] !== searchType) {
         return undefined;
