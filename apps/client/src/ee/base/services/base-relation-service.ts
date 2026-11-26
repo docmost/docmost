@@ -38,7 +38,7 @@ export async function listRelationRows(data: {
   cursor?: string;
   limit?: number;
 }): Promise<RelationPage<RelationPreviewRow>> {
-  const req = await api.post("/bases/relations/list", data);
+  const req = await api.post("/bases/relations", data);
   return req.data;
 }
 
