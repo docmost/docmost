@@ -495,3 +495,144 @@
   margin-top: 4px;
   font-size: var(--mantine-font-size-xs);
 }
+
+/* An editing cell drops its padding, so the chips keep theirs here. */
+.relationEditTarget {
+  padding: 0 8px;
+}
+
+/* Relation picker: a search row, then the linked rows and the rows to add. */
+
+.relationPickerSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+}
+
+.relationPickerSearchIcon {
+  flex-shrink: 0;
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-2));
+}
+
+.relationPickerInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: var(--mantine-font-size-sm);
+  font-family: inherit;
+  color: inherit;
+  padding: 2px 0;
+}
+
+.relationPickerInput::placeholder {
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+}
+
+.relationPickerList {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.relationPickerGroupLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 8px 4px;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 500;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.relationPickerCount {
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  font-variant-numeric: tabular-nums;
+}
+
+.relationPickerBase {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.relationPickerBaseIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.relationPickerBaseTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relationOption {
+  min-height: 32px;
+  padding: 4px 8px;
+  font-size: var(--mantine-font-size-sm);
+}
+
+.relationOptionSkeleton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 8px;
+}
+
+.relationOptionIcon {
+  flex-shrink: 0;
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.relationOptionIconLinked {
+  color: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
+}
+
+.relationOptionTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relationOptionRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--mantine-radius-sm);
+  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-2));
+}
+
+.relationOptionRemove:hover {
+  background-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-3));
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+}
+
+.relationOptionHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: var(--mantine-font-size-xs);
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.relationPickerEmpty {
+  padding: 16px 8px;
+  text-align: center;
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}

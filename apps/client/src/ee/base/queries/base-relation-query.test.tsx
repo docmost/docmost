@@ -21,6 +21,7 @@ vi.mock("react-i18next", () => ({
 
 import { queryClient } from "@/main.tsx";
 import {
+  listRelationRows,
   searchRelationCandidates,
   updateRelationLinks,
 } from "@/ee/base/services/base-relation-service";
@@ -28,6 +29,7 @@ import type { IBaseRow, RelationPreview } from "@/ee/base/types/base.types";
 import {
   patchRelationPreviews,
   useRelationCandidatesInfiniteQuery,
+  useRelationRowsInfiniteQuery,
   useUpdateRelationLinksMutation,
 } from "./base-relation-query";
 
@@ -54,6 +56,7 @@ beforeEach(() => {
   queryClient.clear();
   vi.mocked(updateRelationLinks).mockReset();
   vi.mocked(searchRelationCandidates).mockReset();
+  vi.mocked(listRelationRows).mockReset();
 });
 afterEach(cleanup);
 
@@ -93,10 +96,19 @@ describe("relation queries", () => {
     expect(r2.relations?.a).toEqual(preview(1));
   });
 
-  it("a link change marks that row's candidate searches stale", async () => {
+  it("a link change marks that row's candidate and linked-row searches stale", async () => {
     const searchKey = (rowId: string, query: string) =>
       ["base-relations", "candidates", "p1", "rel", rowId, query];
-    for (const key of [searchKey("r1", ""), searchKey("r1", "al"), searchKey("r2", "")]) {
+    const linkedKey = (rowId: string, query: string) =>
+      ["base-relations", "list", "p1", rowId, "rel", query];
+    for (const key of [
+      searchKey("r1", ""),
+      searchKey("r1", "al"),
+      searchKey("r2", ""),
+      linkedKey("r1", ""),
+      linkedKey("r1", "al"),
+      linkedKey("r2", ""),
+    ]) {
       queryClient.setQueryData(key, { items: [], meta: {} });
     }
     vi.mocked(updateRelationLinks).mockResolvedValue({ preview: preview(1) });
@@ -109,6 +121,90 @@ describe("relation queries", () => {
     expect(queryClient.getQueryState(searchKey("r1", ""))?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(searchKey("r1", "al"))?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(searchKey("r2", ""))?.isInvalidated).toBe(false);
+    expect(queryClient.getQueryState(linkedKey("r1", ""))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(linkedKey("r1", "al"))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(linkedKey("r2", ""))?.isInvalidated).toBe(false);
+  });
+
+  it("a link change resolves once the open linked-row list has refetched", async () => {
+    const meta = { hasNextPage: false, nextCursor: null } as never;
+    let finishRefetch!: () => void;
+    vi.mocked(listRelationRows)
+      .mockResolvedValueOnce({ items: [], meta })
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishRefetch = () => resolve({ items: [{ id: "t0", title: "T0" }], meta });
+        }),
+      );
+    vi.mocked(updateRelationLinks).mockResolvedValue({ preview: preview(1) });
+    const { result } = renderHook(
+      () => ({
+        list: useRelationRowsInfiniteQuery({
+          pageId: "p1",
+          rowId: "r1",
+          propertyId: "rel",
+          enabled: true,
+        }),
+        update: useUpdateRelationLinksMutation("p1"),
+      }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.list.data?.pages[0].items).toEqual([]));
+
+    let resolved = false;
+    let change!: Promise<void>;
+    act(() => {
+      change = result.current.update
+        .mutateAsync({ rowId: "r1", propertyId: "rel", add: ["t0"] })
+        .then(() => {
+          resolved = true;
+        });
+    });
+    await waitFor(() => expect(listRelationRows).toHaveBeenCalledTimes(2));
+    expect(resolved).toBe(false);
+
+    await act(async () => {
+      finishRefetch();
+      await change;
+    });
+
+    expect(
+      queryClient.getQueryData<InfiniteData<{ items: unknown[] }>>([
+        "base-relations",
+        "list",
+        "p1",
+        "r1",
+        "rel",
+        "",
+      ])?.pages[0].items,
+    ).toEqual([{ id: "t0", title: "T0" }]);
+  });
+
+  it("linked-row lists send the search only when there is one", async () => {
+    vi.mocked(listRelationRows).mockResolvedValue({
+      items: [],
+      meta: { hasNextPage: false, nextCursor: null } as never,
+    });
+    const { rerender } = renderHook(
+      ({ query }: { query: string }) =>
+        useRelationRowsInfiniteQuery({ pageId: "p1", rowId: "r1", propertyId: "rel", query, enabled: true }),
+      { wrapper, initialProps: { query: "" } },
+    );
+    await waitFor(() =>
+      expect(listRelationRows).toHaveBeenLastCalledWith({
+        pageId: "p1",
+        rowId: "r1",
+        propertyId: "rel",
+        query: undefined,
+        cursor: undefined,
+      }),
+    );
+
+    rerender({ query: "al" });
+
+    await waitFor(() =>
+      expect(listRelationRows).toHaveBeenLastCalledWith(expect.objectContaining({ query: "al" })),
+    );
   });
 
   it("a stale candidate search refetches when the picker opens again", async () => {
@@ -118,12 +214,13 @@ describe("relation queries", () => {
     });
     const key = ["base-relations", "candidates", "p1", "rel", "r1", ""];
     client.setQueryData(key, {
-      pages: [{ items: [{ id: "t0", title: "T0", linked: false }], meta: {} }],
+      pages: [{ items: [{ id: "t0", title: "T0" }], meta: {} }],
       pageParams: [undefined],
     });
     await client.invalidateQueries({ queryKey: key, refetchType: "none" });
+    // t0 was linked meanwhile, so the fresh search no longer offers it
     vi.mocked(searchRelationCandidates).mockResolvedValue({
-      items: [{ id: "t0", title: "T0", linked: true }],
+      items: [{ id: "t1", title: "T1" }],
       meta: { limit: 25, hasNextPage: false, hasPrevPage: false, nextCursor: null, prevCursor: null },
     });
 
@@ -143,7 +240,7 @@ describe("relation queries", () => {
       },
     );
 
-    await waitFor(() => expect(result.current.data?.[0].linked).toBe(true));
+    await waitFor(() => expect(result.current.data?.[0].id).toBe("t1"));
   });
 
   it("candidate pages continue from the last page's cursor", async () => {

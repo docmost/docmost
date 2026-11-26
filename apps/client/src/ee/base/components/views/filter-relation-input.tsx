@@ -5,8 +5,11 @@ import { IconChevronDown, IconX } from "@tabler/icons-react";
 import { isAxiosError } from "axios";
 import { useTranslation } from "react-i18next";
 import clsx from "clsx";
-import type { IBaseProperty, RelationTypeOptions } from "@/ee/base/types/base.types";
-import type { RelationCandidate } from "@/ee/base/services/base-relation-service";
+import type {
+  IBaseProperty,
+  RelationPreviewRow,
+  RelationTypeOptions,
+} from "@/ee/base/types/base.types";
 import {
   useRelationCandidatesInfiniteQuery,
   useResolveRelationRows,
@@ -91,7 +94,7 @@ export function FilterRelationInput({
 
   const emit = (nextIds: string[]) => onChange(nextIds.length > 0 ? nextIds : undefined);
 
-  const select = (row: RelationCandidate) => {
+  const select = (row: RelationPreviewRow) => {
     if (atLimit) return;
     setPickedTitles((prev) => ({ ...prev, [row.id]: row.title }));
     emit([...ids, row.id]);

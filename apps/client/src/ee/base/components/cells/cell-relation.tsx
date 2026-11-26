@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Popover } from "@mantine/core";
+import clsx from "clsx";
 import type { CellComponentProps } from "@/ee/base/property-types/property-type.descriptor";
 import type { RelationTypeOptions } from "@/ee/base/types/base.types";
 import { RelationReadList } from "@/ee/base/components/cells/relation-read-list";
@@ -33,14 +34,16 @@ export function CellRelation({
       }}
       onClose={onCancel}
       position="bottom-start"
-      width={300}
+      width={320}
       trapFocus
       closeOnClickOutside
       closeOnEscape
       hideDetached={false}
     >
       <Popover.Target>
-        <div className={cellClasses.popoverTarget}>{readList}</div>
+        <div className={clsx(cellClasses.popoverTargetFlex, cellClasses.relationEditTarget)}>
+          {readList}
+        </div>
       </Popover.Target>
       <Popover.Dropdown p={0}>
         <RelationPicker

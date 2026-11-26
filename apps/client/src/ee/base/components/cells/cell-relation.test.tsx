@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IBaseProperty, RelationPreview } from "@/ee/base/types/base.types";
 
 const relationQueries = vi.hoisted(() => ({
+  linked: vi.fn(),
   candidates: vi.fn(),
   mutateAsync: vi.fn(),
 }));
@@ -18,6 +19,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 vi.mock("@/ee/base/queries/base-relation-query", () => ({
+  useRelationRowsInfiniteQuery: (args: unknown) => relationQueries.linked(args),
   useRelationCandidatesInfiniteQuery: (args: unknown) => relationQueries.candidates(args),
   useUpdateRelationLinksMutation: () => ({ mutateAsync: relationQueries.mutateAsync }),
 }));
@@ -65,6 +67,11 @@ function renderCell(relation: RelationPreview | undefined, readOnly = false) {
 beforeEach(() => {
   relationQueries.candidates.mockReset();
   relationQueries.candidates.mockReturnValue({ data: [], error: null });
+  relationQueries.linked.mockReset();
+  relationQueries.linked.mockReturnValue({
+    data: { pages: [{ items: [{ id: "a", title: "Alpha" }], meta: {} }] },
+    error: null,
+  });
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: vi.fn().mockImplementation((query: string) => ({

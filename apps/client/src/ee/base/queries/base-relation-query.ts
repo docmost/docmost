@@ -72,12 +72,15 @@ export function useUpdateRelationLinksMutation(pageId: string) {
       patchRelationPreviews(queryClient, pageId, {
         [variables.rowId]: { [variables.propertyId]: preview },
       });
-      queryClient.invalidateQueries({
-        queryKey: ["base-relations", "list", pageId, variables.rowId, variables.propertyId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["base-relations", "candidates", pageId, variables.propertyId, variables.rowId],
-      });
+      // mutateAsync resolves once the open lists show the change
+      return Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["base-relations", "list", pageId, variables.rowId, variables.propertyId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["base-relations", "candidates", pageId, variables.propertyId, variables.rowId],
+        }),
+      ]);
     },
     onError: (error) => {
       notifications.show({
@@ -105,7 +108,7 @@ export function useRelationCandidatesInfiniteQuery(args: {
     select: (data) => data.pages.flatMap((page) => page.items),
     enabled,
     staleTime: 15_000,
-    // linked flags go stale on every link change, so reopening must refetch
+    // a link change elsewhere moves rows in or out of this search, so reopening must refetch
     refetchOnMount: true,
     placeholderData: keepPreviousData,
   });
@@ -115,18 +118,26 @@ export function useRelationRowsInfiniteQuery(args: {
   pageId: string;
   rowId: string;
   propertyId: string;
+  query?: string;
   enabled: boolean;
 }) {
-  const { pageId, rowId, propertyId, enabled } = args;
+  const { pageId, rowId, propertyId, query = "", enabled } = args;
   return useInfiniteQuery({
-    queryKey: ["base-relations", "list", pageId, rowId, propertyId],
+    queryKey: ["base-relations", "list", pageId, rowId, propertyId, query],
     queryFn: ({ pageParam }) =>
-      listRelationRows({ pageId, rowId, propertyId, cursor: pageParam }),
+      listRelationRows({
+        pageId,
+        rowId,
+        propertyId,
+        query: query || undefined,
+        cursor: pageParam,
+      }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.meta.nextCursor ?? undefined,
     enabled,
     // links changed elsewhere only patch previews, so a cached list is always revalidated
     staleTime: 0,
+    placeholderData: keepPreviousData,
   });
 }
 

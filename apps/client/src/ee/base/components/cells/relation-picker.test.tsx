@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import { MantineProvider } from "@mantine/core";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { AxiosError, AxiosHeaders } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { IBaseProperty, RelationPreview } from "@/ee/base/types/base.types";
-import type { RelationCandidate } from "@/ee/base/services/base-relation-service";
+import type {
+  IBaseProperty,
+  RelationPreview,
+  RelationPreviewRow,
+} from "@/ee/base/types/base.types";
 
 const relationQueries = vi.hoisted(() => ({
+  linked: vi.fn(),
   candidates: vi.fn(),
   mutateAsync: vi.fn(),
 }));
@@ -14,13 +18,25 @@ const relationQueries = vi.hoisted(() => ({
 vi.mock("@/main.tsx", async () => ({
   queryClient: new (await import("@tanstack/react-query")).QueryClient(),
 }));
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string, values?: Record<string, unknown>) =>
-      key.replace(/{{(\w+)}}/g, (_match, name) => String(values?.[name] ?? "")),
-  }),
-}));
+vi.mock("react-i18next", async () => {
+  const { Fragment, createElement } = await import("react");
+  return {
+    useTranslation: () => ({
+      t: (key: string, values?: Record<string, unknown>) =>
+        key.replace(/{{(\w+)}}/g, (_match, name) => String(values?.[name] ?? "")),
+    }),
+    Trans: ({ i18nKey, components }: { i18nKey: string; components: Record<string, ReactElement> }) =>
+      createElement(
+        Fragment,
+        null,
+        ...i18nKey
+          .split(/<(\w+)\/>/)
+          .map((part, i) => (i % 2 ? createElement(Fragment, { key: i }, components[part]) : part)),
+      ),
+  };
+});
 vi.mock("@/ee/base/queries/base-relation-query", () => ({
+  useRelationRowsInfiniteQuery: (args: unknown) => relationQueries.linked(args),
   useRelationCandidatesInfiniteQuery: (args: unknown) => relationQueries.candidates(args),
   useUpdateRelationLinksMutation: () => ({ mutateAsync: relationQueries.mutateAsync }),
 }));
@@ -61,18 +77,34 @@ const relationProperty = (allowMultiple: boolean) =>
     },
   }) as unknown as IBaseProperty;
 
-const rows: RelationCandidate[] = [
-  { id: "a", title: "Alpha", linked: true },
-  { id: "b", title: "Beta", linked: false },
-  { id: "c", title: "", linked: false },
-];
+const settled = <T,>(data: T, more: Record<string, unknown> = {}) => ({
+  data,
+  error: null,
+  isPending: false,
+  isFetching: false,
+  hasNextPage: false,
+  fetchNextPage: vi.fn(),
+  ...more,
+});
 
-function answerCandidates(items: RelationCandidate[]) {
-  relationQueries.candidates.mockImplementation(({ query }: { query: string }) => ({
-    data: items.filter((item) => item.title.toLowerCase().includes(query.toLowerCase())),
-    error: null,
-  }));
+const matching = (rows: RelationPreviewRow[], query: string) =>
+  rows.filter((row) => row.title.toLowerCase().includes(query.toLowerCase()));
+
+// a server whose lists follow the link changes the picker sends
+function answerRows(start: { linked: RelationPreviewRow[]; candidates: RelationPreviewRow[] }) {
+  const server = { linked: [...start.linked], candidates: [...start.candidates] };
+  relationQueries.linked.mockImplementation(({ query }: { query: string }) =>
+    settled({ pages: [{ items: matching(server.linked, query), meta: {} }] }),
+  );
+  relationQueries.candidates.mockImplementation(({ query }: { query: string }) =>
+    settled(matching(server.candidates, query)),
+  );
+  return server;
 }
+
+const alpha = { id: "a", title: "Alpha" };
+const beta = { id: "b", title: "Beta" };
+const untitled = { id: "c", title: "" };
 
 class FakeIntersectionObserver {
   static instances: FakeIntersectionObserver[] = [];
@@ -102,31 +134,27 @@ class FakeIntersectionObserver {
 const watchingObserver = () =>
   FakeIntersectionObserver.instances.find((observer) => observer.observed.length > 0);
 
-const titled = (from: number, to: number): RelationCandidate[] =>
+const titled = (from: number, to: number): RelationPreviewRow[] =>
   Array.from({ length: to - from + 1 }, (_, i) => {
     const n = String(from + i).padStart(2, "0");
-    return { id: `r${n}`, title: `Row ${n}`, linked: false };
+    return { id: `r${n}`, title: `Row ${n}` };
   });
 
 // an infinite query that shows one more page each time fetchNextPage is called
-function answerPagedCandidates(pages: RelationCandidate[][]) {
+function pagedQuery(pages: RelationPreviewRow[][], shape: (rows: RelationPreviewRow[]) => unknown) {
   const fetchNextPage = vi.fn();
-  relationQueries.candidates.mockImplementation(function useFakeCandidates() {
+  const useFakeQuery = () => {
     const [loaded, setLoaded] = useState(1);
     fetchNextPage.mockImplementation(() => setLoaded((n) => n + 1));
-    return {
-      data: pages.slice(0, loaded).flat(),
-      error: null,
+    return settled(shape(pages.slice(0, loaded).flat()), {
       hasNextPage: loaded < pages.length,
-      isFetching: false,
       fetchNextPage,
-    };
-  });
-  return fetchNextPage;
+    });
+  };
+  return { useFakeQuery, fetchNextPage };
 }
 
-const lastSearch = () =>
-  (relationQueries.candidates.mock.calls.at(-1)?.[0] as { query: string }).query;
+const linkedPages = (rows: RelationPreviewRow[]) => ({ pages: [{ items: rows, meta: {} }] });
 
 function renderPicker({
   allowMultiple = true,
@@ -152,13 +180,23 @@ function renderPicker({
   return { onClose, input: screen.getByRole("combobox", { name: "Search Projects" }) };
 }
 
-const option = (name: string) => screen.getByRole("option", { name: new RegExp(`^${name}`) });
+const option = (name: string) => screen.getByRole("option", { name });
+const linkedGroup = () => screen.queryByRole("group", { name: /^Linked/ });
+const addGroup = () => screen.queryByRole("group", { name: "Add from Projects" });
+// option texts in order, a linked one marked with *
+const optionNames = (group: HTMLElement | null) =>
+  group
+    ? within(group)
+        .queryAllByRole("option")
+        .map((el) => `${el.textContent}${el.getAttribute("aria-selected") === "true" ? "*" : ""}`)
+    : [];
 
 beforeEach(() => {
+  relationQueries.linked.mockReset();
   relationQueries.candidates.mockReset();
   relationQueries.mutateAsync.mockReset();
   relationQueries.mutateAsync.mockResolvedValue({ preview: { count: 0, rows: [] } });
-  answerCandidates(rows);
+  answerRows({ linked: [alpha], candidates: [beta, untitled] });
   Element.prototype.scrollIntoView = () => {};
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
@@ -182,9 +220,20 @@ afterEach(() => {
 });
 
 describe("RelationPicker", () => {
-  it("typing searches the other base after the debounce", () => {
-    vi.useFakeTimers();
-    const { input } = renderPicker();
+  it("lists the linked rows above the rows to add from the other base", () => {
+    renderPicker();
+
+    expect(linkedGroup()?.getAttribute("aria-labelledby")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Linked 1" })).toBeTruthy();
+    expect(optionNames(linkedGroup())).toEqual(["Alpha*"]);
+    expect(optionNames(addGroup())).toEqual(["Beta", "Untitled"]);
+    expect(relationQueries.linked).toHaveBeenLastCalledWith({
+      pageId: "base-1",
+      rowId: "r1",
+      propertyId: "rel",
+      query: "",
+      enabled: true,
+    });
     expect(relationQueries.candidates).toHaveBeenLastCalledWith({
       pageId: "base-1",
       propertyId: "rel",
@@ -192,51 +241,93 @@ describe("RelationPicker", () => {
       query: "",
       enabled: true,
     });
-    expect(screen.getAllByRole("option")).toHaveLength(3);
+  });
 
-    fireEvent.change(input, { target: { value: " Alp" } });
+  it("typing searches the linked rows and the other base after the debounce", () => {
+    vi.useFakeTimers();
+    const { input } = renderPicker();
+
+    fireEvent.change(input, { target: { value: " Bet" } });
     act(() => {
       vi.advanceTimersByTime(249);
     });
-    expect(lastSearch()).toBe("");
+    expect(relationQueries.candidates.mock.calls.at(-1)?.[0].query).toBe("");
 
     act(() => {
       vi.advanceTimersByTime(1);
     });
-    expect(lastSearch()).toBe("Alp");
-    expect(screen.getAllByRole("option")).toHaveLength(1);
-    expect(option("Alpha").textContent).toContain("Linked");
+    expect(relationQueries.linked.mock.calls.at(-1)?.[0].query).toBe("Bet");
+    expect(relationQueries.candidates.mock.calls.at(-1)?.[0].query).toBe("Bet");
+    expect(linkedGroup()).toBeNull();
+    expect(optionNames(addGroup())).toEqual(["Beta"]);
   });
 
-  it("clicking an unlinked row adds it and a linked row removes it", () => {
+  it("clicking a row to add links it and moves it under Linked", async () => {
+    const server = answerRows({ linked: [alpha], candidates: [beta, untitled] });
+    let finish!: () => void;
+    relationQueries.mutateAsync.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = () => {
+            server.linked.push(beta);
+            server.candidates = server.candidates.filter((row) => row.id !== "b");
+            resolve({ preview: { count: 2, rows: [alpha, beta] } });
+          };
+        }),
+    );
     const { onClose } = renderPicker();
-    expect(option("Alpha").getAttribute("aria-selected")).toBe("true");
-    expect(option("Beta").getAttribute("aria-selected")).toBe("false");
-    expect(option("Untitled")).toBeTruthy();
 
     fireEvent.click(option("Beta"));
-    expect(relationQueries.mutateAsync).toHaveBeenLastCalledWith({
+
+    expect(relationQueries.mutateAsync).toHaveBeenCalledWith({
       rowId: "r1",
       propertyId: "rel",
       add: ["b"],
     });
-    expect(option("Beta").getAttribute("aria-selected")).toBe("true");
+    expect(optionNames(linkedGroup())).toEqual(["Alpha*", "Beta*"]);
+    expect(screen.getByRole("group", { name: "Linked 2" })).toBeTruthy();
+    expect(optionNames(addGroup())).toEqual(["Untitled"]);
+
+    await act(async () => finish());
+
+    expect(optionNames(linkedGroup())).toEqual(["Alpha*", "Beta*"]);
+    expect(optionNames(addGroup())).toEqual(["Untitled"]);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("clicking a linked row unlinks it", () => {
+    relationQueries.mutateAsync.mockReturnValue(new Promise(() => {}));
+    renderPicker();
 
     fireEvent.click(option("Alpha"));
-    expect(relationQueries.mutateAsync).toHaveBeenLastCalledWith({
+
+    expect(relationQueries.mutateAsync).toHaveBeenCalledWith({
       rowId: "r1",
       propertyId: "rel",
       remove: ["a"],
     });
-    expect(option("Alpha").getAttribute("aria-selected")).toBe("false");
-    expect(onClose).not.toHaveBeenCalled();
+    expect(linkedGroup()).toBeNull();
+    expect(optionNames(addGroup())).toEqual(["Beta", "Untitled"]);
+  });
+
+  it("puts a row back when its change fails", async () => {
+    relationQueries.mutateAsync.mockRejectedValue(new Error("Forbidden"));
+    renderPicker();
+
+    await act(async () => {
+      fireEvent.click(option("Beta"));
+    });
+
+    expect(optionNames(linkedGroup())).toEqual(["Alpha*"]);
+    expect(optionNames(addGroup())).toEqual(["Beta", "Untitled"]);
   });
 
   it("on a single-row side picking replaces and closes", () => {
     const { onClose } = renderPicker({
       allowMultiple: false,
-      preview: { count: 1, rows: [{ id: "a", title: "Alpha" }] },
+      preview: { count: 1, rows: [alpha] },
     });
+    expect(screen.getByRole("listbox").getAttribute("aria-multiselectable")).toBeNull();
 
     fireEvent.click(option("Beta"));
 
@@ -259,34 +350,7 @@ describe("RelationPicker", () => {
     expect(relationQueries.mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("Backspace on empty search removes the last link", () => {
-    const { input, onClose } = renderPicker({
-      preview: {
-        count: 2,
-        rows: [
-          { id: "a", title: "Alpha" },
-          { id: "b", title: "Beta" },
-        ],
-      },
-    });
-    fireEvent.change(input, { target: { value: "x" } });
-    fireEvent.keyDown(input, { key: "Backspace" });
-    expect(relationQueries.mutateAsync).not.toHaveBeenCalled();
-
-    fireEvent.change(input, { target: { value: "" } });
-    fireEvent.keyDown(input, { key: "Backspace" });
-
-    expect(relationQueries.mutateAsync).toHaveBeenCalledWith({
-      rowId: "r1",
-      propertyId: "rel",
-      remove: ["b"],
-    });
-    expect(screen.queryByRole("button", { name: "Remove Beta" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Remove Alpha" })).toBeTruthy();
-    expect(onClose).not.toHaveBeenCalled();
-  });
-
-  it("arrow keys, Home and End move the highlight and Enter toggles it", () => {
+  it("arrow keys move through both sections and Enter toggles the highlighted row", () => {
     const { input } = renderPicker();
     const highlighted = () => input.getAttribute("aria-activedescendant");
 
@@ -297,6 +361,8 @@ describe("RelationPicker", () => {
     fireEvent.keyDown(input, { key: "Home" });
     fireEvent.keyDown(input, { key: "ArrowDown" });
     expect(highlighted()).toBe(option("Beta").id);
+    expect(option("Beta").textContent).toContain("Link");
+    expect(option("Untitled").textContent).not.toContain("Link");
 
     fireEvent.keyDown(input, { key: "Enter" });
 
@@ -307,49 +373,44 @@ describe("RelationPicker", () => {
     });
   });
 
-  it("a chip's remove button unlinks that row", () => {
-    renderPicker({ preview: { count: 12, rows: [{ id: "a", title: "Alpha" }] } });
-    expect(screen.getByText("+11")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "Remove Alpha" }));
-
-    expect(relationQueries.mutateAsync).toHaveBeenCalledWith({
-      rowId: "r1",
-      propertyId: "rel",
-      remove: ["a"],
-    });
-  });
-
-  it("puts a row back when its change fails", async () => {
-    relationQueries.mutateAsync.mockRejectedValue(new Error("Forbidden"));
-    renderPicker();
-
-    await act(async () => {
-      fireEvent.click(option("Beta"));
-    });
-
-    expect(option("Beta").getAttribute("aria-selected")).toBe("false");
-  });
-
-  it("the picker loads more candidates when scrolled to the end", () => {
+  it("loads the next page of rows to add when scrolled to the end", () => {
     vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
-    const fetchNextPage = answerPagedCandidates([titled(1, 25), titled(26, 30)]);
+    const candidates = pagedQuery([titled(1, 25), titled(26, 30)], (rows) => rows);
+    relationQueries.candidates.mockImplementation(candidates.useFakeQuery);
+    relationQueries.linked.mockReturnValue(settled(linkedPages([])));
     renderPicker();
     expect(screen.getAllByRole("option")).toHaveLength(25);
-    expect(fetchNextPage).not.toHaveBeenCalled();
+    expect(candidates.fetchNextPage).not.toHaveBeenCalled();
 
     const observer = watchingObserver();
     expect(observer?.options?.root).toBe(screen.getByRole("listbox"));
     act(() => observer!.intersect());
 
-    expect(fetchNextPage).toHaveBeenCalledTimes(1);
+    expect(candidates.fetchNextPage).toHaveBeenCalledTimes(1);
     expect(screen.getAllByRole("option")).toHaveLength(30);
     expect(watchingObserver()).toBeUndefined();
   });
 
-  it("arrow keys continue into the next page of candidates", () => {
+  it("finishes the linked rows before listing rows to add", () => {
     vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
-    const fetchNextPage = answerPagedCandidates([titled(1, 25), titled(26, 30)]);
+    const linked = pagedQuery([titled(1, 3), titled(4, 5)], linkedPages);
+    relationQueries.linked.mockImplementation(linked.useFakeQuery);
+    renderPicker({ preview: { count: 5, rows: titled(1, 3) } });
+
+    expect(screen.getByRole("group", { name: "Linked 5" })).toBeTruthy();
+    expect(addGroup()).toBeNull();
+    act(() => watchingObserver()!.intersect());
+
+    expect(linked.fetchNextPage).toHaveBeenCalledTimes(1);
+    expect(optionNames(linkedGroup())).toHaveLength(5);
+    expect(optionNames(addGroup())).toEqual(["Beta", "Untitled"]);
+  });
+
+  it("arrow keys continue into the next page of rows to add", () => {
+    vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
+    const candidates = pagedQuery([titled(1, 25), titled(26, 30)], (rows) => rows);
+    relationQueries.candidates.mockImplementation(candidates.useFakeQuery);
+    relationQueries.linked.mockReturnValue(settled(linkedPages([])));
     const { input } = renderPicker();
     const highlighted = () => input.getAttribute("aria-activedescendant");
 
@@ -357,7 +418,7 @@ describe("RelationPicker", () => {
     expect(highlighted()).toBe(option("Row 25").id);
     fireEvent.keyDown(input, { key: "ArrowDown" });
 
-    expect(fetchNextPage).toHaveBeenCalledTimes(1);
+    expect(candidates.fetchNextPage).toHaveBeenCalledTimes(1);
     expect(highlighted()).toBe(option("Row 25").id);
     fireEvent.keyDown(input, { key: "ArrowDown" });
     expect(highlighted()).toBe(option("Row 26").id);
@@ -369,26 +430,55 @@ describe("RelationPicker", () => {
     });
   });
 
-  it("shows No matching rows when the search finds nothing", () => {
-    answerCandidates([]);
+  it("shows placeholder rows while the lists load", () => {
+    relationQueries.linked.mockReturnValue(settled(undefined, { isPending: true, isFetching: true }));
     renderPicker();
+
+    expect(screen.getByRole("listbox").getAttribute("aria-busy")).toBe("true");
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(screen.queryByText("No rows yet")).toBeNull();
+  });
+
+  it("says when the other base has no rows or the search finds nothing", () => {
+    vi.useFakeTimers();
+    answerRows({ linked: [], candidates: [] });
+    const { input } = renderPicker();
+    expect(screen.getByText("No rows yet")).toBeTruthy();
+
+    fireEvent.change(input, { target: { value: "zz" } });
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+
     expect(screen.getByText("No matching rows")).toBeTruthy();
     expect(screen.queryAllByRole("option")).toHaveLength(0);
   });
 
-  it("shows No access when the other base can't be opened", () => {
-    relationQueries.candidates.mockReturnValue({
-      data: undefined,
-      error: new AxiosError("Not found", "ERR_BAD_REQUEST", undefined, undefined, {
-        status: 404,
-        statusText: "Not Found",
-        headers: {},
-        config: { headers: new AxiosHeaders() },
-        data: { message: "Space permissions not found" },
-      }),
-    });
+  it("says the rows failed to load instead of calling the base empty", () => {
+    relationQueries.linked.mockReturnValue(
+      settled(undefined, { error: new Error("offline"), isError: true }),
+    );
     renderPicker();
+
+    expect(screen.getByText("Failed to load rows")).toBeTruthy();
+    expect(screen.queryByText("No rows yet")).toBeNull();
+  });
+
+  it("shows No access when the other base can't be opened", () => {
+    relationQueries.candidates.mockReturnValue(
+      settled(undefined, {
+        error: new AxiosError("Not found", "ERR_BAD_REQUEST", undefined, undefined, {
+          status: 404,
+          statusText: "Not Found",
+          headers: {},
+          config: { headers: new AxiosHeaders() },
+          data: { message: "Space permissions not found" },
+        }),
+      }),
+    );
+    renderPicker();
+
     expect(screen.getByText("No access")).toBeTruthy();
-    expect(screen.queryByText("No matching rows")).toBeNull();
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
   });
 });

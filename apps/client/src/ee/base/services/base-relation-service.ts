@@ -2,8 +2,6 @@ import api from "@/lib/api-client";
 import type { IPaginationMeta } from "@/lib/types";
 import type { RelationPreview, RelationPreviewRow } from "@/ee/base/types/base.types";
 
-export type RelationCandidate = RelationPreviewRow & { linked?: boolean };
-
 export type RelationTarget = {
   id: string;
   title: string;
@@ -36,6 +34,7 @@ export async function listRelationRows(data: {
   pageId: string;
   rowId: string;
   propertyId: string;
+  query?: string;
   cursor?: string;
   limit?: number;
 }): Promise<RelationPage<RelationPreviewRow>> {
@@ -49,7 +48,7 @@ export async function searchRelationCandidates(data: {
   rowId?: string;
   query?: string;
   cursor?: string;
-}): Promise<RelationPage<RelationCandidate>> {
+}): Promise<RelationPage<RelationPreviewRow>> {
   const req = await api.post("/bases/relations/candidates", data);
   return req.data;
 }

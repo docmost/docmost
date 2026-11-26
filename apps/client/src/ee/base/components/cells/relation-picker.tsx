@@ -1,23 +1,31 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Text } from "@mantine/core";
+import { Skeleton } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { IconX } from "@tabler/icons-react";
+import {
+  IconCornerDownLeft,
+  IconFile,
+  IconSearch,
+  IconTable,
+  IconX,
+} from "@tabler/icons-react";
 import { isAxiosError } from "axios";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import clsx from "clsx";
 import type {
   IBaseProperty,
   RelationPreview,
+  RelationPreviewRow,
   RelationTypeOptions,
 } from "@/ee/base/types/base.types";
-import type { RelationCandidate } from "@/ee/base/services/base-relation-service";
 import {
   useRelationCandidatesInfiniteQuery,
+  useRelationRowsInfiniteQuery,
   useUpdateRelationLinksMutation,
 } from "@/ee/base/queries/base-relation-query";
 import { useResolvedPages } from "@/ee/base/queries/base-page-resolver-query";
 import { useInfiniteListKeyboardNav } from "@/ee/base/hooks/use-infinite-list-keyboard-nav";
 import cellClasses from "@/ee/base/styles/cells.module.css";
+import rowDetailClasses from "@/ee/base/styles/row-detail-modal.module.css";
 
 type RelationPickerProps = {
   pageId: string;
@@ -27,6 +35,11 @@ type RelationPickerProps = {
   onClose: () => void;
   autoFocus?: boolean;
 };
+
+type PickerOption = { row: RelationPreviewRow; linked: boolean };
+
+const isAccessError = (error: unknown) =>
+  isAxiosError(error) && [403, 404].includes(error.response?.status ?? 0);
 
 export function RelationPicker({
   pageId,
@@ -43,60 +56,98 @@ export function RelationPicker({
   const [search, setSearch] = useState("");
   const [debouncedSearch] = useDebouncedValue(search, 250);
   const query = debouncedSearch.trim();
-  // links the user just changed, shown before the server answers
-  const [linkedById, setLinkedById] = useState<Record<string, boolean>>({});
+  // links changed here, shown in their new section until both lists refetch
+  const [changes, setChanges] = useState<ReadonlyMap<string, PickerOption>>(new Map());
 
   useEffect(() => {
     if (autoFocus) requestAnimationFrame(() => searchRef.current?.focus());
   }, [autoFocus]);
 
   const baseIds = useMemo(() => [targetBaseId], [targetBaseId]);
-  const baseTitle = useResolvedPages(baseIds).pages.get(targetBaseId)?.title || t("Untitled");
+  const base = useResolvedPages(baseIds).pages.get(targetBaseId);
+  const baseTitle = base?.title || t("Untitled");
   const searchLabel = t("Search {{base}}", { base: baseTitle });
 
-  const {
-    data,
-    error,
-    hasNextPage,
-    isFetching,
-    fetchNextPage,
-  } = useRelationCandidatesInfiniteQuery({
+  const enabled = !preview?.restricted;
+  const linkedQuery = useRelationRowsInfiniteQuery({
+    pageId,
+    rowId,
+    propertyId: property.id,
+    query,
+    enabled,
+  });
+  const candidatesQuery = useRelationCandidatesInfiniteQuery({
     pageId,
     propertyId: property.id,
     rowId,
     query,
-    enabled: !preview?.restricted,
+    enabled,
   });
-  const candidates = data ?? [];
+  const updateLinks = useUpdateRelationLinksMutation(pageId);
+
+  const serverLinked = useMemo(
+    () => linkedQuery.data?.pages.flatMap((page) => page.items),
+    [linkedQuery.data],
+  );
+  // other rows wait below until every linked row is in, so the sections never interleave
+  const linkedComplete = serverLinked !== undefined && !linkedQuery.hasNextPage;
   const noAccess =
     preview?.restricted ||
-    (isAxiosError(error) && [403, 404].includes(error.response?.status ?? 0));
+    isAccessError(linkedQuery.error) ||
+    isAccessError(candidatesQuery.error);
+  const loading =
+    linkedQuery.isPending || (linkedComplete && candidatesQuery.isPending);
 
-  const updateLinks = useUpdateRelationLinksMutation(pageId);
-  const chips = (preview?.rows ?? []).filter((row) => linkedById[row.id] !== false);
-  const hiddenCount = (preview?.count ?? 0) - (preview?.rows.length ?? 0);
+  const serverLinkedIds = new Set(serverLinked?.map((row) => row.id));
+  const lowerQuery = query.toLowerCase();
+  const linkedRows = [
+    ...(serverLinked ?? []).filter((row) => changes.get(row.id)?.linked !== false),
+    ...[...changes.values()]
+      .filter(
+        ({ row, linked }) =>
+          linked && !serverLinkedIds.has(row.id) && row.title.toLowerCase().includes(lowerQuery),
+      )
+      .map(({ row }) => row),
+  ];
+  const addRows = linkedComplete
+    ? (candidatesQuery.data ?? []).filter((row) => changes.get(row.id)?.linked !== true)
+    : [];
+  const options: PickerOption[] = [
+    ...linkedRows.map((row) => ({ row, linked: true })),
+    ...addRows.map((row) => ({ row, linked: false })),
+  ];
+  // a partly loaded list shows the row's total, which says nothing about a search
+  let linkedCount: number | undefined = linkedRows.length;
+  if (linkedQuery.hasNextPage) linkedCount = query ? undefined : preview?.count;
 
+  const hasMore = linkedQuery.hasNextPage || (linkedComplete && candidatesQuery.hasNextPage);
   const { activeIndex, setActiveIndex, handleNavKey, setOptionRef, listEndRef } =
-    useInfiniteListKeyboardNav(candidates.length, [query], {
-      hasNextPage,
-      isFetching,
-      fetchNextPage,
+    useInfiniteListKeyboardNav(options.length, [query], {
+      hasNextPage: hasMore,
+      isFetching: linkedQuery.isFetching || candidatesQuery.isFetching,
+      fetchNextPage: linkedQuery.hasNextPage
+        ? linkedQuery.fetchNextPage
+        : candidatesQuery.fetchNextPage,
     });
   const optionId = (index: number) => `${listboxId}-${index}`;
 
-  const isLinked = (candidate: RelationCandidate) =>
-    linkedById[candidate.id] ?? candidate.linked === true;
-
-  const setLink = (targetRowId: string, linked: boolean) => {
-    setLinkedById((prev) => ({ ...prev, [targetRowId]: linked }));
+  const setLink = (row: RelationPreviewRow, linked: boolean) => {
+    setChanges((prev) => new Map(prev).set(row.id, { row, linked }));
+    const settle = () =>
+      setChanges((prev) => {
+        if (prev.get(row.id)?.linked !== linked) return prev;
+        const next = new Map(prev);
+        next.delete(row.id);
+        return next;
+      });
     updateLinks
       .mutateAsync({
         rowId,
         propertyId: property.id,
-        ...(linked ? { add: [targetRowId] } : { remove: [targetRowId] }),
+        ...(linked ? { add: [row.id] } : { remove: [row.id] }),
       })
-      .catch(() => setLinkedById(({ [targetRowId]: _failed, ...rest }) => rest));
-    if (!allowMultiple) onClose();
+      .then(settle, settle);
+    if (linked && !allowMultiple) onClose();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -107,111 +158,153 @@ export function RelationPicker({
     }
     if (handleNavKey(e)) return;
     if (e.key === "Enter") {
-      const candidate = candidates[activeIndex];
-      if (!candidate) return;
+      const option = options[activeIndex];
+      if (!option) return;
       e.preventDefault();
-      setLink(candidate.id, !isLinked(candidate));
-      return;
-    }
-    if (e.key === "Backspace" && search === "" && chips.length > 0) {
-      e.preventDefault();
-      setLink(chips[chips.length - 1].id, false);
+      setLink(option.row, !option.linked);
     }
   };
 
+  const renderOption = ({ row, linked }: PickerOption, index: number) => {
+    const active = index === activeIndex;
+    return (
+      <div
+        key={row.id}
+        id={optionId(index)}
+        ref={setOptionRef(index)}
+        role="option"
+        aria-selected={linked}
+        className={clsx(
+          cellClasses.selectOption,
+          cellClasses.relationOption,
+          active && cellClasses.selectOptionKeyboardActive,
+        )}
+        onMouseEnter={() => setActiveIndex(index)}
+        // keeps focus in the search box
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setLink(row, !linked)}
+      >
+        <IconFile
+          size={16}
+          aria-hidden
+          className={clsx(
+            cellClasses.relationOptionIcon,
+            linked && cellClasses.relationOptionIconLinked,
+          )}
+        />
+        <span className={cellClasses.relationOptionTitle}>{row.title || t("Untitled")}</span>
+        {linked ? (
+          <span className={cellClasses.relationOptionRemove} aria-hidden>
+            <IconX size={14} />
+          </span>
+        ) : (
+          active && (
+            <span className={cellClasses.relationOptionHint} aria-hidden>
+              <IconCornerDownLeft size={12} />
+              {t("Link")}
+            </span>
+          )
+        )}
+      </div>
+    );
+  };
+
+  const linkedLabelId = `${listboxId}-linked`;
+  const addLabelId = `${listboxId}-add`;
+
   return (
     <>
-      <div className={cellClasses.personTagArea}>
-        {chips.map((row) => {
-          const title = row.title || t("Untitled");
-          return (
-            <span key={row.id} className={clsx(cellClasses.badge, cellClasses.pagePill)}>
-              <span className={cellClasses.pagePillText}>{title}</span>
-              <button
-                type="button"
-                className={clsx(cellClasses.personTagRemove, cellClasses.badgeRemoveBtn)}
-                aria-label={t("Remove {{name}}", { name: title })}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLink(row.id, false);
-                  searchRef.current?.focus();
-                }}
-              >
-                <IconX size={10} />
-              </button>
-            </span>
-          );
-        })}
-        {hiddenCount > 0 && <span className={cellClasses.overflowCount}>+{hiddenCount}</span>}
+      <div className={cellClasses.relationPickerSearch}>
+        <IconSearch size={16} aria-hidden className={cellClasses.relationPickerSearchIcon} />
         <input
           ref={searchRef}
-          className={cellClasses.personTagInput}
+          className={cellClasses.relationPickerInput}
           role="combobox"
           aria-label={searchLabel}
           aria-expanded
           aria-controls={listboxId}
           aria-autocomplete="list"
-          aria-activedescendant={candidates[activeIndex] ? optionId(activeIndex) : undefined}
-          placeholder={chips.length === 0 ? searchLabel : ""}
+          aria-activedescendant={options[activeIndex] ? optionId(activeIndex) : undefined}
+          placeholder={searchLabel}
           value={search}
           onChange={(e) => setSearch(e.currentTarget.value)}
           onKeyDown={handleKeyDown}
           data-autofocus={autoFocus || undefined}
         />
+        <kbd className={rowDetailClasses.kbd} aria-hidden>
+          Esc
+        </kbd>
       </div>
-      <div className={cellClasses.personDropdownDivider} />
       <div
         id={listboxId}
         role="listbox"
         aria-label={baseTitle}
         aria-multiselectable={allowMultiple || undefined}
-        className={cellClasses.selectDropdown}
+        aria-busy={loading || undefined}
+        className={cellClasses.relationPickerList}
       >
         {noAccess ? (
-          <div className={cellClasses.personDropdownHint}>{t("No access")}</div>
+          <div className={cellClasses.relationPickerEmpty}>{t("No access")}</div>
+        ) : loading ? (
+          [72, 56, 64].map((width) => (
+            <div key={width} className={cellClasses.relationOptionSkeleton} aria-hidden>
+              <Skeleton height={16} width={16} radius="sm" />
+              <Skeleton height={10} width={`${width}%`} radius="xl" />
+            </div>
+          ))
         ) : (
           <>
-            {candidates.map((candidate, index) => {
-              const linked = isLinked(candidate);
-              return (
-                <div
-                  key={candidate.id}
-                  id={optionId(index)}
-                  ref={setOptionRef(index)}
-                  role="option"
-                  aria-selected={linked}
-                  className={clsx(
-                    cellClasses.selectOption,
-                    linked && cellClasses.selectOptionActive,
-                    index === activeIndex && cellClasses.selectOptionKeyboardActive,
-                  )}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  // keeps focus in the search box
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setLink(candidate.id, !linked)}
-                >
-                  <div className={cellClasses.personOptionText}>
-                    <span className={cellClasses.personOptionName}>
-                      {candidate.title || t("Untitled")}
-                    </span>
-                  </div>
-                  {linked && (
-                    <Text component="span" size="xs" c="dimmed">
-                      {t("Linked")}
-                    </Text>
+            {linkedRows.length > 0 && (
+              <div role="group" aria-labelledby={linkedLabelId}>
+                <div id={linkedLabelId} className={cellClasses.relationPickerGroupLabel}>
+                  {t("Linked")}{" "}
+                  {linkedCount !== undefined && (
+                    <span className={cellClasses.relationPickerCount}>{linkedCount}</span>
                   )}
                 </div>
-              );
-            })}
-            {data && candidates.length === 0 && !hasNextPage && (
-              <div className={cellClasses.personDropdownHint}>{t("No matching rows")}</div>
+                {linkedRows.map((row, index) => renderOption({ row, linked: true }, index))}
+              </div>
             )}
-            {hasNextPage && (
-              <div ref={listEndRef} aria-hidden className={cellClasses.selectDropdownEnd} />
+            {addRows.length > 0 && (
+              <div role="group" aria-labelledby={addLabelId}>
+                <div id={addLabelId} className={cellClasses.relationPickerGroupLabel}>
+                  <Trans
+                    i18nKey="Add from <base/>"
+                    components={{ base: <BaseName icon={base?.icon} title={baseTitle} /> }}
+                  />
+                </div>
+                {addRows.map((row, index) =>
+                  renderOption({ row, linked: false }, linkedRows.length + index),
+                )}
+              </div>
+            )}
+            {options.length === 0 && !hasMore && (
+              <div className={cellClasses.relationPickerEmpty}>
+                {linkedQuery.isError || candidatesQuery.isError
+                  ? t("Failed to load rows")
+                  : query
+                    ? t("No matching rows")
+                    : t("No rows yet")}
+              </div>
             )}
           </>
         )}
+        {hasMore && !noAccess && (
+          <div ref={listEndRef} aria-hidden className={cellClasses.selectDropdownEnd} />
+        )}
       </div>
     </>
+  );
+}
+
+// a prop, not children: Trans drops the children of a self-closing tag
+function BaseName({ icon, title }: { icon?: string | null; title: string }) {
+  return (
+    <span className={cellClasses.relationPickerBase}>
+      <span className={cellClasses.relationPickerBaseIcon} aria-hidden>
+        {icon || <IconTable size={14} />}
+      </span>
+      <span className={cellClasses.relationPickerBaseTitle}>{title}</span>
+    </span>
   );
 }

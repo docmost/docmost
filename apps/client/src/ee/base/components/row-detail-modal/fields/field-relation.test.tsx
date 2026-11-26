@@ -95,6 +95,10 @@ function renderField(preview: RelationPreview | undefined, readOnly = false) {
 beforeEach(() => {
   queryClient.clear();
   vi.mocked(listRelationRows).mockReset();
+  vi.mocked(listRelationRows).mockResolvedValue({
+    items: [],
+    meta: { hasNextPage: false, nextCursor: null } as never,
+  });
   vi.mocked(updateRelationLinks).mockReset();
   vi.mocked(searchRelationCandidates).mockReset();
   vi.mocked(searchRelationCandidates).mockResolvedValue({ items: [], meta: {} as never });
@@ -232,6 +236,10 @@ describe("FieldRelation", () => {
   });
 
   it("field Add a link opens the picker", async () => {
+    vi.mocked(listRelationRows).mockResolvedValue({
+      items: linked(1, 1),
+      meta: { hasNextPage: false, nextCursor: null } as never,
+    });
     renderField({ count: 1, rows: linked(1, 1) });
 
     fireEvent.click(screen.getByRole("button", { name: "Add a link for Projects" }));
@@ -242,6 +250,10 @@ describe("FieldRelation", () => {
         expect.objectContaining({ pageId: "base-1", propertyId: "rel", rowId: "r1" }),
       ),
     );
+    expect(listRelationRows).toHaveBeenCalledWith(
+      expect.objectContaining({ pageId: "base-1", rowId: "r1", propertyId: "rel", query: undefined }),
+    );
+    expect(await screen.findByRole("option", { name: "Row 1" })).toBeTruthy();
   });
 
   it("removing a chip unlinks that row and hides it at once", async () => {
