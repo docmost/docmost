@@ -61,10 +61,9 @@ export function RelationOptions({
   const relatedTitle = related?.title || t("Untitled");
   const { data: thisBase } = usePageQuery({ pageId: property.pageId });
   const thisBaseTitle = thisBase?.title?.trim() ?? "";
-  const { data: otherBase } = useBaseQuery(
-    hadOtherSide ? stored.targetBaseId : undefined,
-  );
-  const otherSideName = otherBase?.properties.find(
+  const { data: relatedBase } = useBaseQuery(targetBaseId);
+  const relatedCanEdit = relatedBase?.permissions?.canEdit;
+  const otherSideName = relatedBase?.properties.find(
     (p) => p.id === stored.inversePropertyId,
   )?.name;
 
@@ -114,7 +113,12 @@ export function RelationOptions({
     <Stack gap="xs">
       <RelationTargetSelect
         value={targetBaseId ?? null}
-        onChange={(id) => update({ targetBaseId: id })}
+        onChange={(id) => {
+          // a newly chosen base starts with Show on off
+          if (id !== targetBaseId) {
+            update({ targetBaseId: id, twoWay: false, inverseName: undefined });
+          }
+        }}
         portalTarget={dropdownPortalTarget}
         disabled={!creating}
       />
@@ -128,6 +132,13 @@ export function RelationOptions({
         <Switch
           size="xs"
           label={t("Show on {{base}}", { base: relatedTitle })}
+          aria-label={t("Show on {{base}}", { base: relatedTitle })}
+          description={
+            relatedCanEdit === false
+              ? t("You can't edit {{base}}.", { base: relatedTitle })
+              : undefined
+          }
+          disabled={relatedCanEdit !== true}
           checked={twoWay}
           onChange={(e) => {
             const checked = e.currentTarget.checked;

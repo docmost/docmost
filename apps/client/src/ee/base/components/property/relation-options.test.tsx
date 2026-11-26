@@ -106,6 +106,10 @@ const stored = (overrides: Record<string, unknown> = {}) =>
     },
   }) as IBaseProperty;
 
+const inverseProperty = { ...stored(), id: "p9", pageId: "base-2", name: "Tasks" } as IBaseProperty;
+const relatedBaseInfo = (canEdit: boolean, properties: IBaseProperty[] = [inverseProperty]) =>
+  ({ id: "base-2", properties, views: [], permissions: { canEdit, hasRestriction: false } }) as unknown as IBase;
+
 function renderWithProviders(ui: ReactNode) {
   return render(
     <MantineProvider env="test">
@@ -148,6 +152,12 @@ async function chooseBase(name: string) {
 
 const button = (name: string) => screen.getByRole("button", { name });
 
+async function enabledSwitch(name: string) {
+  const control = await screen.findByRole("switch", { name });
+  await waitFor(() => expect(control).toHaveProperty("disabled", false));
+  return control;
+}
+
 beforeEach(() => {
   stubMatchMedia();
   Element.prototype.scrollIntoView = () => {};
@@ -169,11 +179,7 @@ beforeEach(() => {
     new Map(ids.filter((id) => id === "base-2").map((id) => [id, resolvedProjects])),
   );
   vi.mocked(getBaseInfo).mockReset();
-  vi.mocked(getBaseInfo).mockResolvedValue({
-    id: "base-2",
-    properties: [{ ...stored(), id: "p9", pageId: "base-2", name: "Tasks" }],
-    views: [],
-  } as unknown as IBase);
+  vi.mocked(getBaseInfo).mockImplementation(async (pageId) => ({ ...relatedBaseInfo(true), id: pageId }));
   vi.mocked(createProperty).mockReset();
   vi.mocked(createProperty).mockResolvedValue(stored());
 });
@@ -193,7 +199,7 @@ describe("creating a relation property", () => {
   it("sends the related base, the other side's name and allow multiple rows", async () => {
     openCreatePanel();
     await chooseBase("Projects");
-    fireEvent.click(screen.getByRole("switch", { name: "Show on Projects" }));
+    fireEvent.click(await enabledSwitch("Show on Projects"));
     fireEvent.click(button("Create property"));
     await waitFor(() =>
       expect(createProperty).toHaveBeenCalledWith({
@@ -207,7 +213,7 @@ describe("creating a relation property", () => {
 
   it("turning on Show on {{base}} reveals the name field prefilled with this base's title", async () => {
     const { onUpdate } = renderOptions(draft({ allowMultiple: true, targetBaseId: "base-2" }), true);
-    const showOn = await screen.findByRole("switch", { name: "Show on Projects" });
+    const showOn = await enabledSwitch("Show on Projects");
     expect(screen.queryByRole("textbox", { name: "Name on Projects" })).toBeNull();
     fireEvent.click(showOn);
     expect(screen.getByRole("textbox", { name: "Name on Projects" })).toHaveProperty("value", "Tasks");
@@ -221,11 +227,44 @@ describe("creating a relation property", () => {
 
   it("leaves a cleared name out so the server names the other side", async () => {
     const { onUpdate } = renderOptions(draft({ allowMultiple: true, targetBaseId: "base-2" }), true);
-    fireEvent.click(await screen.findByRole("switch", { name: "Show on Projects" }));
+    fireEvent.click(await enabledSwitch("Show on Projects"));
     const name = screen.getByRole("textbox", { name: "Name on Projects" });
     fireEvent.change(name, { target: { value: "  " } });
     expect(name).toHaveProperty("placeholder", "Tasks");
     expect(onUpdate.mock.lastCall?.[0]).toEqual({ allowMultiple: true, targetBaseId: "base-2", twoWay: true });
+  });
+
+  it("Show on is disabled with a reason when the user can't edit the other base", async () => {
+    let resolveInfo: (info: IBase) => void = () => {};
+    vi.mocked(getBaseInfo).mockReturnValue(new Promise<IBase>((resolve) => (resolveInfo = resolve)));
+    const { onUpdate } = renderOptions(draft({ allowMultiple: true, targetBaseId: "base-2" }), true);
+    const showOn = await screen.findByRole("switch", { name: "Show on Projects" });
+    expect(showOn).toHaveProperty("disabled", true);
+    expect(screen.queryByText("You can't edit Projects.")).toBeNull();
+    resolveInfo(relatedBaseInfo(false));
+    expect(await screen.findByText("You can't edit Projects.")).toBeTruthy();
+    expect(showOn).toHaveProperty("disabled", true);
+    expect(showOn).toHaveProperty("checked", false);
+    expect(onUpdate.mock.lastCall?.[0]).not.toHaveProperty("twoWay", true);
+    expect(screen.getByRole("switch", { name: "Allow multiple rows" })).toHaveProperty("disabled", false);
+  });
+
+  it("choosing another base turns Show on off", async () => {
+    openCreatePanel();
+    await chooseBase("Projects");
+    fireEvent.click(await enabledSwitch("Show on Projects"));
+    await chooseBase("Reading list");
+    expect(await screen.findByRole("switch", { name: "Show on Reading list" })).toHaveProperty("checked", false);
+    expect(screen.queryByRole("textbox", { name: /Name on/ })).toBeNull();
+    fireEvent.click(button("Create property"));
+    await waitFor(() =>
+      expect(createProperty).toHaveBeenCalledWith({
+        pageId: "base-1",
+        name: "Relation",
+        type: "relation",
+        typeOptions: { allowMultiple: true, targetBaseId: "base-3", twoWay: false },
+      }),
+    );
   });
 
   it("shows No bases found when the search matches nothing", async () => {
@@ -266,11 +305,20 @@ describe("editing a relation property", () => {
     expect(screen.queryByRole("dialog", { name: /Remove from/ })).toBeNull();
   });
 
+  it("Show on stays on, disabled with a reason, when the user can't edit the other base", async () => {
+    vi.mocked(getBaseInfo).mockResolvedValue(relatedBaseInfo(false));
+    renderOptions(stored({ inversePropertyId: "p9" }));
+    expect(await screen.findByText("You can't edit Projects.")).toBeTruthy();
+    const showOn = screen.getByRole("switch", { name: "Show on Projects" });
+    expect(showOn).toHaveProperty("checked", true);
+    expect(showOn).toHaveProperty("disabled", true);
+    expect(button("Save")).toHaveProperty("disabled", true);
+    expect(screen.getByRole("switch", { name: "Allow multiple rows" })).toHaveProperty("disabled", false);
+  });
+
   it("asks before turning off Show on {{base}} deletes the other base's property", async () => {
     const { onUpdate, onClose } = renderOptions(stored({ inversePropertyId: "p9" }));
-    await waitFor(() => expect(getBaseInfo).toHaveBeenCalledWith("base-2"));
-    fireEvent.click(await screen.findByRole("switch", { name: "Show on Projects" }));
-    await waitFor(() => expect(queryClient.getQueryData(["bases", "base-2"])).toBeDefined());
+    fireEvent.click(await enabledSwitch("Show on Projects"));
     fireEvent.click(button("Save"));
     const dialog = await screen.findByRole("dialog", { name: "Remove from Projects" });
     expect(
@@ -284,10 +332,10 @@ describe("editing a relation property", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("drops the property name from the question when the other base can't be read", async () => {
-    vi.mocked(getBaseInfo).mockRejectedValue(new Error("Forbidden"));
+  it("drops the property name from the question when the other base doesn't list it", async () => {
+    vi.mocked(getBaseInfo).mockResolvedValue(relatedBaseInfo(true, []));
     renderOptions(stored({ inversePropertyId: "p9" }));
-    fireEvent.click(await screen.findByRole("switch", { name: "Show on Projects" }));
+    fireEvent.click(await enabledSwitch("Show on Projects"));
     fireEvent.click(button("Save"));
     const dialog = await screen.findByRole("dialog", { name: "Remove from Projects" });
     expect(within(dialog).getByText("Are you sure you want to remove this relation from Projects?")).toBeTruthy();
@@ -306,7 +354,7 @@ describe("editing a relation property", () => {
         </Popover.Dropdown>
       </Popover>,
     );
-    fireEvent.click(await screen.findByRole("switch", { name: "Show on Projects" }));
+    fireEvent.click(await enabledSwitch("Show on Projects"));
     fireEvent.click(button("Save"));
     const dialog = await screen.findByRole("dialog", { name: "Remove from Projects" });
     const cancel = within(dialog).getByRole("button", { name: "Cancel" });
