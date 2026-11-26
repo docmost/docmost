@@ -292,7 +292,11 @@ function gridCellPropsEqual(prev: GridCellProps, next: GridCellProps) {
     return false;
   }
   if (prev.cell === next.cell) return true;
+  const propertyId = next.cell.column.columnDef.meta?.property?.id;
   return (
+    (propertyId === undefined ||
+      prev.cell.row.original.relations?.[propertyId] ===
+        next.cell.row.original.relations?.[propertyId]) &&
     prev.cell.row.id === next.cell.row.id &&
     prev.cell.column.id === next.cell.column.id &&
     prev.cell.column.columnDef.meta?.property ===
