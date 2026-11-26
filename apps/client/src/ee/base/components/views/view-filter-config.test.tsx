@@ -25,7 +25,7 @@ vi.mock("@/ee/base/hooks/use-viewer-date-context", () => ({
   useViewerDateContext: () => viewer.current,
 }));
 vi.mock("@/ee/base/queries/base-relation-query", () => ({
-  useRelationCandidatesInfiniteQuery: () => ({ data: relationRows, error: null }),
+  useRelationSuggestionsInfiniteQuery: () => ({ data: relationRows, error: null }),
   useResolveRelationRows: ({ rowIds }: { rowIds: string[] }) => ({
     data: { items: relationRows.filter((row) => rowIds.includes(row.id)) },
     isLoading: false,

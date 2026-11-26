@@ -11,7 +11,7 @@ import type {
   RelationTypeOptions,
 } from "@/ee/base/types/base.types";
 import {
-  useRelationCandidatesInfiniteQuery,
+  useRelationSuggestionsInfiniteQuery,
   useResolveRelationRows,
 } from "@/ee/base/queries/base-relation-query";
 import { useResolvedPages } from "@/ee/base/queries/base-page-resolver-query";
@@ -51,12 +51,12 @@ export function FilterRelationInput({
   const searchLabel = t("Search {{base}}", { base: baseTitle });
 
   const {
-    data: candidates,
+    data: suggestions,
     error,
     hasNextPage,
     isFetching,
     fetchNextPage,
-  } = useRelationCandidatesInfiniteQuery({
+  } = useRelationSuggestionsInfiniteQuery({
     pageId: property.pageId,
     propertyId: property.id,
     query,
@@ -82,7 +82,7 @@ export function FilterRelationInput({
   const shownIds = ids.filter((id) => titles.has(id));
   const titleOf = (id: string) => titles.get(id) || t("Untitled");
 
-  const options = (candidates ?? []).filter((row) => !ids.includes(row.id));
+  const options = (suggestions ?? []).filter((row) => !ids.includes(row.id));
   const atLimit = ids.length >= RELATION_MAX_IDS_PER_CALL;
   const { activeIndex, setActiveIndex, handleNavKey, setOptionRef, listEndRef } =
     useInfiniteListKeyboardNav(options.length, [query, opened], {
@@ -242,7 +242,7 @@ export function FilterRelationInput({
               </div>
             </div>
           ))}
-          {candidates && options.length === 0 && !hasNextPage && (
+          {suggestions && options.length === 0 && !hasNextPage && (
             <div className={cellClasses.personDropdownHint}>{t("No matching rows")}</div>
           )}
           {hasNextPage && (

@@ -13,8 +13,8 @@ import { getApiErrorMessage } from "@/lib/api-error";
 import {
   listRelationRows,
   resolveRelationRows,
-  searchRelationCandidates,
   searchRelationTargets,
+  suggestRelationRows,
   updateRelationLinks,
 } from "@/ee/base/services/base-relation-service";
 import type { IBaseRowsPage } from "@/ee/base/services/base-service";
@@ -78,7 +78,7 @@ export function useUpdateRelationLinksMutation(pageId: string) {
           queryKey: ["base-relations", "list", pageId, variables.rowId, variables.propertyId],
         }),
         queryClient.invalidateQueries({
-          queryKey: ["base-relations", "candidates", pageId, variables.propertyId, variables.rowId],
+          queryKey: ["base-relations", "suggestions", pageId, variables.propertyId, variables.rowId],
         }),
       ]);
     },
@@ -91,7 +91,7 @@ export function useUpdateRelationLinksMutation(pageId: string) {
   });
 }
 
-export function useRelationCandidatesInfiniteQuery(args: {
+export function useRelationSuggestionsInfiniteQuery(args: {
   pageId: string;
   propertyId: string;
   rowId?: string;
@@ -100,9 +100,9 @@ export function useRelationCandidatesInfiniteQuery(args: {
 }) {
   const { pageId, propertyId, rowId, query, enabled } = args;
   return useInfiniteQuery({
-    queryKey: ["base-relations", "candidates", pageId, propertyId, rowId ?? null, query],
+    queryKey: ["base-relations", "suggestions", pageId, propertyId, rowId ?? null, query],
     queryFn: ({ pageParam }) =>
-      searchRelationCandidates({ pageId, propertyId, rowId, query, cursor: pageParam }),
+      suggestRelationRows({ pageId, propertyId, rowId, query, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.meta.nextCursor ?? undefined,
     select: (data) => data.pages.flatMap((page) => page.items),

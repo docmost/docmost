@@ -42,14 +42,14 @@ export async function listRelationRows(data: {
   return req.data;
 }
 
-export async function searchRelationCandidates(data: {
+export async function suggestRelationRows(data: {
   pageId: string;
   propertyId: string;
   rowId?: string;
   query?: string;
   cursor?: string;
 }): Promise<RelationPage<RelationPreviewRow>> {
-  const req = await api.post("/bases/relations/candidates", data);
+  const req = await api.post("/bases/relations/suggest", data);
   return req.data;
 }
 

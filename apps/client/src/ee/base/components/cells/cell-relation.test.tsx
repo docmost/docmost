@@ -5,7 +5,7 @@ import type { IBaseProperty, RelationPreview } from "@/ee/base/types/base.types"
 
 const relationQueries = vi.hoisted(() => ({
   linked: vi.fn(),
-  candidates: vi.fn(),
+  suggestions: vi.fn(),
   mutateAsync: vi.fn(),
 }));
 
@@ -20,7 +20,7 @@ vi.mock("react-i18next", () => ({
 }));
 vi.mock("@/ee/base/queries/base-relation-query", () => ({
   useRelationRowsInfiniteQuery: (args: unknown) => relationQueries.linked(args),
-  useRelationCandidatesInfiniteQuery: (args: unknown) => relationQueries.candidates(args),
+  useRelationSuggestionsInfiniteQuery: (args: unknown) => relationQueries.suggestions(args),
   useUpdateRelationLinksMutation: () => ({ mutateAsync: relationQueries.mutateAsync }),
 }));
 vi.mock("@/ee/base/queries/base-page-resolver-query", () => ({
@@ -65,8 +65,8 @@ function renderCell(relation: RelationPreview | undefined, readOnly = false) {
 }
 
 beforeEach(() => {
-  relationQueries.candidates.mockReset();
-  relationQueries.candidates.mockReturnValue({ data: [], error: null });
+  relationQueries.suggestions.mockReset();
+  relationQueries.suggestions.mockReturnValue({ data: [], error: null });
   relationQueries.linked.mockReset();
   relationQueries.linked.mockReturnValue({
     data: { pages: [{ items: [{ id: "a", title: "Alpha" }], meta: {} }] },

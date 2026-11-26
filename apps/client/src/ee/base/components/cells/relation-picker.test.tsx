@@ -11,7 +11,7 @@ import type {
 
 const relationQueries = vi.hoisted(() => ({
   linked: vi.fn(),
-  candidates: vi.fn(),
+  suggestions: vi.fn(),
   mutateAsync: vi.fn(),
 }));
 
@@ -37,7 +37,7 @@ vi.mock("react-i18next", async () => {
 });
 vi.mock("@/ee/base/queries/base-relation-query", () => ({
   useRelationRowsInfiniteQuery: (args: unknown) => relationQueries.linked(args),
-  useRelationCandidatesInfiniteQuery: (args: unknown) => relationQueries.candidates(args),
+  useRelationSuggestionsInfiniteQuery: (args: unknown) => relationQueries.suggestions(args),
   useUpdateRelationLinksMutation: () => ({ mutateAsync: relationQueries.mutateAsync }),
 }));
 vi.mock("@/ee/base/queries/base-page-resolver-query", () => ({
@@ -91,13 +91,13 @@ const matching = (rows: RelationPreviewRow[], query: string) =>
   rows.filter((row) => row.title.toLowerCase().includes(query.toLowerCase()));
 
 // a server whose lists follow the link changes the picker sends
-function answerRows(start: { linked: RelationPreviewRow[]; candidates: RelationPreviewRow[] }) {
-  const server = { linked: [...start.linked], candidates: [...start.candidates] };
+function answerRows(start: { linked: RelationPreviewRow[]; suggestions: RelationPreviewRow[] }) {
+  const server = { linked: [...start.linked], suggestions: [...start.suggestions] };
   relationQueries.linked.mockImplementation(({ query }: { query: string }) =>
     settled({ pages: [{ items: matching(server.linked, query), meta: {} }] }),
   );
-  relationQueries.candidates.mockImplementation(({ query }: { query: string }) =>
-    settled(matching(server.candidates, query)),
+  relationQueries.suggestions.mockImplementation(({ query }: { query: string }) =>
+    settled(matching(server.suggestions, query)),
   );
   return server;
 }
@@ -193,10 +193,10 @@ const optionNames = (group: HTMLElement | null) =>
 
 beforeEach(() => {
   relationQueries.linked.mockReset();
-  relationQueries.candidates.mockReset();
+  relationQueries.suggestions.mockReset();
   relationQueries.mutateAsync.mockReset();
   relationQueries.mutateAsync.mockResolvedValue({ preview: { count: 0, rows: [] } });
-  answerRows({ linked: [alpha], candidates: [beta, untitled] });
+  answerRows({ linked: [alpha], suggestions: [beta, untitled] });
   Element.prototype.scrollIntoView = () => {};
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
@@ -234,7 +234,7 @@ describe("RelationPicker", () => {
       query: "",
       enabled: true,
     });
-    expect(relationQueries.candidates).toHaveBeenLastCalledWith({
+    expect(relationQueries.suggestions).toHaveBeenLastCalledWith({
       pageId: "base-1",
       propertyId: "rel",
       rowId: "r1",
@@ -251,26 +251,26 @@ describe("RelationPicker", () => {
     act(() => {
       vi.advanceTimersByTime(249);
     });
-    expect(relationQueries.candidates.mock.calls.at(-1)?.[0].query).toBe("");
+    expect(relationQueries.suggestions.mock.calls.at(-1)?.[0].query).toBe("");
 
     act(() => {
       vi.advanceTimersByTime(1);
     });
     expect(relationQueries.linked.mock.calls.at(-1)?.[0].query).toBe("Bet");
-    expect(relationQueries.candidates.mock.calls.at(-1)?.[0].query).toBe("Bet");
+    expect(relationQueries.suggestions.mock.calls.at(-1)?.[0].query).toBe("Bet");
     expect(linkedGroup()).toBeNull();
     expect(optionNames(addGroup())).toEqual(["Beta"]);
   });
 
   it("clicking a row to add links it and moves it under Linked", async () => {
-    const server = answerRows({ linked: [alpha], candidates: [beta, untitled] });
+    const server = answerRows({ linked: [alpha], suggestions: [beta, untitled] });
     let finish!: () => void;
     relationQueries.mutateAsync.mockImplementation(
       () =>
         new Promise((resolve) => {
           finish = () => {
             server.linked.push(beta);
-            server.candidates = server.candidates.filter((row) => row.id !== "b");
+            server.suggestions = server.suggestions.filter((row) => row.id !== "b");
             resolve({ preview: { count: 2, rows: [alpha, beta] } });
           };
         }),
@@ -375,18 +375,18 @@ describe("RelationPicker", () => {
 
   it("loads the next page of rows to add when scrolled to the end", () => {
     vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
-    const candidates = pagedQuery([titled(1, 25), titled(26, 30)], (rows) => rows);
-    relationQueries.candidates.mockImplementation(candidates.useFakeQuery);
+    const suggestions = pagedQuery([titled(1, 25), titled(26, 30)], (rows) => rows);
+    relationQueries.suggestions.mockImplementation(suggestions.useFakeQuery);
     relationQueries.linked.mockReturnValue(settled(linkedPages([])));
     renderPicker();
     expect(screen.getAllByRole("option")).toHaveLength(25);
-    expect(candidates.fetchNextPage).not.toHaveBeenCalled();
+    expect(suggestions.fetchNextPage).not.toHaveBeenCalled();
 
     const observer = watchingObserver();
     expect(observer?.options?.root).toBe(screen.getByRole("listbox"));
     act(() => observer!.intersect());
 
-    expect(candidates.fetchNextPage).toHaveBeenCalledTimes(1);
+    expect(suggestions.fetchNextPage).toHaveBeenCalledTimes(1);
     expect(screen.getAllByRole("option")).toHaveLength(30);
     expect(watchingObserver()).toBeUndefined();
   });
@@ -408,8 +408,8 @@ describe("RelationPicker", () => {
 
   it("arrow keys continue into the next page of rows to add", () => {
     vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
-    const candidates = pagedQuery([titled(1, 25), titled(26, 30)], (rows) => rows);
-    relationQueries.candidates.mockImplementation(candidates.useFakeQuery);
+    const suggestions = pagedQuery([titled(1, 25), titled(26, 30)], (rows) => rows);
+    relationQueries.suggestions.mockImplementation(suggestions.useFakeQuery);
     relationQueries.linked.mockReturnValue(settled(linkedPages([])));
     const { input } = renderPicker();
     const highlighted = () => input.getAttribute("aria-activedescendant");
@@ -418,7 +418,7 @@ describe("RelationPicker", () => {
     expect(highlighted()).toBe(option("Row 25").id);
     fireEvent.keyDown(input, { key: "ArrowDown" });
 
-    expect(candidates.fetchNextPage).toHaveBeenCalledTimes(1);
+    expect(suggestions.fetchNextPage).toHaveBeenCalledTimes(1);
     expect(highlighted()).toBe(option("Row 25").id);
     fireEvent.keyDown(input, { key: "ArrowDown" });
     expect(highlighted()).toBe(option("Row 26").id);
@@ -441,7 +441,7 @@ describe("RelationPicker", () => {
 
   it("says when the other base has no rows or the search finds nothing", () => {
     vi.useFakeTimers();
-    answerRows({ linked: [], candidates: [] });
+    answerRows({ linked: [], suggestions: [] });
     const { input } = renderPicker();
     expect(screen.getByText("No rows yet")).toBeTruthy();
 
@@ -465,7 +465,7 @@ describe("RelationPicker", () => {
   });
 
   it("shows No access when the other base can't be opened", () => {
-    relationQueries.candidates.mockReturnValue(
+    relationQueries.suggestions.mockReturnValue(
       settled(undefined, {
         error: new AxiosError("Not found", "ERR_BAD_REQUEST", undefined, undefined, {
           status: 404,

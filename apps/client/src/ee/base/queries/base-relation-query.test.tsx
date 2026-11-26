@@ -9,7 +9,7 @@ vi.mock("@/main.tsx", async () => ({
 vi.mock("@/ee/base/services/base-relation-service", () => ({
   updateRelationLinks: vi.fn(),
   listRelationRows: vi.fn(),
-  searchRelationCandidates: vi.fn(),
+  suggestRelationRows: vi.fn(),
   resolveRelationRows: vi.fn(),
   fetchRelationPreviews: vi.fn(),
   searchRelationTargets: vi.fn(),
@@ -22,14 +22,14 @@ vi.mock("react-i18next", () => ({
 import { queryClient } from "@/main.tsx";
 import {
   listRelationRows,
-  searchRelationCandidates,
+  suggestRelationRows,
   updateRelationLinks,
 } from "@/ee/base/services/base-relation-service";
 import type { IBaseRow, RelationPreview } from "@/ee/base/types/base.types";
 import {
   patchRelationPreviews,
-  useRelationCandidatesInfiniteQuery,
   useRelationRowsInfiniteQuery,
+  useRelationSuggestionsInfiniteQuery,
   useUpdateRelationLinksMutation,
 } from "./base-relation-query";
 
@@ -55,7 +55,7 @@ const cachedRows = () =>
 beforeEach(() => {
   queryClient.clear();
   vi.mocked(updateRelationLinks).mockReset();
-  vi.mocked(searchRelationCandidates).mockReset();
+  vi.mocked(suggestRelationRows).mockReset();
   vi.mocked(listRelationRows).mockReset();
 });
 afterEach(cleanup);
@@ -96,9 +96,9 @@ describe("relation queries", () => {
     expect(r2.relations?.a).toEqual(preview(1));
   });
 
-  it("a link change marks that row's candidate and linked-row searches stale", async () => {
+  it("a link change marks that row's suggestions and linked-row searches stale", async () => {
     const searchKey = (rowId: string, query: string) =>
-      ["base-relations", "candidates", "p1", "rel", rowId, query];
+      ["base-relations", "suggestions", "p1", "rel", rowId, query];
     const linkedKey = (rowId: string, query: string) =>
       ["base-relations", "list", "p1", rowId, "rel", query];
     for (const key of [
@@ -207,26 +207,26 @@ describe("relation queries", () => {
     );
   });
 
-  it("a stale candidate search refetches when the picker opens again", async () => {
+  it("stale suggestions refetch when the picker opens again", async () => {
     // the app's client never refetches on mount by default
     const client = new QueryClient({
       defaultOptions: { queries: { refetchOnMount: false, retry: false } },
     });
-    const key = ["base-relations", "candidates", "p1", "rel", "r1", ""];
+    const key = ["base-relations", "suggestions", "p1", "rel", "r1", ""];
     client.setQueryData(key, {
       pages: [{ items: [{ id: "t0", title: "T0" }], meta: {} }],
       pageParams: [undefined],
     });
     await client.invalidateQueries({ queryKey: key, refetchType: "none" });
     // t0 was linked meanwhile, so the fresh search no longer offers it
-    vi.mocked(searchRelationCandidates).mockResolvedValue({
+    vi.mocked(suggestRelationRows).mockResolvedValue({
       items: [{ id: "t1", title: "T1" }],
       meta: { limit: 25, hasNextPage: false, hasPrevPage: false, nextCursor: null, prevCursor: null },
     });
 
     const { result } = renderHook(
       () =>
-        useRelationCandidatesInfiniteQuery({
+        useRelationSuggestionsInfiniteQuery({
           pageId: "p1",
           propertyId: "rel",
           rowId: "r1",
@@ -243,7 +243,7 @@ describe("relation queries", () => {
     await waitFor(() => expect(result.current.data?.[0].id).toBe("t1"));
   });
 
-  it("candidate pages continue from the last page's cursor", async () => {
+  it("suggestion pages continue from the last page's cursor", async () => {
     const meta = (nextCursor: string | null) => ({
       limit: 25,
       hasNextPage: nextCursor !== null,
@@ -251,13 +251,13 @@ describe("relation queries", () => {
       nextCursor,
       prevCursor: null,
     });
-    vi.mocked(searchRelationCandidates)
+    vi.mocked(suggestRelationRows)
       .mockResolvedValueOnce({ items: [{ id: "t0", title: "T0" }], meta: meta("c1") })
       .mockResolvedValueOnce({ items: [{ id: "t1", title: "T1" }], meta: meta(null) });
 
     const { result } = renderHook(
       () =>
-        useRelationCandidatesInfiniteQuery({
+        useRelationSuggestionsInfiniteQuery({
           pageId: "p1",
           propertyId: "rel",
           query: "be",
@@ -270,7 +270,7 @@ describe("relation queries", () => {
       await result.current.fetchNextPage();
     });
 
-    expect(searchRelationCandidates).toHaveBeenLastCalledWith(
+    expect(suggestRelationRows).toHaveBeenLastCalledWith(
       expect.objectContaining({ pageId: "p1", propertyId: "rel", query: "be", cursor: "c1" }),
     );
     await waitFor(() => expect(result.current.data?.map((row) => row.id)).toEqual(["t0", "t1"]));

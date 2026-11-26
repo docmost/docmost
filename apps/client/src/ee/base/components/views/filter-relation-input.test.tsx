@@ -6,7 +6,7 @@ import type { IBaseProperty } from "@/ee/base/types/base.types";
 import type { ResolvedPage } from "@/ee/base/queries/base-page-resolver-query";
 
 const mocks = vi.hoisted(() => ({
-  candidates: vi.fn(),
+  suggestions: vi.fn(),
   resolve: vi.fn(),
   pages: new Map<string, ResolvedPage | null | undefined>(),
 }));
@@ -21,7 +21,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 vi.mock("@/ee/base/queries/base-relation-query", () => ({
-  useRelationCandidatesInfiniteQuery: (args: unknown) => mocks.candidates(args),
+  useRelationSuggestionsInfiniteQuery: (args: unknown) => mocks.suggestions(args),
   useResolveRelationRows: (args: unknown) => mocks.resolve(args),
 }));
 vi.mock("@/ee/base/queries/base-page-resolver-query", () => ({
@@ -100,8 +100,8 @@ function renderInput(value: string[] | undefined) {
 
 beforeEach(() => {
   mocks.pages = new Map([["b2", projects]]);
-  mocks.candidates.mockReset();
-  mocks.candidates.mockReturnValue({ data: rows, error: null });
+  mocks.suggestions.mockReset();
+  mocks.suggestions.mockReturnValue({ data: rows, error: null });
   mocks.resolve.mockReset();
   mocks.resolve.mockImplementation(({ rowIds }: { rowIds: string[] }) => ({
     data: { items: rows.filter((row) => rowIds.includes(row.id)) },
@@ -133,7 +133,7 @@ describe("FilterRelationInput", () => {
     const { onChange, rerender } = renderInput(undefined);
 
     fireEvent.click(screen.getByRole("button", { name: "Select" }));
-    expect(mocks.candidates).toHaveBeenLastCalledWith({
+    expect(mocks.suggestions).toHaveBeenLastCalledWith({
       pageId: "base-1",
       propertyId: "rel",
       query: "",
@@ -181,13 +181,13 @@ describe("FilterRelationInput", () => {
     expect(onChange).toHaveBeenLastCalledWith([...full.slice(1), "a"]);
   });
 
-  it("the filter input loads more candidates when scrolled to the end", () => {
+  it("the filter input loads more suggestions when scrolled to the end", () => {
     vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
     const page = (from: number, to: number) =>
       Array.from({ length: to - from + 1 }, (_, i) => ({ id: `r${from + i}`, title: `Row ${from + i}` }));
     const pages = [page(1, 25), page(26, 30)];
     const fetchNextPage = vi.fn();
-    mocks.candidates.mockImplementation(function useFakeCandidates() {
+    mocks.suggestions.mockImplementation(function useFakeSuggestions() {
       const [loaded, setLoaded] = useState(1);
       fetchNextPage.mockImplementation(() => setLoaded((n) => n + 1));
       return {

@@ -13,7 +13,7 @@ vi.mock("@/main.tsx", async () => ({
 vi.mock("@/ee/base/services/base-relation-service", () => ({
   updateRelationLinks: vi.fn(),
   listRelationRows: vi.fn(),
-  searchRelationCandidates: vi.fn(),
+  suggestRelationRows: vi.fn(),
   resolveRelationRows: vi.fn(),
   fetchRelationPreviews: vi.fn(),
   searchRelationTargets: vi.fn(),
@@ -47,7 +47,7 @@ vi.mock("@/ee/base/queries/base-page-resolver-query", () => ({
 import { queryClient } from "@/main.tsx";
 import {
   listRelationRows,
-  searchRelationCandidates,
+  suggestRelationRows,
   updateRelationLinks,
 } from "@/ee/base/services/base-relation-service";
 import { FieldRelation } from "./field-relation";
@@ -100,8 +100,8 @@ beforeEach(() => {
     meta: { hasNextPage: false, nextCursor: null } as never,
   });
   vi.mocked(updateRelationLinks).mockReset();
-  vi.mocked(searchRelationCandidates).mockReset();
-  vi.mocked(searchRelationCandidates).mockResolvedValue({ items: [], meta: {} as never });
+  vi.mocked(suggestRelationRows).mockReset();
+  vi.mocked(suggestRelationRows).mockResolvedValue({ items: [], meta: {} as never });
   Element.prototype.scrollIntoView = () => {};
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
@@ -246,7 +246,7 @@ describe("FieldRelation", () => {
 
     expect(screen.getByRole("combobox", { name: "Search Projects" })).toBeTruthy();
     await waitFor(() =>
-      expect(searchRelationCandidates).toHaveBeenCalledWith(
+      expect(suggestRelationRows).toHaveBeenCalledWith(
         expect.objectContaining({ pageId: "base-1", propertyId: "rel", rowId: "r1" }),
       ),
     );

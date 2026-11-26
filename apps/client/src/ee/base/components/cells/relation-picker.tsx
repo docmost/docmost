@@ -18,8 +18,8 @@ import type {
   RelationTypeOptions,
 } from "@/ee/base/types/base.types";
 import {
-  useRelationCandidatesInfiniteQuery,
   useRelationRowsInfiniteQuery,
+  useRelationSuggestionsInfiniteQuery,
   useUpdateRelationLinksMutation,
 } from "@/ee/base/queries/base-relation-query";
 import { useResolvedPages } from "@/ee/base/queries/base-page-resolver-query";
@@ -76,7 +76,7 @@ export function RelationPicker({
     query,
     enabled,
   });
-  const candidatesQuery = useRelationCandidatesInfiniteQuery({
+  const suggestionsQuery = useRelationSuggestionsInfiniteQuery({
     pageId,
     propertyId: property.id,
     rowId,
@@ -94,9 +94,9 @@ export function RelationPicker({
   const noAccess =
     preview?.restricted ||
     isAccessError(linkedQuery.error) ||
-    isAccessError(candidatesQuery.error);
+    isAccessError(suggestionsQuery.error);
   const loading =
-    linkedQuery.isPending || (linkedComplete && candidatesQuery.isPending);
+    linkedQuery.isPending || (linkedComplete && suggestionsQuery.isPending);
 
   const serverLinkedIds = new Set(serverLinked?.map((row) => row.id));
   const lowerQuery = query.toLowerCase();
@@ -110,7 +110,7 @@ export function RelationPicker({
       .map(({ row }) => row),
   ];
   const addRows = linkedComplete
-    ? (candidatesQuery.data ?? []).filter((row) => changes.get(row.id)?.linked !== true)
+    ? (suggestionsQuery.data ?? []).filter((row) => changes.get(row.id)?.linked !== true)
     : [];
   const options: PickerOption[] = [
     ...linkedRows.map((row) => ({ row, linked: true })),
@@ -120,14 +120,14 @@ export function RelationPicker({
   let linkedCount: number | undefined = linkedRows.length;
   if (linkedQuery.hasNextPage) linkedCount = query ? undefined : preview?.count;
 
-  const hasMore = linkedQuery.hasNextPage || (linkedComplete && candidatesQuery.hasNextPage);
+  const hasMore = linkedQuery.hasNextPage || (linkedComplete && suggestionsQuery.hasNextPage);
   const { activeIndex, setActiveIndex, handleNavKey, setOptionRef, listEndRef } =
     useInfiniteListKeyboardNav(options.length, [query], {
       hasNextPage: hasMore,
-      isFetching: linkedQuery.isFetching || candidatesQuery.isFetching,
+      isFetching: linkedQuery.isFetching || suggestionsQuery.isFetching,
       fetchNextPage: linkedQuery.hasNextPage
         ? linkedQuery.fetchNextPage
-        : candidatesQuery.fetchNextPage,
+        : suggestionsQuery.fetchNextPage,
     });
   const optionId = (index: number) => `${listboxId}-${index}`;
 
@@ -281,7 +281,7 @@ export function RelationPicker({
             )}
             {options.length === 0 && !hasMore && (
               <div className={cellClasses.relationPickerEmpty}>
-                {linkedQuery.isError || candidatesQuery.isError
+                {linkedQuery.isError || suggestionsQuery.isError
                   ? t("Failed to load rows")
                   : query
                     ? t("No matching rows")
