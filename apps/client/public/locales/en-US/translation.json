@@ -2406,5 +2406,7 @@
   "You can't edit {{base}}.": "You can't edit {{base}}.",
   "Search {{base}}": "Search {{base}}",
   "Linked": "Linked",
-  "No matching rows": "No matching rows"
+  "No matching rows": "No matching rows",
+  "Show all ({{count}})": "Show all ({{count}})",
+  "Add a link": "Add a link"
 }

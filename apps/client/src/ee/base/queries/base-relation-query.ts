@@ -122,6 +122,8 @@ export function useRelationRowsInfiniteQuery(args: {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.meta.nextCursor ?? undefined,
     enabled,
+    // links changed elsewhere only patch previews, so a cached list is always revalidated
+    staleTime: 0,
   });
 }
 
@@ -136,6 +138,8 @@ export function useResolveRelationRows(args: {
     queryKey: ["base-relations", "resolve", pageId, propertyId, sortedIds],
     queryFn: () => resolveRelationRows({ pageId, propertyId, rowIds: sortedIds }),
     enabled: sortedIds.length > 0,
+    // known titles stay on screen while a changed selection resolves
+    placeholderData: keepPreviousData,
   });
 }
 

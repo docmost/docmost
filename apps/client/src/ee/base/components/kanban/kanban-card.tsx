@@ -82,6 +82,7 @@ export const KanbanCard = forwardRef<HTMLDivElement, KanbanCardProps>(
                 property={property}
                 value={systemAccessorFor(property.type)?.(row) ?? row.cells[property.id]}
                 pageId={base.id}
+                relation={row.relations?.[property.id]}
               />
             </div>
           </Tooltip>

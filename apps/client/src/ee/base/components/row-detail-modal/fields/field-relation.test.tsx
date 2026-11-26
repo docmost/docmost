@@ -1,0 +1,222 @@
+import { MantineProvider } from "@mantine/core";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { IBaseProperty, RelationPreview } from "@/ee/base/types/base.types";
+
+vi.mock("@/main.tsx", async () => ({
+  queryClient: new (await import("@tanstack/react-query")).QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  }),
+}));
+vi.mock("@/ee/base/services/base-relation-service", () => ({
+  updateRelationLinks: vi.fn(),
+  listRelationRows: vi.fn(),
+  searchRelationCandidates: vi.fn(),
+  resolveRelationRows: vi.fn(),
+  fetchRelationPreviews: vi.fn(),
+  searchRelationTargets: vi.fn(),
+}));
+vi.mock("@mantine/notifications", () => ({ notifications: { show: vi.fn() } }));
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, values?: Record<string, unknown>) =>
+      key.replace(/{{(\w+)}}/g, (_match, name) => String(values?.[name] ?? "")),
+  }),
+}));
+vi.mock("@/ee/base/queries/base-page-resolver-query", () => ({
+  useResolvedPages: () => ({
+    pages: new Map([
+      [
+        "b2",
+        {
+          id: "b2",
+          slugId: "s2",
+          title: "Projects",
+          icon: null,
+          spaceId: "sp",
+          space: { id: "sp", slug: "eng", name: "Engineering" },
+        },
+      ],
+    ]),
+    isLoading: false,
+  }),
+}));
+
+import { queryClient } from "@/main.tsx";
+import {
+  listRelationRows,
+  searchRelationCandidates,
+  updateRelationLinks,
+} from "@/ee/base/services/base-relation-service";
+import { FieldRelation } from "./field-relation";
+
+const property = {
+  id: "rel",
+  pageId: "base-1",
+  name: "Projects",
+  type: "relation",
+  isPrimary: false,
+  typeOptions: {
+    relationId: "relation-1",
+    targetBaseId: "b2",
+    direction: "source",
+    inversePropertyId: null,
+    allowMultiple: true,
+  },
+} as unknown as IBaseProperty;
+
+const linked = (from: number, to: number) =>
+  Array.from({ length: to - from + 1 }, (_, i) => ({
+    id: `t${from + i}`,
+    title: `Row ${from + i}`,
+  }));
+
+function renderField(preview: RelationPreview | undefined, readOnly = false) {
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <MantineProvider env="test">
+          <FieldRelation
+            property={property}
+            value={undefined}
+            rowId="r1"
+            readOnly={readOnly}
+            onChange={vi.fn()}
+            preview={preview}
+          />
+        </MantineProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+beforeEach(() => {
+  queryClient.clear();
+  vi.mocked(listRelationRows).mockReset();
+  vi.mocked(updateRelationLinks).mockReset();
+  vi.mocked(searchRelationCandidates).mockReset();
+  vi.mocked(searchRelationCandidates).mockResolvedValue({ items: [], meta: {} as never });
+  Element.prototype.scrollIntoView = () => {};
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+describe("FieldRelation", () => {
+  it("field shows every preview row and loads the rest on Show all", async () => {
+    vi.mocked(listRelationRows).mockImplementation(async ({ cursor }) =>
+      cursor === "c1"
+        ? { items: linked(51, 60), meta: { hasNextPage: false, nextCursor: null } as never }
+        : { items: linked(1, 50), meta: { hasNextPage: true, nextCursor: "c1" } as never },
+    );
+    renderField({ count: 60, rows: linked(1, 10) });
+
+    for (const row of linked(1, 10)) {
+      expect(screen.getByRole("link", { name: `Open ${row.title}` }).getAttribute("href")).toBe(
+        `/s/eng/p/projects-s2?row=${row.id}&rowBase=b2`,
+      );
+    }
+    expect(screen.queryByText("Row 11")).toBeNull();
+    expect(listRelationRows).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show all (60)" }));
+
+    await waitFor(() => expect(screen.getByText("Row 60")).toBeTruthy());
+    expect(screen.getAllByRole("link", { name: /^Open Row/ })).toHaveLength(60);
+    expect(listRelationRows).toHaveBeenCalledTimes(2);
+    expect(listRelationRows).toHaveBeenLastCalledWith(
+      expect.objectContaining({ pageId: "base-1", rowId: "r1", propertyId: "rel", cursor: "c1" }),
+    );
+    expect(screen.queryByRole("button", { name: /^Show all/ })).toBeNull();
+  });
+
+  it("Show all stops at a failed page and its button retries it", async () => {
+    vi.mocked(listRelationRows)
+      .mockResolvedValueOnce({
+        items: linked(1, 50),
+        meta: { hasNextPage: true, nextCursor: "c1" } as never,
+      })
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({
+        items: linked(51, 60),
+        meta: { hasNextPage: false, nextCursor: null } as never,
+      });
+    renderField({ count: 60, rows: linked(1, 10) });
+
+    fireEvent.click(screen.getByRole("button", { name: "Show all (60)" }));
+    const retry = await screen.findByRole("button", { name: "Show all (60)" });
+    expect(screen.getByText("Row 50")).toBeTruthy();
+    expect(listRelationRows).toHaveBeenCalledTimes(2);
+
+    fireEvent.click(retry);
+
+    await waitFor(() => expect(screen.getByText("Row 60")).toBeTruthy());
+    expect(listRelationRows).toHaveBeenLastCalledWith(expect.objectContaining({ cursor: "c1" }));
+    expect(screen.queryByRole("button", { name: /^Show all/ })).toBeNull();
+  });
+
+  it("field Add a link opens the picker", async () => {
+    renderField({ count: 1, rows: linked(1, 1) });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add a link" }));
+
+    expect(screen.getByRole("combobox", { name: "Search Projects" })).toBeTruthy();
+    await waitFor(() =>
+      expect(searchRelationCandidates).toHaveBeenCalledWith(
+        expect.objectContaining({ pageId: "base-1", propertyId: "rel", rowId: "r1" }),
+      ),
+    );
+  });
+
+  it("removing a chip unlinks that row and hides it at once", async () => {
+    vi.mocked(updateRelationLinks).mockReturnValue(new Promise(() => {}));
+    renderField({ count: 2, rows: linked(1, 2) });
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Row 1" }));
+
+    expect(screen.queryByText("Row 1")).toBeNull();
+    await waitFor(() =>
+      expect(updateRelationLinks).toHaveBeenCalledWith(
+        expect.objectContaining({ pageId: "base-1", rowId: "r1", propertyId: "rel", remove: ["t1"] }),
+      ),
+    );
+    expect(screen.getByText("Row 2")).toBeTruthy();
+  });
+
+  it("read-only users see the links without editing controls, restricted users see No access", () => {
+    renderField({ count: 12, rows: linked(1, 10) }, true);
+    expect(screen.getByRole("link", { name: "Open Row 1" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Show all (12)" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add a link" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Remove/ })).toBeNull();
+    cleanup();
+
+    renderField({ count: 0, rows: [], restricted: true });
+    expect(screen.getByText("No access")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add a link" })).toBeNull();
+  });
+});

@@ -97,12 +97,15 @@ function getCardFields(event: ScheduleEventData, display: CalendarEventDisplay) 
   return display.cardProperties.flatMap((property) => {
     const accessor = systemAccessorFor(property.type);
     const value = accessor ? accessor(row) : row.cells[property.id];
+    const relation = row.relations?.[property.id];
     const isEmpty =
-      value === null ||
-      value === undefined ||
-      value === "" ||
-      (Array.isArray(value) && value.length === 0);
-    return isEmpty ? [] : [{ property, value }];
+      property.type === "relation"
+        ? !relation?.count && !relation?.restricted
+        : value === null ||
+          value === undefined ||
+          value === "" ||
+          (Array.isArray(value) && value.length === 0);
+    return isEmpty ? [] : [{ property, value, relation }];
   });
 }
 
@@ -121,12 +124,13 @@ function CalendarEventPreview({ event, display }: CalendarEventProps) {
           today: display.today,
         })}
       </Text>
-      {getCardFields(event, display).map(({ property, value }) => (
+      {getCardFields(event, display).map(({ property, value, relation }) => (
         <CardField
           key={property.id}
           property={property}
           value={value}
           pageId={display.pageId}
+          relation={relation}
         />
       ))}
     </div>
@@ -227,12 +231,13 @@ export function CalendarWeekEventBody({ event, display }: CalendarEventProps) {
       </span>
       {fields.length > 0 && (
         <span className={classes.weekEventFields} inert>
-          {fields.map(({ property, value }) => (
+          {fields.map(({ property, value, relation }) => (
             <CardField
               key={property.id}
               property={property}
               value={value}
               pageId={display.pageId}
+              relation={relation}
             />
           ))}
         </span>

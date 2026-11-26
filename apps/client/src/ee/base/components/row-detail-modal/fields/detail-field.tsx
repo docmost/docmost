@@ -10,6 +10,7 @@ import { FieldNumber } from "./field-number";
 import { FieldDate } from "./field-date";
 import { FieldChoice } from "./field-choice";
 import { FieldCellAdapter } from "./field-cell-adapter";
+import { FieldRelation } from "./field-relation";
 import classes from "@/ee/base/styles/row-detail-modal.module.css";
 
 export type FieldProps = {
@@ -138,6 +139,11 @@ export function DetailField({ property, row, readOnly, onUpdate, onEditingChange
     case "file":
     case "page":
       return <FieldCellAdapter {...fieldProps} />;
+    case "relation":
+      // keyed so the expanded list and pending removals reset per row
+      return (
+        <FieldRelation key={row.id} {...fieldProps} preview={row.relations?.[property.id]} />
+      );
     default:
       // createdAt, lastEditedAt, lastEditedBy, formula and future types.
       return <FieldReadonlyCell {...fieldProps} />;
