@@ -3,10 +3,6 @@ import { Logger } from '@nestjs/common';
 import { LinkPreviewService } from './link-preview.service';
 import { OutboundUrlError } from '../outbound/outbound-url.guard';
 
-jest.mock('../../common/proxy-fetch', () => ({
-  getProxyAwareFetch: () => undefined,
-}));
-
 const keyFor = (url: string) =>
   'link-preview:' + createHash('sha256').update(url).digest('hex');
 
@@ -24,9 +20,7 @@ describe('LinkPreviewService', () => {
   let redis: { get: jest.Mock; set: jest.Mock };
   let release: jest.Mock;
   let lease: jest.Mock;
-  let validate: jest.Mock;
   let fetchFn: jest.Mock;
-  let proxyFetch: jest.Mock | undefined;
   let isCloud: boolean;
 
   let resolve4: jest.Mock;
@@ -34,12 +28,10 @@ describe('LinkPreviewService', () => {
 
   const build = () => {
     const service = new LinkPreviewService(
-      { validate } as any,
       { lease } as any,
       { isCloud: () => isCloud } as any,
       { getOrThrow: () => redis } as any,
       fetchFn as any,
-      proxyFetch as any,
     );
     (service as any).resolver = { resolve4, resolve6 };
     return service;
@@ -61,9 +53,7 @@ describe('LinkPreviewService', () => {
     resolve6 = jest.fn(async () => []);
     release = jest.fn(async () => undefined);
     lease = jest.fn(async () => ({ dispatcher: {}, release }));
-    validate = jest.fn(async () => undefined);
     fetchFn = jest.fn();
-    proxyFetch = undefined;
     isCloud = false;
   });
 
@@ -79,10 +69,12 @@ describe('LinkPreviewService', () => {
     );
   });
 
-  it('leases the hop under the shared outbound policy', async () => {
+  it('leases each hop under the shared outbound policy, through a configured proxy', async () => {
     fetchFn.mockResolvedValue(html('Hello'));
     await build().getPreview('https://example.com/a');
-    expect(lease).toHaveBeenCalledWith('https://example.com/a');
+    expect(lease).toHaveBeenCalledWith('https://example.com/a', undefined, {
+      viaProxy: true,
+    });
   });
 
   it('fetches with manual redirects and an abort signal', async () => {
@@ -181,25 +173,6 @@ describe('LinkPreviewService', () => {
       'https://accounts.google.com/ServiceLogin?x',
     );
     expect(result?.title).toBe('Sign in');
-  });
-
-  it('uses the proxy when one is configured', async () => {
-    proxyFetch = jest
-      .fn()
-      .mockResolvedValueOnce(redirect('/next'))
-      .mockResolvedValueOnce(html('Next'));
-    const result = await build().getPreview('https://example.com/a');
-    expect(result?.title).toBe('Next');
-    expect(validate.mock.calls).toEqual([
-      ['https://example.com/a'],
-      ['https://example.com/next'],
-    ]);
-    expect(proxyFetch).toHaveBeenCalledTimes(2);
-    const init = proxyFetch!.mock.calls[0][1];
-    expect(init.redirect).toBe('manual');
-    expect(init.signal).toBeInstanceOf(AbortSignal);
-    expect(lease).not.toHaveBeenCalled();
-    expect(fetchFn).not.toHaveBeenCalled();
   });
 
   it('describes an image without reading it', async () => {

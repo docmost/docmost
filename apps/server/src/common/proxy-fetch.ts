@@ -4,7 +4,7 @@ const LOOPBACK_BYPASS = ['localhost', '127.0.0.1', '::1'];
 
 let cachedAgent: EnvHttpProxyAgent | undefined;
 
-function hasProxyEnv(): boolean {
+export function hasProxyEnv(): boolean {
   return Boolean(
     process.env.HTTP_PROXY ||
       process.env.HTTPS_PROXY ||
@@ -13,18 +13,20 @@ function hasProxyEnv(): boolean {
   );
 }
 
-function buildAgent(): EnvHttpProxyAgent {
+export function createEnvProxyAgent(
+  options: EnvHttpProxyAgent.Options = {},
+): EnvHttpProxyAgent {
   const existing = process.env.NO_PROXY || process.env.no_proxy || '';
   const merged = [existing, ...LOOPBACK_BYPASS]
     .map((s) => s.trim())
     .filter(Boolean)
     .join(',');
-  return new EnvHttpProxyAgent({ noProxy: merged });
+  return new EnvHttpProxyAgent({ ...options, noProxy: merged });
 }
 
 export function getProxyAwareFetch(): typeof fetch | undefined {
   if (!hasProxyEnv()) return undefined;
-  cachedAgent ??= buildAgent();
+  cachedAgent ??= createEnvProxyAgent();
   const agent = cachedAgent;
   return ((input, init) =>
     undiciFetch(input as any, {

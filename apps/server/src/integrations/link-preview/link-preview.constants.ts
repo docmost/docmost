@@ -17,7 +17,6 @@ export const LINK_PREVIEW_ACCEPT =
 export const LINK_PREVIEW_USER_AGENT = `Mozilla/5.0 (compatible; DocmostBot/${packageJson.version}; +https://docmost.com)`;
 
 export const LINK_PREVIEW_FETCH = 'LINK_PREVIEW_FETCH';
-export const LINK_PREVIEW_PROXY_FETCH = 'LINK_PREVIEW_PROXY_FETCH';
 
 export const LINK_PREVIEW_SIGN_IN_HOSTS = [
   'accounts.google.com',

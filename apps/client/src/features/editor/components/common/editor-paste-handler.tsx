@@ -7,6 +7,7 @@ import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 import { Editor } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
+import { find } from "linkifyjs";
 import {
   isHttpUrl,
   matchIntegrationLink,
@@ -181,7 +182,8 @@ export const handlePaste = (
     !integrationMatch &&
     empty &&
     isHttpUrl(pastedUrl) &&
-    !/\s/.test(pastedUrl) &&
+    // a trailing period or comma stays plain text, as in the default paste
+    find(pastedUrl).some((link) => link.isLink && link.value === pastedUrl) &&
     !event.clipboardData.files?.length &&
     !event.clipboardData.getData("text/html").includes(NODE_HTML_MARKER) &&
     INTERNAL_LINK_REGEX.exec(pastedUrl)?.[2] !== window.location.host &&

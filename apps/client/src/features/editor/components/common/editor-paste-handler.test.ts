@@ -445,6 +445,29 @@ describe("handlePaste plain external links", () => {
     expect(linkPasteMenuKey.getState(editor.state)).toBeNull();
   });
 
+  it.each([`${URL_}.`, `${URL_},`, `${URL_})`])(
+    "%s, whose last character is not part of the link, pastes normally",
+    (pasted) => {
+      createEditor([paragraph(text("Hello "))], 7);
+      const before = editor.getJSON();
+
+      const { handled, preventDefault } = paste(pasted);
+
+      expect(handled).toBe(false);
+      expect(preventDefault).not.toHaveBeenCalled();
+      expect(editor.getJSON()).toEqual(before);
+    },
+  );
+
+  it.each(["https://en.wikipedia.org/wiki/Foo_(bar)", "http://wiki/page"])(
+    "%s pastes as a link and opens Paste as",
+    (url) => {
+      createEditor([paragraph(text("Hello "))], 7);
+
+      expectLinkWithMenu(url);
+    },
+  );
+
   it("a URL with a trailing newline is trimmed and handled", () => {
     createEditor([paragraph(text("Hello "))], 7);
 

@@ -5,13 +5,9 @@ import { createHash } from 'crypto';
 import { isIP } from 'net';
 import { Resolver } from 'node:dns/promises';
 import { fetch as undiciFetch } from 'undici';
-import {
-  OutboundUrlError,
-  OutboundUrlGuard,
-} from '../outbound/outbound-url.guard';
+import { OutboundUrlError } from '../outbound/outbound-url.guard';
 import { OutboundAgentFactory } from '../outbound/outbound-agent.factory';
 import { EnvironmentService } from '../environment/environment.service';
-import { getProxyAwareFetch } from '../../common/proxy-fetch';
 import {
   LINK_PREVIEW_ACCEPT,
   LINK_PREVIEW_CACHE_PREFIX,
@@ -21,7 +17,6 @@ import {
   LINK_PREVIEW_FETCH,
   LINK_PREVIEW_MAX_BYTES,
   LINK_PREVIEW_MAX_REDIRECTS,
-  LINK_PREVIEW_PROXY_FETCH,
   LINK_PREVIEW_TIMEOUT_MS,
   LINK_PREVIEW_URL_MAX_LENGTH,
   LINK_PREVIEW_USER_AGENT,
@@ -40,7 +35,6 @@ export class LinkPreviewService {
   private readonly logger = new Logger(LinkPreviewService.name);
   private readonly redis: Redis;
   private readonly fetchFn: typeof fetch;
-  private readonly proxyFetch?: typeof fetch;
   // c-ares resolver: unlike dns.lookup it stays off the libuv threadpool and honours a timeout
   private readonly resolver = new Resolver({
     timeout: LINK_PREVIEW_DNS_TIMEOUT_MS,
@@ -48,16 +42,13 @@ export class LinkPreviewService {
   });
 
   constructor(
-    private readonly urlGuard: OutboundUrlGuard,
     private readonly agentFactory: OutboundAgentFactory,
     private readonly environmentService: EnvironmentService,
     private readonly redisService: RedisService,
     @Optional() @Inject(LINK_PREVIEW_FETCH) fetchFn?: typeof fetch,
-    @Optional() @Inject(LINK_PREVIEW_PROXY_FETCH) proxyFetch?: typeof fetch,
   ) {
     this.redis = this.redisService.getOrThrow();
     this.fetchFn = fetchFn ?? (undiciFetch as unknown as typeof fetch);
-    this.proxyFetch = proxyFetch ?? getProxyAwareFetch();
   }
 
   async getPreview(
@@ -178,15 +169,9 @@ export class LinkPreviewService {
 
     await this.failOnDnsTimeout(url);
 
-    if (this.proxyFetch) {
-      await this.urlGuard.validate(url);
-      return {
-        response: await this.proxyFetch(url, init),
-        release: async () => undefined,
-      };
-    }
-
-    const lease = await this.agentFactory.lease(url);
+    const lease = await this.agentFactory.lease(url, undefined, {
+      viaProxy: true,
+    });
     try {
       const response = await this.fetchFn(url, {
         ...init,

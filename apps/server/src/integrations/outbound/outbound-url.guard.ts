@@ -134,7 +134,12 @@ function findRefusal(
     if (!isIPv4(resolvedAddress) && !isIPv6(resolvedAddress)) return 'not-an-ip';
     const address = embeddedNat64Ipv4(resolvedAddress) ?? resolvedAddress;
     if (isHardBlockedAddress(address)) return 'hard-blocked';
-    if (policyNamesAddress(policy, address, port)) continue;
+    if (
+      policyNamesAddress(policy, address, port) ||
+      policyNamesAddress(policy, resolvedAddress, port)
+    ) {
+      continue;
+    }
     if (isPrivateNetworkAddress(address)) {
       if (policy.mode === 'all') continue;
       return 'private';

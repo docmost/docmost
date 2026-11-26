@@ -493,14 +493,14 @@ describe('OutboundUrlGuard.validate with NAT64 addresses', () => {
     );
   });
 
-  it('a policy naming the NAT64 prefix allows nothing it carries', async () => {
+  it('a policy naming the NAT64 prefix allows what it carries, except never-allowed addresses', async () => {
     const policy = '[64:ff9b::/96]';
     await expect(
       guard(false, nat('64:ff9b::a9fe:a9fe'), policy).validate('https://x.example.com'),
     ).rejects.toThrow(/never allowed/);
     await expect(
       guard(false, nat('64:ff9b::a00:5'), policy).validate('https://x.example.com'),
-    ).rejects.toThrow(/private address/);
+    ).resolves.toMatchObject({ address: '64:ff9b::a00:5' });
   });
 
   it('never allows a NAT64 address that carries the metadata address', async () => {
