@@ -40,6 +40,7 @@ import {
   sanitizeUrl,
   copyToClipboard,
   isEditorReady,
+  isHttpUrl,
 } from "@docmost/editor-ext";
 import { normalizeUrl } from "@/lib/utils";
 import { useInstalledIntegrations } from "@/features/integration/queries/integration-query";
@@ -48,6 +49,13 @@ import {
   getIntegrationCardAvailability,
   type IntegrationDisplaySource,
 } from "@/features/editor/components/integration-link/integration-display";
+import {
+  convertLinkDisplay,
+  getLinkDisplayCardAvailability,
+  type LinkDisplaySource,
+} from "@/features/editor/utils/link-display";
+import { LINK_PREVIEW_NODES } from "@/features/editor/components/link-preview/link-preview-display";
+import { markLinkPreviewPending } from "@/features/editor/components/link-preview/link-preview-pending";
 import { IntegrationDisplayMenu } from "@/features/editor/components/integration-link/integration-display-picker";
 
 const parseInternalLink = (
@@ -99,9 +107,10 @@ export default function LinkView(props: MarkViewProps) {
     typeof mark.attrs.integrationProvider === "string"
       ? mark.attrs.integrationProvider
       : null;
-  const { data: installedIntegrations } = useInstalledIntegrations(
-    Boolean(markIntegrationProvider || integrationMatch) && isEditable,
-  );
+  const isIntegrationCandidate =
+    Boolean(markIntegrationProvider || integrationMatch) && isEditable;
+  const { data: installedIntegrations, isPending: isIntegrationsPending } =
+    useInstalledIntegrations(isIntegrationCandidate);
   // Only hosts an installed provider unfurls get "Display as".
   const hostIntegrationProvider = useMemo(() => {
     if (!installedIntegrations) return null;
@@ -124,6 +133,15 @@ export default function LinkView(props: MarkViewProps) {
     slugId,
     label: linkLabel,
   } = parseInternalLink(href, mark.attrs.internal);
+
+  // A possible integration link isn't plain until the installed list arrives.
+  const isPlainExternalLink =
+    !isInternal &&
+    !integrationProvider &&
+    !(isIntegrationCandidate && isIntegrationsPending) &&
+    isHttpUrl(href) &&
+    isEditable;
+  const hasDisplayMenu = Boolean(integrationProvider) || isPlainExternalLink;
 
   const isPopoverVisible = popoverState !== "closed";
   const activeView = isPopoverVisible ? popoverState : lastOpenState.current;
@@ -170,18 +188,25 @@ export default function LinkView(props: MarkViewProps) {
     }
   }, [editor]);
 
+  const getLinkMarkRange = useCallback((): {
+    from: number;
+    to: number;
+  } | null => {
+    const pos = getLinkPos();
+    if (pos === null) return null;
+
+    return (
+      getMarkRange(editor.state.doc.resolve(pos), mark.type, { href }) || null
+    );
+  }, [editor, getLinkPos, href, mark.type]);
+
   const getIntegrationSource = useCallback((): Extract<
     IntegrationDisplaySource,
     { kind: "link" }
   > | null => {
     if (!integrationProvider) return null;
 
-    const pos = getLinkPos();
-    if (pos === null) return null;
-
-    const range = getMarkRange(editor.state.doc.resolve(pos), mark.type, {
-      href,
-    });
+    const range = getLinkMarkRange();
     if (!range) return null;
 
     return {
@@ -191,7 +216,42 @@ export default function LinkView(props: MarkViewProps) {
       url: href,
       provider: integrationProvider,
     };
-  }, [editor, getLinkPos, href, integrationProvider, mark.type]);
+  }, [getLinkMarkRange, href, integrationProvider]);
+
+  const getPlainLinkSource = useCallback((): Extract<
+    LinkDisplaySource,
+    { kind: "link" }
+  > | null => {
+    if (!isPlainExternalLink) return null;
+
+    const range = getLinkMarkRange();
+    if (!range) return null;
+
+    return {
+      kind: "link",
+      from: range.from,
+      to: range.to,
+      url: href,
+      attrs: { url: href },
+    };
+  }, [getLinkMarkRange, href, isPlainExternalLink]);
+
+  const handlePlainLinkDisplay = useCallback(
+    (display: "card" | "mention" | "url") => {
+      const source = getPlainLinkSource();
+      setPopoverState("closed");
+      if (!source || display === "url") {
+        editor.commands.focus(undefined, { scrollIntoView: false });
+        return;
+      }
+
+      markLinkPreviewPending(editor, href);
+      if (convertLinkDisplay(editor, source, display, LINK_PREVIEW_NODES)) {
+        editor.commands.focus(undefined, { scrollIntoView: false });
+      }
+    },
+    [editor, getPlainLinkSource, href],
+  );
 
   const handleUpdateLinkTitle = useCallback(
     (newTitle: string) => {
@@ -533,7 +593,7 @@ export default function LinkView(props: MarkViewProps) {
       width={
         activeView === "edit"
           ? "min(320px, calc(100vw - 24px))"
-          : integrationProvider
+          : hasDisplayMenu
             ? "min(340px, calc(100vw - 24px))"
             : undefined
       }
@@ -565,7 +625,7 @@ export default function LinkView(props: MarkViewProps) {
         ref={dropdownRef}
         p={activeView === "edit" ? "sm" : 6}
         className={
-          activeView === "preview" && integrationProvider
+          activeView === "preview" && hasDisplayMenu
             ? classes.integrationPopover
             : undefined
         }
@@ -692,19 +752,30 @@ export default function LinkView(props: MarkViewProps) {
             />
 
             {isPopoverVisible &&
-              integrationProvider &&
+              hasDisplayMenu &&
               (() => {
-                const source = getIntegrationSource();
-                const cardAvailability = source
-                  ? getIntegrationCardAvailability(editor, source)
-                  : null;
+                const integrationSource = getIntegrationSource();
+                const plainSource = getPlainLinkSource();
+                const cardAvailability = integrationSource
+                  ? getIntegrationCardAvailability(editor, integrationSource)
+                  : plainSource
+                    ? getLinkDisplayCardAvailability(
+                        editor,
+                        plainSource,
+                        LINK_PREVIEW_NODES,
+                      )
+                    : null;
 
                 return (
                   <IntegrationDisplayMenu
                     current="url"
                     label={t("Display as")}
                     canUseCard={cardAvailability?.canUseCard ?? false}
-                    onChange={handleIntegrationDisplay}
+                    onChange={
+                      integrationProvider
+                        ? handleIntegrationDisplay
+                        : handlePlainLinkDisplay
+                    }
                   />
                 );
               })()}

@@ -57,6 +57,8 @@ import {
   FootnoteReference,
   IntegrationCard,
   IntegrationMention,
+  LinkCard,
+  LinkMention,
   Tabs,
   Tab,
   TabLabel,
@@ -155,6 +157,8 @@ export const tiptapExtensions = [
   FootnoteReference,
   IntegrationCard,
   IntegrationMention,
+  LinkCard,
+  LinkMention,
   MicrosoftFile,
   MicrosoftFolder,
 ] as any;
@@ -183,11 +187,18 @@ export function htmlToJson(
   }
 }
 
+const linkPreviewText = ({ node }: { node: Node }) =>
+  [node.attrs.title, node.attrs.url].filter(Boolean).join(' ');
+
 export function jsonToText(tiptapJson: JSONContent) {
   // Public search snippets use this stored text before the page is rendered.
   return collapseBlankLines(
     generateText(tiptapJson, templateExtensions, {
-      textSerializers: { itemsByLabel: () => '' },
+      textSerializers: {
+        itemsByLabel: () => '',
+        linkCard: linkPreviewText,
+        linkMention: linkPreviewText,
+      },
     }),
   );
 }

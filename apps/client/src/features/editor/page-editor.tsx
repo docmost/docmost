@@ -91,6 +91,7 @@ import { unlockedVerifiedPageIdAtom } from "@/ee/page-verification/atoms/page-ed
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 import { IntegrationPasteMenu } from "@/features/editor/components/integration-link/integration-paste-menu.tsx";
+import { LinkPasteMenu } from "@/features/editor/components/link-preview/link-paste-menu.tsx";
 import { BasePasteMenu } from "@/features/editor/components/base-embed/base-paste-menu.tsx";
 import MicrosoftFileMenu from "@/features/editor/components/microsoft/microsoft-file-menu.tsx";
 import MicrosoftFolderMenu from "@/features/editor/components/microsoft/microsoft-folder-menu.tsx";
@@ -609,6 +610,7 @@ function CollabPageEditor({
             <DrawioMenu editor={editor} />
             <ColumnsMenu editor={editor} />
             <IntegrationPasteMenu editor={editor} />
+            <LinkPasteMenu editor={editor} />
             <BasePasteMenu editor={editor} />
             <MicrosoftFileMenu editor={editor} />
             <MicrosoftFolderMenu editor={editor} />

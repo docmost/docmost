@@ -4,11 +4,31 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import LinkView from "./link-view";
+import { getMarkRange } from "@tiptap/core";
+import { convertLinkDisplay } from "@/features/editor/utils/link-display";
+import { markLinkPreviewPending } from "@/features/editor/components/link-preview/link-preview-pending";
+import { LINK_PREVIEW_NODES } from "@/features/editor/components/link-preview/link-preview-display";
+
+vi.mock("@tiptap/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tiptap/core")>()),
+  getMarkRange: vi.fn(() => undefined),
+}));
+
+vi.mock("@/features/editor/utils/link-display", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/editor/utils/link-display")>()),
+  convertLinkDisplay: vi.fn(() => true),
+  getLinkDisplayCardAvailability: vi.fn(() => ({ canUseCard: true })),
+}));
+
+vi.mock("@/features/editor/components/link-preview/link-preview-pending", () => ({
+  markLinkPreviewPending: vi.fn(),
+}));
 
 vi.mock("react-i18next", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-i18next")>()),
@@ -24,9 +44,13 @@ vi.mock("react-router-dom", () => ({
 const installedIntegrations = vi.hoisted(() => [
   { type: "github", unfurlHosts: ["github.com"] },
 ]);
+const integrationsQuery = vi.hoisted(() => ({ loading: false }));
 
 vi.mock("@/features/integration/queries/integration-query", () => ({
-  useInstalledIntegrations: () => ({ data: installedIntegrations }),
+  useInstalledIntegrations: () =>
+    integrationsQuery.loading
+      ? { data: undefined, isPending: true }
+      : { data: installedIntegrations, isPending: false },
 }));
 
 vi.mock("@/features/page/queries/page-query.ts", () => ({
@@ -67,10 +91,12 @@ function renderDetachedLinkView(
     integrationProvider: "github",
     internal: false,
   },
+  isEditable = true,
+  editorOverrides: Record<string, unknown> = {},
 ) {
   const props = {
     editor: {
-      isEditable: true,
+      isEditable,
       state: {
         doc: {
           content: { size: 100 },
@@ -83,6 +109,7 @@ function renderDetachedLinkView(
         },
       },
       view: { posAtDOM: () => -1 },
+      ...editorOverrides,
     },
     mark: {
       attrs,
@@ -101,7 +128,11 @@ function renderDetachedLinkView(
 
 describe("LinkView", () => {
   beforeEach(setMediaMatch);
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    integrationsQuery.loading = false;
+  });
 
   it("does not resolve the mark position while the popover is closed", () => {
     const { rerender, renderView } = renderDetachedLinkView();
@@ -166,7 +197,7 @@ describe("LinkView", () => {
     ).toBeTruthy();
   });
 
-  it("hides display choices for a GitHub-like path on a host GitHub does not serve", async () => {
+  it("offers the plain link display choices for a GitHub-like path on a host GitHub does not serve", async () => {
     const { container } = renderDetachedLinkView({
       href: "https://gitea.example.com/team/app/pulls/7",
       internal: false,
@@ -176,14 +207,11 @@ describe("LinkView", () => {
 
     const menu = await screen.findByRole("dialog", { hidden: true });
     expect(
-      within(menu).getByRole("button", { name: "Edit link", hidden: true }),
-    ).toBeTruthy();
-    expect(
-      within(menu).queryByRole("button", {
+      within(menu).getByRole("button", {
         name: "Display as: URL",
         hidden: true,
       }),
-    ).toBeNull();
+    ).toBeTruthy();
   });
 
   it("supports keyboard-generated clicks on link-menu actions", async () => {
@@ -221,5 +249,135 @@ describe("LinkView", () => {
     fireEvent.keyDown(display, { key: "Escape" });
 
     expect(target?.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("an external link offers Display as when editable", async () => {
+    const { container } = renderDetachedLinkView({
+      href: "https://example.com/article",
+      internal: false,
+    });
+
+    fireEvent.click(container.querySelector("a")!);
+
+    const menu = await screen.findByRole("dialog", { hidden: true });
+    expect(
+      within(menu).getByRole("button", {
+        name: "Display as: URL",
+        hidden: true,
+      }),
+    ).toBeTruthy();
+  });
+
+  it.each([
+    [
+      "a provider pattern",
+      {
+        href: "https://github.com/docmost/docmost/pull/2475",
+        internal: false,
+      },
+    ],
+    [
+      "a mark provider",
+      {
+        href: "https://example.com/article",
+        integrationProvider: "github",
+        internal: false,
+      },
+    ],
+  ])(
+    "a link with %s gets no Display as until the installed integrations load",
+    async (_, attrs) => {
+      integrationsQuery.loading = true;
+      const { container, rerender, renderView } = renderDetachedLinkView(attrs);
+
+      fireEvent.click(container.querySelector("a")!);
+
+      const menu = await screen.findByRole("dialog", { hidden: true });
+      expect(
+        within(menu).getByRole("button", { name: "Edit link", hidden: true }),
+      ).toBeTruthy();
+      expect(
+        within(menu).queryByRole("button", {
+          name: /Display as/,
+          hidden: true,
+        }),
+      ).toBeNull();
+
+      integrationsQuery.loading = false;
+      rerender(renderView());
+
+      expect(
+        within(menu).getByRole("button", {
+          name: "Display as: URL",
+          hidden: true,
+        }),
+      ).toBeTruthy();
+    },
+  );
+
+  it("no Display as for a page link", async () => {
+    const { container } = renderDetachedLinkView({
+      href: `${window.location.origin}/s/example/p/page-slug123`,
+      internal: false,
+    });
+
+    fireEvent.click(container.querySelector("a")!);
+
+    const menu = await screen.findByRole("dialog", { hidden: true });
+    expect(
+      within(menu).getByRole("button", { name: "Edit link", hidden: true }),
+    ).toBeTruthy();
+    expect(
+      within(menu).queryByRole("button", {
+        name: /Display as/,
+        hidden: true,
+      }),
+    ).toBeNull();
+  });
+
+  it("choosing Mention on a plain external link marks the URL pending, then converts the mark range", async () => {
+    const href = "https://example.com/article";
+    vi.mocked(getMarkRange).mockReturnValue({ from: 3, to: 20 } as never);
+    const { container } = renderDetachedLinkView(
+      { href, internal: false },
+      true,
+      {
+        view: { posAtDOM: () => 5 },
+        commands: { focus: vi.fn() },
+      },
+    );
+
+    fireEvent.click(container.querySelector("a")!);
+    const menu = await screen.findByRole("dialog", { hidden: true });
+    fireEvent.click(
+      within(menu).getByRole("button", {
+        name: "Display as: URL",
+        hidden: true,
+      }),
+    );
+    const displayMenu = await screen.findByRole("menu", { hidden: true });
+    fireEvent.click(
+      within(displayMenu).getByRole("menuitemradio", {
+        name: "Mention",
+        hidden: true,
+      }),
+    );
+
+    expect(convertLinkDisplay).toHaveBeenCalledTimes(1);
+    const [editorArg, source, display, nodes] =
+      vi.mocked(convertLinkDisplay).mock.calls[0];
+    expect(markLinkPreviewPending).toHaveBeenCalledWith(editorArg, href);
+    expect(
+      vi.mocked(markLinkPreviewPending).mock.invocationCallOrder[0],
+    ).toBeLessThan(vi.mocked(convertLinkDisplay).mock.invocationCallOrder[0]);
+    expect(source).toEqual({
+      kind: "link",
+      from: 3,
+      to: 20,
+      url: href,
+      attrs: { url: href },
+    });
+    expect(display).toBe("mention");
+    expect(nodes).toBe(LINK_PREVIEW_NODES);
   });
 });

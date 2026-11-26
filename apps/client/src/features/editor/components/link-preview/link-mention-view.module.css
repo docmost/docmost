@@ -1,0 +1,51 @@
+.mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  vertical-align: baseline;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--mantine-radius-sm);
+}
+
+:global(.node-linkMention) .mention {
+  border-bottom: none !important;
+  font-weight: 400;
+}
+
+.mention:hover {
+  background-color: var(--mantine-color-gray-0);
+}
+
+:global([data-mantine-color-scheme="dark"]) .mention:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+/* The title shares the paragraph baseline; the icon centers on the line. */
+.mentionText {
+  align-self: baseline;
+  text-decoration: underline;
+  text-decoration-thickness: 0.07em;
+  text-decoration-color: light-dark(
+    var(--mantine-color-dark-0),
+    var(--mantine-color-dark-2)
+  );
+  text-underline-offset: 0.2em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 340px;
+  font-weight: 500;
+}
+
+.mentionIcon {
+  flex-shrink: 0;
+}
+
+/* The editor's img rule would otherwise size favicons by their own aspect ratio. */
+:global(.node-linkMention) img.mentionIcon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}

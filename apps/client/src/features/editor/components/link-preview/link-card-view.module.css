@@ -1,0 +1,67 @@
+.card {
+  max-width: 100%;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+  margin: 4px 0;
+  container-type: inline-size;
+}
+
+.card:hover {
+  background-color: var(--mantine-color-gray-0);
+}
+
+:global([data-mantine-color-scheme="dark"]) .card:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+/* The editor's link, paragraph and image styles would otherwise land on the card. */
+:global(.node-linkCard) .card {
+  color: inherit !important;
+  font-weight: 400;
+  border-bottom: calc(0.0625rem * var(--mantine-scale)) solid
+    var(--paper-border-color) !important;
+}
+
+:global(.node-linkCard) .card p {
+  margin: 0;
+}
+
+:global(.node-linkCard) img.icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.imageBox {
+  position: relative;
+  flex: 0 0 200px;
+  min-height: 96px;
+  background-color: var(--mantine-color-gray-0);
+}
+
+:global([data-mantine-color-scheme="dark"]) .imageBox {
+  background-color: var(--mantine-color-dark-6);
+}
+
+:global(.node-linkCard) .image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@container (max-width: 420px) {
+  .card .imageBox {
+    display: none;
+  }
+}

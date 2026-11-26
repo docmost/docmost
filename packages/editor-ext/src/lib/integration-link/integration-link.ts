@@ -1,10 +1,6 @@
-import { isHttpUrl, sanitizeUrl } from "../utils";
+import { sanitizeHttpUrl } from "../utils";
 
-// Only web urls survive, kept as given because sanitizeUrl decodes percent-escapes.
-export function sanitizeIntegrationUrl(url: string | null | undefined): string {
-  const trimmed = url?.trim() ?? "";
-  return isHttpUrl(trimmed) && isHttpUrl(sanitizeUrl(trimmed)) ? trimmed : "";
-}
+export const sanitizeIntegrationUrl = sanitizeHttpUrl;
 
 export interface IntegrationLinkOptions {
   HTMLAttributes: Record<string, any>;

@@ -11,6 +11,7 @@ export const BASE_FORM_INFO_THROTTLER = 'base-form-info';
 export const MICROSOFT_GRAPH_THROTTLER = 'microsoft-graph';
 export const UNSPLASH_THROTTLER = 'unsplash';
 export const TEMPLATE_USE_THROTTLER = 'template-use';
+export const LINK_PREVIEW_THROTTLER = 'link-preview';
 
 // Every named throttler must appear here; spread it in @SkipThrottle and re-enable per name with false.
 export const ALL_NAMED_THROTTLERS_SKIPPED: Record<string, boolean> = {
@@ -27,4 +28,5 @@ export const ALL_NAMED_THROTTLERS_SKIPPED: Record<string, boolean> = {
   [MICROSOFT_GRAPH_THROTTLER]: true,
   [UNSPLASH_THROTTLER]: true,
   [TEMPLATE_USE_THROTTLER]: true,
+  [LINK_PREVIEW_THROTTLER]: true,
 };

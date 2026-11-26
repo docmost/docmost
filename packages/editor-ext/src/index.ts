@@ -35,6 +35,7 @@ export * from "./lib/unique-id";
 export * from "./lib/shared-storage";
 export * from "./lib/recreate-transform";
 export * from "./lib/integration-link";
+export * from "./lib/link-preview";
 export * from "./lib/microsoft";
 export * from "./lib/columns";
 export * from "./lib/status";
