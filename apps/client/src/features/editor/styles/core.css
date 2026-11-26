@@ -11,13 +11,18 @@
     var(--mantine-color-white),
     var(--mantine-color-dark-7)
   );
-  color: light-dark(
-    var(--mantine-color-default-color),
-    var(--mantine-color-white)
+  /* softer than pure black and white for long reading, still above 11:1 contrast */
+  --editor-text-color: light-dark(
+    var(--mantine-color-gray-9),
+    var(--mantine-color-gray-3)
   );
+  color: var(--editor-text-color);
   font-size: var(--mantine-font-size-md);
   line-height: var(--mantine-line-height-xl);
   font-weight: 400;
+  /* Mantine's antialiased smoothing thins text on macOS; keep the system rendering for content */
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
   width: 100%;
 
   padding-left: 3rem;

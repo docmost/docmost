@@ -14,7 +14,7 @@
 
 .message {
   font-size: var(--mantine-font-size-md);
-  color: var(--mantine-color-default-color);
+  color: var(--editor-text-color);
   overflow: visible;
   text-overflow: unset;
   word-break: break-word;
