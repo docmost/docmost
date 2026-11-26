@@ -28,6 +28,8 @@ function invalidateRelationTarget(typeOptions: TypeOptions) {
   const targetBaseId = (typeOptions as Partial<RelationTypeOptions>).targetBaseId;
   if (typeof targetBaseId !== "string") return;
   queryClient.invalidateQueries({ queryKey: ["bases", targetBaseId] });
+  // rows cached before a new side existed carry no preview for it
+  queryClient.invalidateQueries({ queryKey: ["base-rows", targetBaseId] });
 }
 
 export function useCreatePropertyMutation(mutationKey?: MutationKey) {
