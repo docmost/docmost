@@ -94,7 +94,8 @@ export function UserProvider({
     }
   }, [entitlements]);
 
-  if (isPending) return pending;
+  // A 401 is already redirecting to the login page.
+  if (isPending || error?.["response"]?.status === 401) return pending;
 
   if (isError && error?.["response"]?.status === 404) {
     return <Error404 />;
