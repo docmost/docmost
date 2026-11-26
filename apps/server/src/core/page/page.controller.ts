@@ -281,7 +281,7 @@ export class PageController {
   async update(@Body() updatePageDto: UpdatePageDto, @AuthUser() user: User) {
     const page = await this.pageRepo.findById(updatePageDto.pageId);
 
-    if (!page) {
+    if (!page || page.deletedAt) {
       throw new NotFoundException('Page not found');
     }
 

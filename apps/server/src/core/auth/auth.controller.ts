@@ -154,6 +154,7 @@ export class AuthController {
     @Body() passwordResetDto: PasswordResetDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    validateSsoEnforcement(workspace);
     const result = await this.authService.passwordReset(
       passwordResetDto,
       workspace,
@@ -178,6 +179,7 @@ export class AuthController {
     @Body() verifyUserTokenDto: VerifyUserTokenDto,
     @AuthWorkspace() workspace: Workspace,
   ) {
+    validateSsoEnforcement(workspace);
     return this.authService.verifyUserToken(verifyUserTokenDto, workspace.id);
   }
 
