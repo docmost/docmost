@@ -8,11 +8,11 @@ import clsx from "clsx";
 import type { IBaseProperty, RelationTypeOptions } from "@/ee/base/types/base.types";
 import type { RelationCandidate } from "@/ee/base/services/base-relation-service";
 import {
-  useRelationCandidatesQuery,
+  useRelationCandidatesInfiniteQuery,
   useResolveRelationRows,
 } from "@/ee/base/queries/base-relation-query";
 import { useResolvedPages } from "@/ee/base/queries/base-page-resolver-query";
-import { useListKeyboardNav } from "@/ee/base/hooks/use-list-keyboard-nav";
+import { useInfiniteListKeyboardNav } from "@/ee/base/hooks/use-infinite-list-keyboard-nav";
 import { RELATION_MAX_IDS_PER_CALL } from "@/ee/base/constants/relations";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 
@@ -47,7 +47,13 @@ export function FilterRelationInput({
   const baseTitle = targetBase?.title || t("Untitled");
   const searchLabel = t("Search {{base}}", { base: baseTitle });
 
-  const { data: candidates, error } = useRelationCandidatesQuery({
+  const {
+    data: candidates,
+    error,
+    hasNextPage,
+    isFetching,
+    fetchNextPage,
+  } = useRelationCandidatesInfiniteQuery({
     pageId: property.pageId,
     propertyId: property.id,
     query,
@@ -73,10 +79,14 @@ export function FilterRelationInput({
   const shownIds = ids.filter((id) => titles.has(id));
   const titleOf = (id: string) => titles.get(id) || t("Untitled");
 
-  const options = (candidates?.items ?? []).filter((row) => !ids.includes(row.id));
+  const options = (candidates ?? []).filter((row) => !ids.includes(row.id));
   const atLimit = ids.length >= RELATION_MAX_IDS_PER_CALL;
-  const { activeIndex, setActiveIndex, handleNavKey, setOptionRef } =
-    useListKeyboardNav(options.length, [query, opened]);
+  const { activeIndex, setActiveIndex, handleNavKey, setOptionRef, listEndRef } =
+    useInfiniteListKeyboardNav(options.length, [query, opened], {
+      hasNextPage,
+      isFetching,
+      fetchNextPage,
+    });
   const optionId = (index: number) => `${listboxId}-${index}`;
 
   const emit = (nextIds: string[]) => onChange(nextIds.length > 0 ? nextIds : undefined);
@@ -229,8 +239,11 @@ export function FilterRelationInput({
               </div>
             </div>
           ))}
-          {candidates && options.length === 0 && (
+          {candidates && options.length === 0 && !hasNextPage && (
             <div className={cellClasses.personDropdownHint}>{t("No matching rows")}</div>
+          )}
+          {hasNextPage && (
+            <div ref={listEndRef} aria-hidden className={cellClasses.selectDropdownEnd} />
           )}
         </div>
       </Popover.Dropdown>

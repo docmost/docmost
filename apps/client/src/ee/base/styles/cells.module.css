@@ -295,6 +295,10 @@
   overflow-y: auto;
 }
 
+.selectDropdownEnd {
+  height: 1px;
+}
+
 .selectOption {
   display: flex;
   align-items: center;

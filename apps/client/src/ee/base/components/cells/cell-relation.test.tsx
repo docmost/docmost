@@ -18,7 +18,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 vi.mock("@/ee/base/queries/base-relation-query", () => ({
-  useRelationCandidatesQuery: (args: unknown) => relationQueries.candidates(args),
+  useRelationCandidatesInfiniteQuery: (args: unknown) => relationQueries.candidates(args),
   useUpdateRelationLinksMutation: () => ({ mutateAsync: relationQueries.mutateAsync }),
 }));
 vi.mock("@/ee/base/queries/base-page-resolver-query", () => ({
@@ -64,7 +64,7 @@ function renderCell(relation: RelationPreview | undefined, readOnly = false) {
 
 beforeEach(() => {
   relationQueries.candidates.mockReset();
-  relationQueries.candidates.mockReturnValue({ data: { items: [], meta: {} }, error: null });
+  relationQueries.candidates.mockReturnValue({ data: [], error: null });
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: vi.fn().mockImplementation((query: string) => ({

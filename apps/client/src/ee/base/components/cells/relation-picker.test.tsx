@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { MantineProvider } from "@mantine/core";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { AxiosError, AxiosHeaders } from "axios";
@@ -20,7 +21,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 vi.mock("@/ee/base/queries/base-relation-query", () => ({
-  useRelationCandidatesQuery: (args: unknown) => relationQueries.candidates(args),
+  useRelationCandidatesInfiniteQuery: (args: unknown) => relationQueries.candidates(args),
   useUpdateRelationLinksMutation: () => ({ mutateAsync: relationQueries.mutateAsync }),
 }));
 vi.mock("@/ee/base/queries/base-page-resolver-query", () => ({
@@ -68,14 +69,60 @@ const rows: RelationCandidate[] = [
 
 function answerCandidates(items: RelationCandidate[]) {
   relationQueries.candidates.mockImplementation(({ query }: { query: string }) => ({
-    data: {
-      items: items.filter((item) =>
-        item.title.toLowerCase().includes(query.toLowerCase()),
-      ),
-      meta: {},
-    },
+    data: items.filter((item) => item.title.toLowerCase().includes(query.toLowerCase())),
     error: null,
   }));
+}
+
+class FakeIntersectionObserver {
+  static instances: FakeIntersectionObserver[] = [];
+  observed: Element[] = [];
+  constructor(
+    private callback: IntersectionObserverCallback,
+    readonly options?: IntersectionObserverInit,
+  ) {
+    FakeIntersectionObserver.instances.push(this);
+  }
+  observe(target: Element) {
+    this.observed.push(target);
+  }
+  unobserve() {}
+  disconnect() {
+    this.observed = [];
+  }
+  takeRecords() {
+    return [];
+  }
+  intersect() {
+    const entries = this.observed.map((target) => ({ target, isIntersecting: true }));
+    this.callback(entries as IntersectionObserverEntry[], this as unknown as IntersectionObserver);
+  }
+}
+
+const watchingObserver = () =>
+  FakeIntersectionObserver.instances.find((observer) => observer.observed.length > 0);
+
+const titled = (from: number, to: number): RelationCandidate[] =>
+  Array.from({ length: to - from + 1 }, (_, i) => {
+    const n = String(from + i).padStart(2, "0");
+    return { id: `r${n}`, title: `Row ${n}`, linked: false };
+  });
+
+// an infinite query that shows one more page each time fetchNextPage is called
+function answerPagedCandidates(pages: RelationCandidate[][]) {
+  const fetchNextPage = vi.fn();
+  relationQueries.candidates.mockImplementation(function useFakeCandidates() {
+    const [loaded, setLoaded] = useState(1);
+    fetchNextPage.mockImplementation(() => setLoaded((n) => n + 1));
+    return {
+      data: pages.slice(0, loaded).flat(),
+      error: null,
+      hasNextPage: loaded < pages.length,
+      isFetching: false,
+      fetchNextPage,
+    };
+  });
+  return fetchNextPage;
 }
 
 const lastSearch = () =>
@@ -130,6 +177,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
+  FakeIntersectionObserver.instances = [];
 });
 
 describe("RelationPicker", () => {
@@ -280,6 +329,44 @@ describe("RelationPicker", () => {
     });
 
     expect(option("Beta").getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("the picker loads more candidates when scrolled to the end", () => {
+    vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
+    const fetchNextPage = answerPagedCandidates([titled(1, 25), titled(26, 30)]);
+    renderPicker();
+    expect(screen.getAllByRole("option")).toHaveLength(25);
+    expect(fetchNextPage).not.toHaveBeenCalled();
+
+    const observer = watchingObserver();
+    expect(observer?.options?.root).toBe(screen.getByRole("listbox"));
+    act(() => observer!.intersect());
+
+    expect(fetchNextPage).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole("option")).toHaveLength(30);
+    expect(watchingObserver()).toBeUndefined();
+  });
+
+  it("arrow keys continue into the next page of candidates", () => {
+    vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
+    const fetchNextPage = answerPagedCandidates([titled(1, 25), titled(26, 30)]);
+    const { input } = renderPicker();
+    const highlighted = () => input.getAttribute("aria-activedescendant");
+
+    fireEvent.keyDown(input, { key: "End" });
+    expect(highlighted()).toBe(option("Row 25").id);
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+
+    expect(fetchNextPage).toHaveBeenCalledTimes(1);
+    expect(highlighted()).toBe(option("Row 25").id);
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(highlighted()).toBe(option("Row 26").id);
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(relationQueries.mutateAsync).toHaveBeenCalledWith({
+      rowId: "r1",
+      propertyId: "rel",
+      add: ["r26"],
+    });
   });
 
   it("shows No matching rows when the search finds nothing", () => {

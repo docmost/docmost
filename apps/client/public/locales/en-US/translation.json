@@ -2412,5 +2412,6 @@
   "Up to {{max}} rows": "Up to {{max}} rows",
   "Show all {{count}} links for {{name}}": "Show all {{count}} links for {{name}}",
   "Add a link for {{name}}": "Add a link for {{name}}",
-  "Link rows for {{name}}": "Link rows for {{name}}"
+  "Link rows for {{name}}": "Link rows for {{name}}",
+  "Show more links for {{name}}": "Show more links for {{name}}"
 }

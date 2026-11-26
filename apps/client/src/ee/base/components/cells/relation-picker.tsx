@@ -12,11 +12,11 @@ import type {
 } from "@/ee/base/types/base.types";
 import type { RelationCandidate } from "@/ee/base/services/base-relation-service";
 import {
-  useRelationCandidatesQuery,
+  useRelationCandidatesInfiniteQuery,
   useUpdateRelationLinksMutation,
 } from "@/ee/base/queries/base-relation-query";
 import { useResolvedPages } from "@/ee/base/queries/base-page-resolver-query";
-import { useListKeyboardNav } from "@/ee/base/hooks/use-list-keyboard-nav";
+import { useInfiniteListKeyboardNav } from "@/ee/base/hooks/use-infinite-list-keyboard-nav";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 
 type RelationPickerProps = {
@@ -54,14 +54,20 @@ export function RelationPicker({
   const baseTitle = useResolvedPages(baseIds).pages.get(targetBaseId)?.title || t("Untitled");
   const searchLabel = t("Search {{base}}", { base: baseTitle });
 
-  const { data, error } = useRelationCandidatesQuery({
+  const {
+    data,
+    error,
+    hasNextPage,
+    isFetching,
+    fetchNextPage,
+  } = useRelationCandidatesInfiniteQuery({
     pageId,
     propertyId: property.id,
     rowId,
     query,
     enabled: !preview?.restricted,
   });
-  const candidates = data?.items ?? [];
+  const candidates = data ?? [];
   const noAccess =
     preview?.restricted ||
     (isAxiosError(error) && [403, 404].includes(error.response?.status ?? 0));
@@ -70,8 +76,12 @@ export function RelationPicker({
   const chips = (preview?.rows ?? []).filter((row) => linkedById[row.id] !== false);
   const hiddenCount = (preview?.count ?? 0) - (preview?.rows.length ?? 0);
 
-  const { activeIndex, setActiveIndex, handleNavKey, setOptionRef } =
-    useListKeyboardNav(candidates.length, [query]);
+  const { activeIndex, setActiveIndex, handleNavKey, setOptionRef, listEndRef } =
+    useInfiniteListKeyboardNav(candidates.length, [query], {
+      hasNextPage,
+      isFetching,
+      fetchNextPage,
+    });
   const optionId = (index: number) => `${listboxId}-${index}`;
 
   const isLinked = (candidate: RelationCandidate) =>
@@ -193,8 +203,11 @@ export function RelationPicker({
                 </div>
               );
             })}
-            {data && candidates.length === 0 && (
+            {data && candidates.length === 0 && !hasNextPage && (
               <div className={cellClasses.personDropdownHint}>{t("No matching rows")}</div>
+            )}
+            {hasNextPage && (
+              <div ref={listEndRef} aria-hidden className={cellClasses.selectDropdownEnd} />
             )}
           </>
         )}

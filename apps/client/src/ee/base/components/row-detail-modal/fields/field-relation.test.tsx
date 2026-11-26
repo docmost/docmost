@@ -127,7 +127,7 @@ afterEach(() => {
 });
 
 describe("FieldRelation", () => {
-  it("field shows every preview row and loads the rest on Show all", async () => {
+  it("Show all loads one page and Show more loads the next", async () => {
     vi.mocked(listRelationRows).mockImplementation(async ({ cursor }) =>
       cursor === "c1"
         ? { items: linked(51, 60), meta: { hasNextPage: false, nextCursor: null } as never }
@@ -145,16 +145,28 @@ describe("FieldRelation", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Show all 60 links for Projects" }));
 
-    await waitFor(() => expect(screen.getByText("Row 60")).toBeTruthy());
-    expect(screen.getAllByRole("link", { name: /^Open Row/ })).toHaveLength(60);
+    const showMore = await screen.findByRole("button", { name: "Show more links for Projects" });
+    expect(showMore.textContent).toBe("Show more");
+    expect(screen.getAllByRole("link", { name: /^Open Row/ })).toHaveLength(50);
+    expect(listRelationRows).toHaveBeenCalledTimes(1);
+
+    act(() => showMore.focus());
+    fireEvent.click(showMore);
+
+    await waitFor(() =>
+      expect(screen.getAllByRole("link", { name: /^Open Row/ })).toHaveLength(60),
+    );
     expect(listRelationRows).toHaveBeenCalledTimes(2);
     expect(listRelationRows).toHaveBeenLastCalledWith(
       expect.objectContaining({ pageId: "base-1", rowId: "r1", propertyId: "rel", cursor: "c1" }),
     );
-    expect(screen.queryByRole("button", { name: /^Show all/ })).toBeNull();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole("link", { name: "Open Row 51" })),
+    );
+    expect(screen.queryByRole("button", { name: /^Show (all|more)/ })).toBeNull();
   });
 
-  it("Show all stops at a failed page and its button retries it", async () => {
+  it("Show more stays on a failed page and retries it", async () => {
     vi.mocked(listRelationRows)
       .mockResolvedValueOnce({
         items: linked(1, 50),
@@ -168,16 +180,18 @@ describe("FieldRelation", () => {
     renderField({ count: 60, rows: linked(1, 10) });
 
     fireEvent.click(screen.getByRole("button", { name: "Show all 60 links for Projects" }));
-    await screen.findByText("Row 50");
+    const showMore = await screen.findByRole("button", { name: "Show more links for Projects" });
+    fireEvent.click(showMore);
     await waitFor(() => expect(listRelationRows).toHaveBeenCalledTimes(2));
-    const retry = await screen.findByRole("button", { name: "Show all 60 links for Projects" });
-    expect(listRelationRows).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(showMore.getAttribute("aria-busy")).toBeNull());
+    expect(screen.queryByText("Row 51")).toBeNull();
 
-    fireEvent.click(retry);
+    fireEvent.click(screen.getByRole("button", { name: "Show more links for Projects" }));
 
     await waitFor(() => expect(screen.getByText("Row 60")).toBeTruthy());
+    expect(listRelationRows).toHaveBeenCalledTimes(3);
     expect(listRelationRows).toHaveBeenLastCalledWith(expect.objectContaining({ cursor: "c1" }));
-    expect(screen.queryByRole("button", { name: /^Show all/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Show (all|more)/ })).toBeNull();
   });
 
   it("Show all keeps keyboard focus in the field", async () => {

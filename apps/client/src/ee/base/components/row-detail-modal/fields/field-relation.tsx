@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Popover } from "@mantine/core";
 import { IconPlus, IconX } from "@tabler/icons-react";
@@ -25,10 +25,10 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
   const [expanded, setExpanded] = useState(false);
   // rows unlinked here, hidden until the rows stop listing them
   const [unlinkedIds, setUnlinkedIds] = useState<string[]>([]);
-  // first chip Show all loads; keyboard focus moves to it once it renders
+  // first chip a page request adds; keyboard focus moves to it once it renders
   const [focusChipIndex, setFocusChipIndex] = useState<number | null>(null);
   const chipsRef = useRef<HTMLDivElement>(null);
-  const showAllRef = useRef<HTMLButtonElement>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
   const addLinkRef = useRef<HTMLButtonElement>(null);
   const rowHref = useRelationRowHref(targetBaseId);
   const updateLinks = useUpdateRelationLinksMutation(property.pageId);
@@ -38,7 +38,7 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
     propertyId: property.id,
     enabled: expanded,
   });
-  const { hasNextPage, isFetching, isError, fetchNextPage, refetch } = list;
+  const { hasNextPage, isFetching, fetchNextPage, refetch } = list;
   const listData = expanded ? list.data : undefined;
 
   const linkedRows = useMemo(
@@ -50,17 +50,14 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
     setUnlinkedIds((ids) => ids.filter((id) => linkedRows.some((row) => row.id === id)));
   }, [linkedRows]);
 
-  useEffect(() => {
-    if (expanded && hasNextPage && !isFetching && !isError) fetchNextPage();
-  }, [expanded, hasNextPage, isFetching, isError, fetchNextPage]);
-
-  useEffect(() => {
-    if (focusChipIndex === null || !listData) return;
-    if (document.activeElement === showAllRef.current) {
+  // runs before paint, so the control never shows between the new page and the hand-off
+  useLayoutEffect(() => {
+    if (focusChipIndex === null || !listData || isFetching) return;
+    if (document.activeElement === moreRef.current) {
       chipsRef.current?.children[focusChipIndex]?.querySelector<HTMLElement>("a, button")?.focus();
     }
     setFocusChipIndex(null);
-  }, [focusChipIndex, listData]);
+  }, [focusChipIndex, listData, isFetching]);
 
   if (preview?.restricted) {
     return (
@@ -84,10 +81,8 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
 
   const count = preview?.count ?? 0;
   const visibleRows = linkedRows.filter((row) => !unlinkedIds.includes(row.id));
-  // stays until the list and the focus hand-off are done, and retries a failed request
-  const showAll = expanded
-    ? !listData || isError || focusChipIndex !== null
-    : count > linkedRows.length;
+  // Show all until its first page is in (and retries it), then Show more while pages remain
+  const moreToLoad = expanded ? !listData || hasNextPage : count > linkedRows.length;
 
   const chips = (
     <div ref={chipsRef} className={classes.fieldChips}>
@@ -124,24 +119,27 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
           </span>
         );
       })}
-      {showAll && (
+      {(moreToLoad || focusChipIndex !== null) && (
         <button
-          ref={showAllRef}
+          ref={moreRef}
           type="button"
           className={classes.fieldChipButton}
-          aria-label={t("Show all {{count}} links for {{name}}", { count, name: property.name })}
+          aria-label={
+            listData
+              ? t("Show more links for {{name}}", { name: property.name })
+              : t("Show all {{count}} links for {{name}}", { count, name: property.name })
+          }
+          aria-busy={isFetching || undefined}
           onClick={(e) => {
             e.stopPropagation();
-            if (!expanded) {
-              setFocusChipIndex(visibleRows.length);
-              setExpanded(true);
-            } else if (!isFetching) {
-              if (hasNextPage) fetchNextPage();
-              else refetch();
-            }
+            if (isFetching) return;
+            setFocusChipIndex(visibleRows.length);
+            if (!expanded) setExpanded(true);
+            else if (!listData) refetch();
+            else fetchNextPage();
           }}
         >
-          {t("Show all ({{count}})", { count })}
+          {listData ? t("Show more") : t("Show all ({{count}})", { count })}
         </button>
       )}
       {!readOnly && (

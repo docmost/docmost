@@ -88,7 +88,7 @@ export function useUpdateRelationLinksMutation(pageId: string) {
   });
 }
 
-export function useRelationCandidatesQuery(args: {
+export function useRelationCandidatesInfiniteQuery(args: {
   pageId: string;
   propertyId: string;
   rowId?: string;
@@ -96,9 +96,13 @@ export function useRelationCandidatesQuery(args: {
   enabled: boolean;
 }) {
   const { pageId, propertyId, rowId, query, enabled } = args;
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["base-relations", "candidates", pageId, propertyId, rowId ?? null, query],
-    queryFn: () => searchRelationCandidates({ pageId, propertyId, rowId, query }),
+    queryFn: ({ pageParam }) =>
+      searchRelationCandidates({ pageId, propertyId, rowId, query, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.meta.nextCursor ?? undefined,
+    select: (data) => data.pages.flatMap((page) => page.items),
     enabled,
     staleTime: 15_000,
     // linked flags go stale on every link change, so reopening must refetch

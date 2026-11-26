@@ -27,7 +27,7 @@ import {
 import type { IBaseRow, RelationPreview } from "@/ee/base/types/base.types";
 import {
   patchRelationPreviews,
-  useRelationCandidatesQuery,
+  useRelationCandidatesInfiniteQuery,
   useUpdateRelationLinksMutation,
 } from "./base-relation-query";
 
@@ -117,7 +117,10 @@ describe("relation queries", () => {
       defaultOptions: { queries: { refetchOnMount: false, retry: false } },
     });
     const key = ["base-relations", "candidates", "p1", "rel", "r1", ""];
-    client.setQueryData(key, { items: [{ id: "t0", title: "T0", linked: false }], meta: {} });
+    client.setQueryData(key, {
+      pages: [{ items: [{ id: "t0", title: "T0", linked: false }], meta: {} }],
+      pageParams: [undefined],
+    });
     await client.invalidateQueries({ queryKey: key, refetchType: "none" });
     vi.mocked(searchRelationCandidates).mockResolvedValue({
       items: [{ id: "t0", title: "T0", linked: true }],
@@ -126,7 +129,7 @@ describe("relation queries", () => {
 
     const { result } = renderHook(
       () =>
-        useRelationCandidatesQuery({
+        useRelationCandidatesInfiniteQuery({
           pageId: "p1",
           propertyId: "rel",
           rowId: "r1",
@@ -140,6 +143,40 @@ describe("relation queries", () => {
       },
     );
 
-    await waitFor(() => expect(result.current.data?.items[0].linked).toBe(true));
+    await waitFor(() => expect(result.current.data?.[0].linked).toBe(true));
+  });
+
+  it("candidate pages continue from the last page's cursor", async () => {
+    const meta = (nextCursor: string | null) => ({
+      limit: 25,
+      hasNextPage: nextCursor !== null,
+      hasPrevPage: false,
+      nextCursor,
+      prevCursor: null,
+    });
+    vi.mocked(searchRelationCandidates)
+      .mockResolvedValueOnce({ items: [{ id: "t0", title: "T0" }], meta: meta("c1") })
+      .mockResolvedValueOnce({ items: [{ id: "t1", title: "T1" }], meta: meta(null) });
+
+    const { result } = renderHook(
+      () =>
+        useRelationCandidatesInfiniteQuery({
+          pageId: "p1",
+          propertyId: "rel",
+          query: "be",
+          enabled: true,
+        }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.hasNextPage).toBe(true));
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+
+    expect(searchRelationCandidates).toHaveBeenLastCalledWith(
+      expect.objectContaining({ pageId: "p1", propertyId: "rel", query: "be", cursor: "c1" }),
+    );
+    await waitFor(() => expect(result.current.data?.map((row) => row.id)).toEqual(["t0", "t1"]));
+    expect(result.current.hasNextPage).toBe(false);
   });
 });

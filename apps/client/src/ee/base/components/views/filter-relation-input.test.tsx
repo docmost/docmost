@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { MantineProvider } from "@mantine/core";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IBaseProperty } from "@/ee/base/types/base.types";
 import type { ResolvedPage } from "@/ee/base/queries/base-page-resolver-query";
@@ -20,7 +21,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 vi.mock("@/ee/base/queries/base-relation-query", () => ({
-  useRelationCandidatesQuery: (args: unknown) => mocks.candidates(args),
+  useRelationCandidatesInfiniteQuery: (args: unknown) => mocks.candidates(args),
   useResolveRelationRows: (args: unknown) => mocks.resolve(args),
 }));
 vi.mock("@/ee/base/queries/base-page-resolver-query", () => ({
@@ -58,6 +59,34 @@ const rows = [
   { id: "b", title: "Beta" },
 ];
 
+class FakeIntersectionObserver {
+  static instances: FakeIntersectionObserver[] = [];
+  observed: Element[] = [];
+  constructor(
+    private callback: IntersectionObserverCallback,
+    readonly options?: IntersectionObserverInit,
+  ) {
+    FakeIntersectionObserver.instances.push(this);
+  }
+  observe(target: Element) {
+    this.observed.push(target);
+  }
+  unobserve() {}
+  disconnect() {
+    this.observed = [];
+  }
+  takeRecords() {
+    return [];
+  }
+  intersect() {
+    const entries = this.observed.map((target) => ({ target, isIntersecting: true }));
+    this.callback(entries as IntersectionObserverEntry[], this as unknown as IntersectionObserver);
+  }
+}
+
+const watchingObserver = () =>
+  FakeIntersectionObserver.instances.find((observer) => observer.observed.length > 0);
+
 function renderInput(value: string[] | undefined) {
   const onChange = vi.fn();
   const view = (next: string[] | undefined) => (
@@ -72,7 +101,7 @@ function renderInput(value: string[] | undefined) {
 beforeEach(() => {
   mocks.pages = new Map([["b2", projects]]);
   mocks.candidates.mockReset();
-  mocks.candidates.mockReturnValue({ data: { items: rows, meta: {} }, error: null });
+  mocks.candidates.mockReturnValue({ data: rows, error: null });
   mocks.resolve.mockReset();
   mocks.resolve.mockImplementation(({ rowIds }: { rowIds: string[] }) => ({
     data: { items: rows.filter((row) => rowIds.includes(row.id)) },
@@ -93,7 +122,11 @@ beforeEach(() => {
     })),
   });
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  FakeIntersectionObserver.instances = [];
+});
 
 describe("FilterRelationInput", () => {
   it("filter input emits selected ids and clears to undefined", () => {
@@ -146,6 +179,43 @@ describe("FilterRelationInput", () => {
     expect(screen.getByRole("option", { name: "Alpha" }).getAttribute("aria-disabled")).toBeNull();
     fireEvent.click(screen.getByRole("option", { name: "Alpha" }));
     expect(onChange).toHaveBeenLastCalledWith([...full.slice(1), "a"]);
+  });
+
+  it("the filter input loads more candidates when scrolled to the end", () => {
+    vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
+    const page = (from: number, to: number) =>
+      Array.from({ length: to - from + 1 }, (_, i) => ({ id: `r${from + i}`, title: `Row ${from + i}` }));
+    const pages = [page(1, 25), page(26, 30)];
+    const fetchNextPage = vi.fn();
+    mocks.candidates.mockImplementation(function useFakeCandidates() {
+      const [loaded, setLoaded] = useState(1);
+      fetchNextPage.mockImplementation(() => setLoaded((n) => n + 1));
+      return {
+        data: pages.slice(0, loaded).flat(),
+        error: null,
+        hasNextPage: loaded < pages.length,
+        isFetching: false,
+        fetchNextPage,
+      };
+    });
+    // every row of the first page is already picked, so the list can't scroll
+    renderInput(pages[0].map((row) => row.id));
+
+    fireEvent.click(screen.getByRole("button", { name: "Select" }));
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(screen.queryByText("No matching rows")).toBeNull();
+    const observer = watchingObserver();
+    expect(observer?.options?.root).toBe(screen.getByRole("listbox"));
+    act(() => observer!.intersect());
+
+    expect(fetchNextPage).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "Row 26",
+      "Row 27",
+      "Row 28",
+      "Row 29",
+      "Row 30",
+    ]);
   });
 
   it("shows No access instead of a search when the other base can't be opened", () => {
