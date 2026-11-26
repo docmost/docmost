@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Agent, Dispatcher } from 'undici';
-import { OutboundUrlGuard } from './outbound-url.guard';
+import { createEnvProxyAgent, hasProxyEnv } from '../../common/proxy-fetch';
+import {
+  OutboundUrlGuard,
+  OutboundValidateOptions,
+} from './outbound-url.guard';
 
 export const OUTBOUND_REQUEST_TIMEOUT_MS = 10_000;
 
@@ -14,8 +18,16 @@ export type AgentLease = {
   release: () => Promise<void>;
 };
 
+export type OutboundLeaseOptions = OutboundValidateOptions & {
+  viaProxy?: boolean; // Uses HTTP(S)_PROXY when set; hosts it skips still connect to the pinned address.
+};
+
 export type IOutboundAgentFactory = {
-  lease(url: string, tls?: OutboundTlsOptions): Promise<AgentLease>;
+  lease(
+    url: string,
+    tls?: OutboundTlsOptions,
+    options?: OutboundLeaseOptions,
+  ): Promise<AgentLease>;
 };
 
 /** Creates a per-request agent pinned to the address validated by the SSRF guard. */
@@ -23,8 +35,14 @@ export type IOutboundAgentFactory = {
 export class OutboundAgentFactory implements IOutboundAgentFactory {
   constructor(private readonly urlGuard: OutboundUrlGuard) {}
 
-  async lease(url: string, tls?: OutboundTlsOptions): Promise<AgentLease> {
-    const pinned = await this.urlGuard.validate(url);
+  async lease(
+    url: string,
+    tls?: OutboundTlsOptions,
+    leaseOptions?: OutboundLeaseOptions,
+  ): Promise<AgentLease> {
+    const pinned = await this.urlGuard.validate(url, {
+      publicOnly: leaseOptions?.publicOnly,
+    });
 
     const lookup = (_hostname: string, options: any, callback: any) => {
       if (options?.all) {
@@ -34,7 +52,7 @@ export class OutboundAgentFactory implements IOutboundAgentFactory {
       }
     };
 
-    const agent = new Agent({
+    const agentOptions: Agent.Options = {
       connect: {
         ca: tls?.caCert || undefined,
         rejectUnauthorized: tls?.rejectUnauthorized ?? true,
@@ -43,7 +61,11 @@ export class OutboundAgentFactory implements IOutboundAgentFactory {
       },
       headersTimeout: OUTBOUND_REQUEST_TIMEOUT_MS,
       bodyTimeout: OUTBOUND_REQUEST_TIMEOUT_MS,
-    });
+    };
+    const agent =
+      leaseOptions?.viaProxy && hasProxyEnv()
+        ? createEnvProxyAgent(agentOptions)
+        : new Agent(agentOptions);
 
     return {
       dispatcher: agent,

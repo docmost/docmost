@@ -10,6 +10,7 @@ import {
 } from 'docx';
 import { Node } from 'prosemirror-model';
 import { sanitizeIntegrationUrl } from '../integration-link/integration-link';
+import { sanitizeLinkPreviewUrl } from '../link-preview/link-preview';
 import { getFileNameFromUrl } from '../media-utils';
 import { sanitizeMicrosoftFileItems } from '../microsoft/microsoft-file';
 import { sanitizeMicrosoftFolderUrl } from '../microsoft/microsoft-folder';
@@ -98,6 +99,29 @@ const renderIntegrationCard: NodeSerializerAsync[string] = async (
   index,
 ) => {
   await renderIntegrationMention(state, node, parent, index);
+  state.closeBlock(node);
+};
+
+const renderLinkMention: NodeSerializerAsync[string] = (state, node) => {
+  const url = sanitizeLinkPreviewUrl(node.attrs?.url);
+  if (!url) return;
+  const title =
+    typeof node.attrs?.title === 'string' ? node.attrs.title.trim() : '';
+  state.current.push(
+    new ExternalHyperlink({
+      link: url,
+      children: [new TextRun({ text: title || url, style: 'Hyperlink' })],
+    }),
+  );
+};
+
+const renderLinkCard: NodeSerializerAsync[string] = async (
+  state,
+  node,
+  parent,
+  index,
+) => {
+  await renderLinkMention(state, node, parent, index);
   state.closeBlock(node);
 };
 
@@ -223,6 +247,8 @@ export const defaultAsyncNodes: NodeSerializerAsync = {
   youtube: renderEmbedLine,
   integrationCard: renderIntegrationCard,
   integrationMention: renderIntegrationMention,
+  linkCard: renderLinkCard,
+  linkMention: renderLinkMention,
   microsoftFolder: renderMicrosoftFolder,
   microsoftFile: renderMicrosoftFile,
   async callout(state, node) {

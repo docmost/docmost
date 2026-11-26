@@ -1,4 +1,13 @@
-import { IntegrationCard, IntegrationMention } from "@docmost/editor-ext";
+import {
+  CustomTable,
+  IntegrationCard,
+  IntegrationMention,
+  LinkCard,
+  LinkMention,
+  TableCell,
+  TableHeader,
+  TableRow,
+} from "@docmost/editor-ext";
 import { Editor, Node, type JSONContent } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,7 +21,26 @@ import {
   convertIntegrationDisplay,
   type IntegrationDisplay,
 } from "@/features/editor/components/integration-link/integration-display";
+import {
+  LinkPasteMenuExtension,
+  linkPasteMenuKey,
+} from "@/features/editor/extensions/link-paste-menu";
 import { handlePaste } from "./editor-paste-handler";
+import { uploadImageAction } from "@/features/editor/components/image/upload-image-action.tsx";
+import { uploadVideoAction } from "@/features/editor/components/video/upload-video-action.tsx";
+import { uploadAttachmentAction } from "../attachment/upload-attachment-action";
+import { uploadPdfAction } from "../pdf/upload-pdf-action";
+
+vi.mock("@/features/editor/components/image/upload-image-action.tsx", () => ({
+  uploadImageAction: vi.fn(),
+}));
+vi.mock("@/features/editor/components/video/upload-video-action.tsx", () => ({
+  uploadVideoAction: vi.fn(),
+}));
+vi.mock("../attachment/upload-attachment-action", () => ({
+  uploadAttachmentAction: vi.fn(),
+}));
+vi.mock("../pdf/upload-pdf-action", () => ({ uploadPdfAction: vi.fn() }));
 
 vi.mock("@/main.tsx", async () => {
   const { QueryClient } = await import("@tanstack/react-query");
@@ -59,8 +87,10 @@ const Footnote = Node.create({
 });
 
 let editor: Editor;
+let pasteFiles: File[] = [];
 
-function createEditor(content: object[], cursor: number) {
+function createEditor(content: object[], cursor: number, files: File[] = []) {
+  pasteFiles = files;
   editor = new Editor({
     extensions: [
       TiptapDocument,
@@ -70,6 +100,14 @@ function createEditor(content: object[], cursor: number) {
       IntegrationCard,
       IntegrationMention,
       IntegrationPasteMenuExtension,
+      LinkCard,
+      LinkMention,
+      LinkPasteMenuExtension,
+      CustomTable,
+      TableRow,
+      // The real cells list block nodes this harness doesn't register.
+      TableCell.extend({ content: "paragraph+" }),
+      TableHeader.extend({ content: "paragraph+" }),
     ],
     content: { type: "doc", content },
   });
@@ -82,7 +120,7 @@ function paste(text: string, html = "") {
     clipboardData: {
       getData: (type: string) =>
         type === "text/plain" ? text : type === "text/html" ? html : "",
-      files: [],
+      files: pasteFiles,
     },
     preventDefault: vi.fn(),
   };
@@ -154,10 +192,16 @@ describe("handlePaste integration links", () => {
     });
   });
 
-  it("pastes a GitHub-like path on a host GitHub does not serve as a link", () => {
+  it("pastes a GitHub-like path on a host GitHub does not serve as a plain link", () => {
     createEditor([paragraph(text("Hello"))], 6);
 
-    expectPassThrough("https://gitea.example.com/team/app/pulls/7");
+    const { handled } = paste("https://gitea.example.com/team/app/pulls/7");
+
+    expect(handled).toBe(true);
+    expect(hasIntegrationCard()).toBe(false);
+    expect(linkPasteMenuKey.getState(editor.state)?.url).toBe(
+      "https://gitea.example.com/team/app/pulls/7",
+    );
   });
 
   it.each(["integrationCard", "integrationMention"])(
@@ -331,6 +375,7 @@ describe("handlePaste integration links", () => {
     );
 
     expectPassThrough();
+    expect(linkPasteMenuKey.getState(editor.state)).toBeNull();
   });
 
   it("leaves an inline code paste to the default handler", () => {
@@ -338,5 +383,238 @@ describe("handlePaste integration links", () => {
 
     expect(editor.isActive("code")).toBe(true);
     expectPassThrough();
+  });
+});
+
+describe("handlePaste plain external links", () => {
+  const URL_ = "https://example.com/some/page";
+  const linked = (value: string) =>
+    text(value, [{ type: "link", attrs: { href: value } }]);
+
+  beforeEach(() => {
+    queryClient.setQueryData(
+      ["installed-integrations"],
+      [{ type: "github", unfurlHosts: ["github.com"] }],
+    );
+  });
+
+  afterEach(() => {
+    editor?.destroy();
+    queryClient.clear();
+  });
+
+  function expectLinkWithMenu(url = URL_, from = 7) {
+    const { handled, preventDefault } = paste(url);
+    expect(handled).toBe(true);
+    expect(preventDefault).toHaveBeenCalled();
+    expect(linkPasteMenuKey.getState(editor.state)).toEqual({
+      from,
+      to: from + url.length,
+      url,
+    });
+    expect(editor.state.selection.from).toBe(from + url.length);
+  }
+
+  it("a bare external URL pastes as a link and opens Paste as", () => {
+    createEditor([paragraph(text("Hello "))], 7);
+
+    expectLinkWithMenu();
+
+    expect(editor.getJSON().content).toMatchObject([
+      paragraph(text("Hello "), linked(URL_)),
+    ]);
+  });
+
+  it("a URL with other words pastes normally", () => {
+    createEditor([paragraph(text("Hello "))], 7);
+    const before = editor.getJSON();
+
+    const { handled, preventDefault } = paste(`see ${URL_}`);
+
+    expect(handled).toBe(false);
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(editor.getJSON()).toEqual(before);
+  });
+
+  it("two URLs paste normally", () => {
+    createEditor([paragraph(text("Hello "))], 7);
+
+    const { handled } = paste(`${URL_} ${URL_}`);
+
+    expect(handled).toBe(false);
+    expect(linkPasteMenuKey.getState(editor.state)).toBeNull();
+  });
+
+  it.each([`${URL_}.`, `${URL_},`, `${URL_})`])(
+    "%s, whose last character is not part of the link, pastes normally",
+    (pasted) => {
+      createEditor([paragraph(text("Hello "))], 7);
+      const before = editor.getJSON();
+
+      const { handled, preventDefault } = paste(pasted);
+
+      expect(handled).toBe(false);
+      expect(preventDefault).not.toHaveBeenCalled();
+      expect(editor.getJSON()).toEqual(before);
+    },
+  );
+
+  it.each(["https://en.wikipedia.org/wiki/Foo_(bar)", "http://wiki/page"])(
+    "%s pastes as a link and opens Paste as",
+    (url) => {
+      createEditor([paragraph(text("Hello "))], 7);
+
+      expectLinkWithMenu(url);
+    },
+  );
+
+  it("a URL with a trailing newline is trimmed and handled", () => {
+    createEditor([paragraph(text("Hello "))], 7);
+
+    const { handled } = paste(`${URL_}\n`);
+
+    expect(handled).toBe(true);
+    expect(linkPasteMenuKey.getState(editor.state)?.url).toBe(URL_);
+    expect(editor.getJSON().content).toMatchObject([
+      paragraph(text("Hello "), linked(URL_)),
+    ]);
+  });
+
+  it("a URL over a selection links the selection without the menu", () => {
+    createEditor([paragraph(text("Hello world"))], 1);
+    editor.commands.setTextSelection({ from: 1, to: 6 });
+
+    const { handled } = paste(URL_);
+
+    expect(handled).toBe(false);
+    expect(linkPasteMenuKey.getState(editor.state)).toBeNull();
+  });
+
+  it("an installed integration URL still pastes as a card", () => {
+    createEditor([paragraph(text("Hello"))], 6);
+
+    const { handled } = paste(PR_URL);
+
+    expect(handled).toBe(true);
+    expect(hasIntegrationCard()).toBe(true);
+    expect(linkPasteMenuKey.getState(editor.state)).toBeNull();
+  });
+
+  it("a page link copied from another Docmost host gets the menu", () => {
+    createEditor([paragraph(text("Hello "))], 7);
+
+    expectLinkWithMenu("https://other.example.com/s/general/p/page-slug123");
+  });
+
+  it("a same-host page link with a trailing newline is not offered Paste as", () => {
+    createEditor([paragraph(text("Hello "))], 7);
+
+    paste(`https://${window.location.host}/s/general/p/page-slug123\n`);
+
+    expect(linkPasteMenuKey.getState(editor.state)).toBeNull();
+  });
+
+  it("a copied Microsoft folder node pastes back as the node", () => {
+    createEditor([paragraph(text("Hello "))], 7);
+
+    const { handled } = paste(
+      "https://contoso.sharepoint.com/sites/team/Shared%20Documents/Folder",
+      '<p data-pm-slice="1 1 []"><span data-type="sharepointFolder" data-url="x"></span></p>',
+    );
+
+    expect(handled).toBe(false);
+    expect(linkPasteMenuKey.getState(editor.state)).toBeNull();
+  });
+
+  it("a URL in inline code pastes as text", () => {
+    createEditor([paragraph(text("run "), text("cmd", [{ type: "code" }]))], 6);
+    const before = editor.getJSON();
+
+    const { handled, preventDefault } = paste(URL_);
+
+    expect(handled).toBe(false);
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(editor.getJSON()).toEqual(before);
+  });
+
+  it("a URL in a code block pastes as text", () => {
+    createEditor([{ type: "codeBlock", content: [text("const a = 1;")] }], 4);
+
+    const { handled } = paste(URL_);
+
+    expect(handled).toBe(false);
+    expect(linkPasteMenuKey.getState(editor.state)).toBeNull();
+  });
+
+  it.each(["linkCard", "linkMention"])(
+    "a copied %s pastes back as the node",
+    (type) => {
+      createEditor([paragraph(text("Hello "))], 7);
+
+      const { handled } = paste(
+        URL_,
+        `<p data-pm-slice="1 1 []"><span data-type="${type}" data-url="${URL_}"></span></p>`,
+      );
+
+      expect(handled).toBe(false);
+      expect(linkPasteMenuKey.getState(editor.state)).toBeNull();
+    },
+  );
+
+  it("files on the clipboard go to the upload path", () => {
+    createEditor(
+      [paragraph(text("Hello "))],
+      7,
+      [new File(["x"], "a.bin", { type: "application/octet-stream" })],
+    );
+
+    const { handled } = paste(URL_);
+
+    expect(handled).toBe(true);
+    expect(linkPasteMenuKey.getState(editor.state)).toBeNull();
+    expect(uploadImageAction).toHaveBeenCalled();
+    expect(uploadAttachmentAction).toHaveBeenCalled();
+    expect(uploadVideoAction).toHaveBeenCalled();
+    expect(uploadPdfAction).toHaveBeenCalled();
+  });
+
+  it("works in a heading", () => {
+    createEditor(
+      [{ type: "heading", attrs: { level: 2 }, content: [text("Title ")] }],
+      7,
+    );
+
+    expectLinkWithMenu();
+    expect(editor.getJSON().content?.[0].content).toMatchObject([
+      text("Title "),
+      linked(URL_),
+    ]);
+  });
+
+  it("works in a table cell", () => {
+    createEditor(
+      [
+        {
+          type: "table",
+          content: [
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableCell",
+                  content: [paragraph(text("Cell "))],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      1,
+    );
+    editor.commands.setTextSelection(6);
+    const from = editor.state.selection.from;
+    expect(editor.state.selection.$from.parent.textContent).toBe("Cell ");
+
+    expectLinkWithMenu(URL_, from);
   });
 });

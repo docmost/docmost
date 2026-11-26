@@ -13,6 +13,9 @@ export const OUTBOUND_LOOKUP = 'OUTBOUND_LOOKUP';
 export type ResolvedAddress = { address: string; family: number };
 export type LookupFn = (hostname: string) => Promise<ResolvedAddress[]>;
 export type PinnedAddress = { hostname: string; address: string; family: 4 | 6 };
+export type OutboundValidateOptions = {
+  publicOnly?: boolean; // Refuses every private and reserved address, whatever ALLOWED_PRIVATE_NETWORKS says.
+};
 
 /** A rejected URL. Only transient resolution failures are retryable. */
 export class OutboundUrlError extends Error {
@@ -73,6 +76,29 @@ HARD_BLOCKED.addSubnet('::', 128, 'ipv6');
 HARD_BLOCKED.addSubnet('fe80::', 10, 'ipv6');
 HARD_BLOCKED.addSubnet('ff00::', 8, 'ipv6');
 
+const NAT64_PREFIX = new BlockList();
+NAT64_PREFIX.addSubnet('64:ff9b::', 96, 'ipv6');
+
+/** The dotted IPv4 carried in the last 32 bits of a 64:ff9b::/96 address, else null. */
+export function embeddedNat64Ipv4(ip: string): string | null {
+  if (!isIPv6(ip) || !NAT64_PREFIX.check(ip, 'ipv6')) return null;
+  const text = ip.split('%')[0];
+  const tail = text.slice(text.lastIndexOf(':') + 1);
+  if (isIPv4(tail)) {
+    const [a, b, c, d] = tail.split('.').map(Number);
+    return `${a}.${b}.${c}.${d}`;
+  }
+  const [head, rest = ''] = text.split('::');
+  const headGroups = head ? head.split(':') : [];
+  const restGroups = rest ? rest.split(':') : [];
+  const groups = text.includes('::')
+    ? [...headGroups, ...Array(8 - headGroups.length - restGroups.length).fill('0'), ...restGroups]
+    : headGroups;
+  const high = parseInt(groups[6], 16);
+  const low = parseInt(groups[7], 16);
+  return `${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`;
+}
+
 /** Returns true for reserved or transition ranges. Invalid input is blocked. */
 export function isAlwaysBlockedAddress(ip: string): boolean {
   if (isIPv4(ip)) return ALWAYS_BLOCKED.check(ip, 'ipv4');
@@ -99,40 +125,43 @@ export function isPrivateAddress(ip: string): boolean {
   return isAlwaysBlockedAddress(ip) || isPrivateNetworkAddress(ip);
 }
 
-type Refusal = {
-  address: string;
-  kind: 'not-an-ip' | 'hard-blocked' | 'private' | 'reserved';
-};
+type Refusal = 'not-an-ip' | 'hard-blocked' | 'private' | 'reserved';
 
 function findRefusal(
   resolved: ResolvedAddress[],
   port: number,
   policy: OutboundNetworkPolicy,
 ): Refusal | undefined {
-  for (const { address } of resolved) {
+  for (const { address: resolvedAddress } of resolved) {
     // Reject invalid resolver output before policy checks.
-    if (!isIPv4(address) && !isIPv6(address)) return { address, kind: 'not-an-ip' };
-    if (isHardBlockedAddress(address)) return { address, kind: 'hard-blocked' };
-    if (policyNamesAddress(policy, address, port)) continue;
+    if (!isIPv4(resolvedAddress) && !isIPv6(resolvedAddress)) return 'not-an-ip';
+    const address = embeddedNat64Ipv4(resolvedAddress) ?? resolvedAddress;
+    if (isHardBlockedAddress(address)) return 'hard-blocked';
+    if (
+      policyNamesAddress(policy, address, port) ||
+      policyNamesAddress(policy, resolvedAddress, port)
+    ) {
+      continue;
+    }
     if (isPrivateNetworkAddress(address)) {
       if (policy.mode === 'all') continue;
-      return { address, kind: 'private' };
+      return 'private';
     }
-    if (isAlwaysBlockedAddress(address)) return { address, kind: 'reserved' };
+    if (isAlwaysBlockedAddress(address)) return 'reserved';
   }
   return undefined;
 }
 
-function describeRefusal(hostname: string, { address, kind }: Refusal): string {
-  if (kind === 'not-an-ip') {
-    return `Destination host "${hostname}" resolved to "${address}", which is not an IP address`;
+function describeRefusal(hostname: string, refusal: Refusal): string {
+  if (refusal === 'not-an-ip') {
+    return `Destination host "${hostname}" did not resolve to an IP address`;
   }
-  if (kind === 'hard-blocked') {
-    return `Destination host "${hostname}" resolves to a link-local, metadata or reserved address (${address}), which is never allowed`;
+  if (refusal === 'hard-blocked') {
+    return `Destination host "${hostname}" resolves to a link-local, metadata or reserved address, which is never allowed`;
   }
   const description =
-    kind === 'private' ? 'a private address' : 'a loopback or reserved address';
-  return `Destination host "${hostname}" resolves to ${description} (${address}). Set ALLOWED_PRIVATE_NETWORKS on the server to allow it`;
+    refusal === 'private' ? 'a private address' : 'a loopback or reserved address';
+  return `Destination host "${hostname}" resolves to ${description}. Set ALLOWED_PRIVATE_NETWORKS on the server to allow it`;
 }
 
 function effectivePort(url: URL): number {
@@ -169,7 +198,10 @@ export class OutboundUrlGuard {
   }
 
   /** Validates the URL and returns the address used to pin the connection. */
-  async validate(rawUrl: string): Promise<PinnedAddress> {
+  async validate(
+    rawUrl: string,
+    options?: OutboundValidateOptions,
+  ): Promise<PinnedAddress> {
     let url: URL;
     try {
       url = new URL(rawUrl);
@@ -209,11 +241,13 @@ export class OutboundUrlGuard {
       );
     }
 
-    if (isCloud) {
-      const blocked = resolved.find((r) => isPrivateAddress(r.address));
+    if (isCloud || options?.publicOnly) {
+      const blocked = resolved.some((r) =>
+        isPrivateAddress(embeddedNat64Ipv4(r.address) ?? r.address),
+      );
       if (blocked) {
         throw new OutboundUrlError(
-          `Destination host "${hostname}" resolves to a private or reserved address (${blocked.address}), which is not allowed`,
+          `Destination host "${hostname}" resolves to a private or reserved address, which is not allowed`,
         );
       }
     } else {

@@ -66,6 +66,8 @@ import {
   SharedStorage,
   IntegrationCard,
   IntegrationMention,
+  LinkCard,
+  LinkMention,
   MicrosoftFile,
   MicrosoftFolder,
   Columns,
@@ -116,7 +118,10 @@ import RecentlyUpdatedView from "@/features/editor/components/recently-updated/r
 import { PagesByLabelView } from "@/features/editor/components/pages-by-label/pages-by-label-view";
 import IntegrationCardView from "@/features/editor/components/integration-link/integration-card-view.tsx";
 import IntegrationMentionView from "@/features/editor/components/integration-link/integration-mention-view.tsx";
+import LinkCardView from "@/features/editor/components/link-preview/link-card-view.tsx";
+import LinkMentionView from "@/features/editor/components/link-preview/link-mention-view.tsx";
 import { IntegrationPasteMenuExtension } from "@/features/editor/extensions/integration-paste-menu";
+import { LinkPasteMenuExtension } from "@/features/editor/extensions/link-paste-menu";
 import { BasePasteMenuExtension } from "@/features/editor/extensions/base-paste-menu";
 import TabsView from "@/features/editor/components/tabs/tabs-view.tsx";
 import TransclusionView from "@/features/editor/components/transclusion/transclusion-view.tsx";
@@ -434,7 +439,14 @@ export const mainExtensions = [
   IntegrationMention.configure({
     view: IntegrationMentionView,
   }),
+  LinkCard.configure({
+    view: LinkCardView,
+  }),
+  LinkMention.configure({
+    view: LinkMentionView,
+  }),
   IntegrationPasteMenuExtension,
+  LinkPasteMenuExtension,
   BasePasteMenuExtension,
   MicrosoftFile.configure({
     view: MicrosoftFileView,

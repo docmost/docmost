@@ -6,7 +6,14 @@ import { createMentionAction } from "@/features/editor/components/link/internal-
 import { INTERNAL_LINK_REGEX } from "@/lib/constants.ts";
 import { Editor } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { matchIntegrationLink, type UploadTarget } from "@docmost/editor-ext";
+import { TextSelection } from "@tiptap/pm/state";
+import { find } from "linkifyjs";
+import {
+  isHttpUrl,
+  matchIntegrationLink,
+  type UploadTarget,
+} from "@docmost/editor-ext";
+import { linkPasteMenuKey } from "@/features/editor/extensions/link-paste-menu";
 import { integrationPasteMenuKey } from "@/features/editor/extensions/integration-paste-menu";
 import { canPlaceIntegrationCard } from "@/features/editor/components/integration-link/integration-display";
 import { queryClient } from "@/main.tsx";
@@ -30,6 +37,8 @@ const ATTACHMENT_URL_RE = /\/api\/files\/([0-9a-f-]+)\//;
 
 // copied cards and mentions paste back as nodes
 const INTEGRATION_NODE_HTML_RE = /data-type="integration(Card|Mention)"/;
+// any Docmost node HTML (cards, mentions, file nodes) pastes back as nodes
+const NODE_HTML_MARKER = 'data-type="';
 
 // Reads the cache the page editor prefetches; a cold cache pastes an ordinary link.
 function matchInstalledIntegrationLink(url: string) {
@@ -134,15 +143,19 @@ export const handlePaste = (
 
   // A query, such as a base's ?view=, still links to the same page.
   const pageLink = clipboardData.replace(/\?[^#]*/, "");
-  if (INTERNAL_LINK_REGEX.test(pageLink)) {
+  const { from: pos, empty } = editor.state.selection;
+  const url = pageLink.trim();
+  const match = INTERNAL_LINK_REGEX.test(pageLink)
+    ? INTERNAL_LINK_REGEX.exec(url)
+    : null;
+
+  // a /p/ link on another host is an ordinary link, handled below
+  if (match && (!empty || match[2] === window.location.host)) {
     // we have to do this validation here to allow the default link extension to takeover if needs be
     event.preventDefault();
-    const url = pageLink.trim();
-    const { from: pos, empty } = editor.state.selection;
-    const match = INTERNAL_LINK_REGEX.exec(url);
 
-    // pasted link must be from the same workspace/domain and must not be on a selection
-    if (!empty || match[2] !== window.location.host) {
+    // pasted link must not be on a selection
+    if (!empty) {
       // allow the default link extension to handle this
       return false;
     }
@@ -158,6 +171,36 @@ export const handlePaste = (
       creatorId,
       anchorId,
     );
+    return true;
+  }
+
+  const pastedUrl = clipboardData.trim();
+  const linkType = editor.schema.marks.link;
+  const { $from } = editor.state.selection;
+  if (
+    linkType &&
+    !integrationMatch &&
+    empty &&
+    isHttpUrl(pastedUrl) &&
+    // a trailing period or comma stays plain text, as in the default paste
+    find(pastedUrl).some((link) => link.isLink && link.value === pastedUrl) &&
+    !event.clipboardData.files?.length &&
+    !event.clipboardData.getData("text/html").includes(NODE_HTML_MARKER) &&
+    INTERNAL_LINK_REGEX.exec(pastedUrl)?.[2] !== window.location.host &&
+    $from.parent.isTextblock &&
+    $from.parent.type.allowsMarkType(linkType) &&
+    !editor.isActive("code")
+  ) {
+    event.preventDefault();
+    const { tr } = editor.state;
+    const from = tr.selection.from;
+    const to = from + pastedUrl.length;
+    tr.insertText(pastedUrl, from)
+      .addMark(from, to, linkType.create({ href: pastedUrl }))
+      .setSelection(TextSelection.create(tr.doc, to))
+      .setMeta(linkPasteMenuKey, { from, to, url: pastedUrl })
+      .scrollIntoView();
+    editor.view.dispatch(tr);
     return true;
   }
 
