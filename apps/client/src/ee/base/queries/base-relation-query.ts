@@ -76,6 +76,9 @@ export function useUpdateRelationLinksMutation(pageId: string) {
       queryClient.invalidateQueries({
         queryKey: ["base-relations", "list", pageId, variables.rowId, variables.propertyId],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["base-relations", "candidates", pageId, variables.propertyId, variables.rowId],
+      });
     },
     onError: (error) => {
       notifications.show({
@@ -99,6 +102,9 @@ export function useRelationCandidatesQuery(args: {
     queryFn: () => searchRelationCandidates({ pageId, propertyId, rowId, query }),
     enabled,
     staleTime: 15_000,
+    // linked flags go stale on every link change, so reopening must refetch
+    refetchOnMount: true,
+    placeholderData: keepPreviousData,
   });
 }
 

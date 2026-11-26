@@ -11,6 +11,9 @@ vi.mock("react-i18next", () => ({
     t: (key: string) => key,
   }),
 }));
+vi.mock("@/ee/base/queries/base-page-resolver-query", () => ({
+  useResolvedPages: () => ({ pages: new Map(), isLoading: false }),
+}));
 
 import { GridCell } from "./grid-cell";
 import type { IBaseProperty, IBaseRow, RelationPreview } from "@/ee/base/types/base.types";

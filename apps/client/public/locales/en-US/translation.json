@@ -2403,5 +2403,8 @@
   "Remove from {{base}}": "Remove from {{base}}",
   "Are you sure you want to remove this relation from {{base}}?": "Are you sure you want to remove this relation from {{base}}?",
   "Are you sure you want to remove this relation from {{base}}? Its {{name}} property will be deleted.": "Are you sure you want to remove this relation from {{base}}? Its {{name}} property will be deleted.",
-  "You can't edit {{base}}.": "You can't edit {{base}}."
+  "You can't edit {{base}}.": "You can't edit {{base}}.",
+  "Search {{base}}": "Search {{base}}",
+  "Linked": "Linked",
+  "No matching rows": "No matching rows"
 }

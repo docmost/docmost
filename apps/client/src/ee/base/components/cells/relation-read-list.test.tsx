@@ -1,12 +1,19 @@
 import { MantineProvider } from "@mantine/core";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ResolvedPage } from "@/ee/base/queries/base-page-resolver-query";
+
+const resolved = vi.hoisted(() => ({ pages: new Map<string, ResolvedPage | null>() }));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, values?: Record<string, unknown>) =>
       key.replace(/{{(\w+)}}/g, (_m, name) => String(values?.[name] ?? "")),
   }),
+}));
+vi.mock("@/ee/base/queries/base-page-resolver-query", () => ({
+  useResolvedPages: () => ({ pages: resolved.pages, isLoading: false }),
 }));
 
 import { RelationReadList } from "./relation-read-list";
@@ -27,6 +34,9 @@ beforeAll(() => {
     unobserve() {}
     disconnect() {}
   };
+});
+beforeEach(() => {
+  resolved.pages = new Map();
 });
 afterEach(cleanup);
 
@@ -58,5 +68,43 @@ describe("RelationReadList", () => {
     renderList(undefined);
     expect(screen.queryByText("No access")).toBeNull();
     expect(screen.queryByText(/^\+/)).toBeNull();
+  });
+
+  it("chips link to the other base's row without starting an edit", () => {
+    resolved.pages = new Map([
+      [
+        "b2",
+        {
+          id: "b2",
+          slugId: "s2",
+          title: "Projects",
+          icon: null,
+          spaceId: "sp",
+          space: { id: "sp", slug: "eng", name: "Engineering" },
+        },
+      ],
+    ]);
+    const onClick = vi.fn();
+    const onDoubleClick = vi.fn();
+    render(
+      <MemoryRouter>
+        <MantineProvider>
+          <div onClick={onClick} onDoubleClick={onDoubleClick}>
+            <RelationReadList
+              preview={{ count: 1, rows: [{ id: "a", title: "Alpha" }] }}
+              targetBaseId="b2"
+            />
+          </div>
+        </MantineProvider>
+      </MemoryRouter>,
+    );
+    const link = screen.getByRole("link", { name: "Open Alpha" });
+    expect(link.getAttribute("href")).toBe("/s/eng/p/projects-s2?row=a&rowBase=b2");
+
+    fireEvent.click(link);
+    fireEvent.doubleClick(link);
+
+    expect(onClick).not.toHaveBeenCalled();
+    expect(onDoubleClick).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,4 @@
-import { QueryClientProvider, type InfiniteData } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, type InfiniteData } from "@tanstack/react-query";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,10 +20,14 @@ vi.mock("react-i18next", () => ({
 }));
 
 import { queryClient } from "@/main.tsx";
-import { updateRelationLinks } from "@/ee/base/services/base-relation-service";
+import {
+  searchRelationCandidates,
+  updateRelationLinks,
+} from "@/ee/base/services/base-relation-service";
 import type { IBaseRow, RelationPreview } from "@/ee/base/types/base.types";
 import {
   patchRelationPreviews,
+  useRelationCandidatesQuery,
   useUpdateRelationLinksMutation,
 } from "./base-relation-query";
 
@@ -49,6 +53,7 @@ const cachedRows = () =>
 beforeEach(() => {
   queryClient.clear();
   vi.mocked(updateRelationLinks).mockReset();
+  vi.mocked(searchRelationCandidates).mockReset();
 });
 afterEach(cleanup);
 
@@ -88,5 +93,55 @@ describe("relation queries", () => {
     expect(r1.relations?.a).toEqual(preview(3));
     expect(r1.relations?.b).toEqual(preview(1));
     expect(r2.relations?.a).toEqual(preview(1));
+  });
+
+  it("a link change marks that row's candidate searches stale", async () => {
+    const searchKey = (rowId: string, query: string) =>
+      ["base-relations", "candidates", "p1", "rel", rowId, query];
+    for (const key of [searchKey("r1", ""), searchKey("r1", "al"), searchKey("r2", "")]) {
+      queryClient.setQueryData(key, { items: [], meta: {} });
+    }
+    vi.mocked(updateRelationLinks).mockResolvedValue({ preview: preview(1) });
+
+    const { result } = renderHook(() => useUpdateRelationLinksMutation("p1"), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync({ rowId: "r1", propertyId: "rel", add: ["t0"] });
+    });
+
+    expect(queryClient.getQueryState(searchKey("r1", ""))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(searchKey("r1", "al"))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(searchKey("r2", ""))?.isInvalidated).toBe(false);
+  });
+
+  it("a stale candidate search refetches when the picker opens again", async () => {
+    // the app's client never refetches on mount by default
+    const client = new QueryClient({
+      defaultOptions: { queries: { refetchOnMount: false, retry: false } },
+    });
+    const key = ["base-relations", "candidates", "p1", "rel", "r1", ""];
+    client.setQueryData(key, { items: [{ id: "t0", title: "T0", linked: false }], meta: {} });
+    await client.invalidateQueries({ queryKey: key, refetchType: "none" });
+    vi.mocked(searchRelationCandidates).mockResolvedValue({
+      items: [{ id: "t0", title: "T0", linked: true }],
+      meta: { limit: 25, hasNextPage: false, hasPrevPage: false, nextCursor: null, prevCursor: null },
+    });
+
+    const { result } = renderHook(
+      () =>
+        useRelationCandidatesQuery({
+          pageId: "p1",
+          propertyId: "rel",
+          rowId: "r1",
+          query: "",
+          enabled: true,
+        }),
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        ),
+      },
+    );
+
+    await waitFor(() => expect(result.current.data?.items[0].linked).toBe(true));
   });
 });
