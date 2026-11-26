@@ -5,6 +5,7 @@ import {
   Announcements,
   Attachments,
   BaseProperties,
+  BaseRowLinks,
   BaseRows,
   BaseViewShares,
   BaseViews,
@@ -293,6 +294,9 @@ export type InsertableBaseView = Insertable<BaseViews>;
 export type UpdatableBaseView = Updateable<Omit<BaseViews, 'id'>>;
 
 // Base View Share
+export type BaseRowLink = Selectable<BaseRowLinks>;
+export type InsertableBaseRowLink = Insertable<BaseRowLinks>;
+
 export type BaseViewShare = Selectable<BaseViewShares>;
 export type InsertableBaseViewShare = Insertable<BaseViewShares>;
 export type UpdatableBaseViewShare = Updateable<Omit<BaseViewShares, 'id'>>;
