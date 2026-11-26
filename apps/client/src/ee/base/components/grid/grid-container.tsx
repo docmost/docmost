@@ -310,7 +310,8 @@ export function GridContainer({
     (coord: CellCoord) => {
       if (!editable) return;
       const prop = properties.find((p) => p.id === coord.propertyId);
-      if (!prop || isSystemPropertyType(prop.type)) return;
+      // relation links live outside cells, so clearing one would only stamp the row as edited
+      if (!prop || isSystemPropertyType(prop.type) || prop.type === "relation") return;
       onCellUpdate(coord.rowId, coord.propertyId, null);
     },
     [editable, properties, onCellUpdate],

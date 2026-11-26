@@ -72,4 +72,22 @@ describe("FormulaEditor", () => {
     });
     expect(screen.getByText(text)).toBeTruthy();
   });
+
+  it("the formula editor does not offer relation properties", () => {
+    const relation = prop("p5", "Projects", "relation", {
+      relationId: "relation-1",
+      targetBaseId: "base-2",
+      direction: "source",
+      inversePropertyId: null,
+      allowMultiple: true,
+    });
+    render(
+      <MantineProvider env="test">
+        <FormulaEditor properties={[...properties, relation]} editingPropertyId={null} onSave={vi.fn()} onCancel={vi.fn()} />
+      </MantineProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: "Count" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Projects" })).toBeNull();
+  });
 });

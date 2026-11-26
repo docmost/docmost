@@ -169,7 +169,8 @@ export function FormulaEditor({
 
         <Stack gap={8} px={14} pt={10} pb={10}>
           <PropertyChipRow
-            properties={properties.filter((p) => p.id !== editingPropertyId)}
+            // formulas can't read relations
+            properties={properties.filter((p) => p.id !== editingPropertyId && p.type !== "relation")}
             onInsert={(name) => insertAtCursor(`prop("${name}")`)}
           />
         </Stack>

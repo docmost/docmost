@@ -1,6 +1,6 @@
 import { MantineProvider } from "@mantine/core";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { getDefaultStore, type WritableAtom } from "jotai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -30,11 +30,21 @@ vi.mock("@/ee/base/hooks/use-viewer-date-context", () => ({
 }));
 vi.mock("@/ee/base/hooks/use-grid-autoscroll", () => ({ useGridAutoScroll: () => {} }));
 vi.mock("@/ee/base/hooks/use-row-autoscroll", () => ({ useRowAutoScroll: () => {} }));
+vi.mock("@/ee/base/queries/base-page-resolver-query", () => ({
+  useResolvedPages: () => ({ pages: new Map(), isLoading: false }),
+  useHydrateResolvedPage: () => () => {},
+}));
 
 import { queryClient } from "@/main.tsx";
-import { editingCellAtomFamily } from "@/ee/base/atoms/base-atoms";
+import { editingCellAtomFamily, focusedCellAtomFamily } from "@/ee/base/atoms/base-atoms";
 import { useBaseTable } from "@/ee/base/hooks/use-base-table";
-import type { EditingCell, IBase, IBaseRow, IBaseView } from "@/ee/base/types/base.types";
+import type {
+  EditingCell,
+  FocusedCell,
+  IBase,
+  IBaseRow,
+  IBaseView,
+} from "@/ee/base/types/base.types";
 import { cancelRowsRefresh, scheduleRowsRefresh } from "@/ee/base/queries/rows-refresh";
 import { GridContainer } from "./grid-container";
 
@@ -64,25 +74,32 @@ const view = { id: "v", pageId, type: "table", config: {} } as unknown as IBaseV
 const row = (id: string) => ({ id, pageId, cells: { name: id }, position: id }) as unknown as IBaseRow;
 
 const editingAtom = editingCellAtomFamily(pageId) as unknown as WritableAtom<EditingCell, [EditingCell], void>;
+const focusedAtom = focusedCellAtomFamily(pageId) as unknown as WritableAtom<FocusedCell, [FocusedCell], void>;
 const store = getDefaultStore();
 
-function Grid({ rows }: { rows: IBaseRow[] }) {
-  const { table } = useBaseTable(base, rows, view);
+type GridProps = {
+  rows: IBaseRow[];
+  base?: IBase;
+  onCellUpdate?: (rowId: string, propertyId: string, value: unknown) => void;
+};
+
+function Grid({ rows, base: gridBase = base, onCellUpdate = vi.fn() }: GridProps) {
+  const { table } = useBaseTable(gridBase, rows, view);
   return (
     <GridContainer
       table={table}
-      properties={base.properties}
-      onCellUpdate={vi.fn()}
+      properties={gridBase.properties}
+      onCellUpdate={onCellUpdate}
       pageId={pageId}
       scrollElement={null}
     />
   );
 }
 
-const ui = (rows: IBaseRow[]) => (
+const ui = (rows: IBaseRow[], props: Omit<GridProps, "rows"> = {}) => (
   <QueryClientProvider client={queryClient}>
     <MantineProvider env="test">
-      <Grid rows={rows} />
+      <Grid rows={rows} {...props} />
     </MantineProvider>
   </QueryClientProvider>
 );
@@ -102,6 +119,7 @@ afterEach(() => {
   cleanup();
   cancelRowsRefresh(pageId);
   store.set(editingAtom, null);
+  store.set(focusedAtom, null);
   vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllGlobals();
@@ -135,6 +153,39 @@ describe("GridContainer and the cell in edit mode", () => {
     rerender(ui([row("r2")]));
     act(() => vi.advanceTimersByTime(300));
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["base-rows", pageId] });
+  });
+});
+
+describe("GridContainer and Delete on a focused cell", () => {
+  it("clearing a relation cell sends no row update", () => {
+    const relation = {
+      id: "rel",
+      pageId,
+      name: "Projects",
+      type: "relation",
+      position: "a2",
+      isPrimary: false,
+      typeOptions: {
+        relationId: "relation-1",
+        targetBaseId: "b2",
+        direction: "source",
+        inversePropertyId: null,
+        allowMultiple: true,
+      },
+    };
+    const withRelation = { ...base, properties: [...base.properties, relation] } as unknown as IBase;
+    const onCellUpdate = vi.fn();
+    render(ui([row("r1")], { base: withRelation, onCellUpdate }));
+    const grid = screen.getByRole("grid");
+
+    act(() => store.set(focusedAtom, { rowId: "r1", propertyId: "rel" }));
+    fireEvent.keyDown(grid, { key: "Delete" });
+    fireEvent.keyDown(grid, { key: "Backspace" });
+    expect(onCellUpdate).not.toHaveBeenCalled();
+
+    act(() => store.set(focusedAtom, { rowId: "r1", propertyId: "name" }));
+    fireEvent.keyDown(grid, { key: "Delete" });
+    expect(onCellUpdate).toHaveBeenCalledWith("r1", "name", null);
   });
 });
 
