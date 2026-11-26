@@ -2391,5 +2391,11 @@
   "Recently updated settings": "Instellingen voor recent bijgewerkt",
   "Refresh recently updated pages": "Recent bijgewerkte pagina's vernieuwen",
   "Updated by {{name}}": "Bijgewerkt door {{name}}",
-  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Gebruik maximaal {{maxValues}} waarden per filter en {{maxLength}} tekens per waarde."
+  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Gebruik maximaal {{maxValues}} waarden per filter en {{maxLength}} tekens per waarde.",
+  "Refresh preview": "Refresh preview",
+  "Couldn't refresh the preview": "Couldn't refresh the preview",
+  "Link actions": "Link actions",
+  "Remove from list": "Remove from list",
+  "Remove {{name}} from list": "Remove {{name}} from list",
+  "Failed to remove workspace from list": "Failed to remove workspace from list"
 }
