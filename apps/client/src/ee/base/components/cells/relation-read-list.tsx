@@ -1,28 +1,11 @@
-import { useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Text } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import clsx from "clsx";
 import { BadgeOverflowList } from "@/ee/base/components/cells/badge-overflow";
-import { useResolvedPages } from "@/ee/base/queries/base-page-resolver-query";
-import { buildPageUrl } from "@/features/page/page.utils";
+import { useRelationRowHref } from "@/ee/base/hooks/use-relation-row-href";
 import type { RelationPreview } from "@/ee/base/types/base.types";
 import cellClasses from "@/ee/base/styles/cells.module.css";
-
-export function useRelationRowHref(
-  targetBaseId: string,
-): (rowId: string) => string | null {
-  const pageIds = useMemo(() => [targetBaseId], [targetBaseId]);
-  const page = useResolvedPages(pageIds).pages.get(targetBaseId);
-  return useCallback(
-    (rowId: string) => {
-      if (!page?.space) return null;
-      const params = new URLSearchParams({ row: rowId, rowBase: targetBaseId });
-      return `${buildPageUrl(page.space.slug, page.slugId, page.title ?? undefined)}?${params}`;
-    },
-    [page, targetBaseId],
-  );
-}
 
 type RelationReadListProps = {
   preview: RelationPreview | undefined;
