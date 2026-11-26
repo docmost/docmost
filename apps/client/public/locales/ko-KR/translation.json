@@ -2391,5 +2391,11 @@
   "Recently updated settings": "최근 업데이트 설정",
   "Refresh recently updated pages": "최근 업데이트된 페이지 새로고침",
   "Updated by {{name}}": "업데이트한 사람: {{name}}",
-  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "필터당 최대 {{maxValues}}개의 값과 값당 최대 {{maxLength}}자까지 사용할 수 있습니다."
+  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "필터당 최대 {{maxValues}}개의 값과 값당 최대 {{maxLength}}자까지 사용할 수 있습니다.",
+  "Refresh preview": "Refresh preview",
+  "Couldn't refresh the preview": "Couldn't refresh the preview",
+  "Link actions": "Link actions",
+  "Remove from list": "Remove from list",
+  "Remove {{name}} from list": "Remove {{name}} from list",
+  "Failed to remove workspace from list": "Failed to remove workspace from list"
 }
