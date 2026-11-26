@@ -493,7 +493,7 @@ function CollabPageEditor({
 
   useLayoutEffect(() => {
     if (!editor || editor.isDestroyed) return;
-    if (editor.isEditable !== canType) editor.setEditable(canType, false);
+    if (editor.isEditable !== canType) editor.setEditable(canType);
     if (showStatic) return;
 
     Object.assign(editor.storage, { pageId });
