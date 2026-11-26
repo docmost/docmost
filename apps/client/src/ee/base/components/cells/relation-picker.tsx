@@ -184,13 +184,7 @@ export function RelationPicker({
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setLink(row, !linked)}
       >
-        <span
-          aria-hidden
-          className={clsx(
-            cellClasses.relationOptionIcon,
-            linked && cellClasses.relationOptionIconLinked,
-          )}
-        >
+        <span aria-hidden className={cellClasses.relationOptionIcon}>
           <IconFile size={12} stroke={1.75} />
         </span>
         <span className={cellClasses.relationOptionTitle}>{row.title || t("Untitled")}</span>

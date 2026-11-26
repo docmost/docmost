@@ -601,10 +601,6 @@
   color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
 }
 
-.relationOptionIconLinked {
-  color: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4));
-}
-
 .relationOptionTitle {
   flex: 1;
   min-width: 0;
@@ -643,4 +639,13 @@
   text-align: center;
   font-size: var(--mantine-font-size-sm);
   color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+.relationChip {
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+}
+
+.relationChip:hover {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
 }

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Popover } from "@mantine/core";
-import { IconPlus, IconX } from "@tabler/icons-react";
+import { IconFile, IconPlus, IconX } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import clsx from "clsx";
 import type { RelationPreview, RelationTypeOptions } from "@/ee/base/types/base.types";
@@ -90,7 +90,11 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
         const title = row.title || t("Untitled");
         const href = rowHref(row.id);
         return (
-          <span key={row.id} className={clsx(cellClasses.badge, cellClasses.pagePill)}>
+          <span
+            key={row.id}
+            className={clsx(cellClasses.badge, cellClasses.pagePill, cellClasses.relationChip)}
+          >
+            <IconFile size={14} stroke={1.75} aria-hidden className={cellClasses.pagePillIconFallback} />
             {href ? (
               <Link
                 to={href}

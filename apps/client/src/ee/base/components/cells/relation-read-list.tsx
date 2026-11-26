@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Text } from "@mantine/core";
+import { IconFile } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import clsx from "clsx";
 import { BadgeOverflowList } from "@/ee/base/components/cells/badge-overflow";
@@ -31,9 +32,14 @@ export function RelationReadList({
   if (!preview || preview.count === 0) return null;
 
   const titles = preview.rows.map((row) => row.title || t("Untitled"));
-  const chipClass = clsx(cellClasses.badge, cellClasses.pagePill);
+  const chipClass = clsx(cellClasses.badge, cellClasses.pagePill, cellClasses.relationChip);
   const chips = preview.rows.map((row, index) => {
-    const label = <span className={cellClasses.pagePillText}>{titles[index]}</span>;
+    const label = (
+      <>
+        <IconFile size={14} stroke={1.75} aria-hidden className={cellClasses.pagePillIconFallback} />
+        <span className={cellClasses.pagePillText}>{titles[index]}</span>
+      </>
+    );
     const href = rowHref(row.id);
     if (!href) {
       return (
