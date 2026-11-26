@@ -18,6 +18,7 @@ export type BasePropertyType =
   | 'person'
   | 'file'
   | 'page'
+  | 'relation'
   | 'checkbox'
   | 'url'
   | 'email'
@@ -93,6 +94,35 @@ export type PersonTypeOptions = {
 
 export type PageTypeOptions = Record<string, never>;
 
+export type RelationTypeOptions = {
+  relationId: string;
+  targetBaseId: string;
+  direction: 'source' | 'target';
+  inversePropertyId: string | null;
+  allowMultiple: boolean;
+};
+
+export type RelationCreateTypeOptions = {
+  targetBaseId: string;
+  twoWay?: boolean;
+  inverseName?: string;
+  allowMultiple?: boolean;
+};
+
+export type RelationUpdateTypeOptions = {
+  allowMultiple?: boolean;
+  twoWay?: boolean;
+  inverseName?: string;
+};
+
+export type RelationPreviewRow = { id: string; title: string };
+
+export type RelationPreview = {
+  count: number;
+  rows: RelationPreviewRow[];
+  restricted?: true;
+};
+
 export type TypeOptions =
   | SelectTypeOptions
   | NumberTypeOptions
@@ -103,6 +133,9 @@ export type TypeOptions =
   | EmailTypeOptions
   | PersonTypeOptions
   | PageTypeOptions
+  | RelationTypeOptions
+  | RelationCreateTypeOptions
+  | RelationUpdateTypeOptions
   | Record<string, unknown>;
 
 export type IBaseProperty = {
@@ -127,6 +160,7 @@ export type IBaseRow = {
   id: string;
   pageId: string;
   cells: Record<string, unknown>;
+  relations?: Record<string, RelationPreview>;
   position: string;
   creatorId: string | null;
   lastUpdatedById: string | null;

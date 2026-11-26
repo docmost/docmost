@@ -1,0 +1,140 @@
+import {
+  InfiniteData,
+  QueryClient,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+} from "@tanstack/react-query";
+import { notifications } from "@mantine/notifications";
+import { useTranslation } from "react-i18next";
+import { queryClient } from "@/main";
+import { getApiErrorMessage } from "@/lib/api-error";
+import {
+  listRelationRows,
+  resolveRelationRows,
+  searchRelationCandidates,
+  searchRelationTargets,
+  updateRelationLinks,
+} from "@/ee/base/services/base-relation-service";
+import type { IBaseRowsPage } from "@/ee/base/services/base-service";
+import type { IBaseRow, RelationPreview } from "@/ee/base/types/base.types";
+import { newRequestId } from "@/ee/base/queries/base-row-query";
+
+type PreviewsByRow = Record<string, Record<string, RelationPreview>>;
+
+export function patchRelationPreviews(
+  client: QueryClient,
+  pageId: string,
+  items: PreviewsByRow,
+): void {
+  const patchRow = (row: IBaseRow): IBaseRow => {
+    const previews = items[row.id];
+    return previews
+      ? { ...row, relations: { ...row.relations, ...previews } }
+      : row;
+  };
+
+  client.setQueriesData<InfiniteData<IBaseRowsPage>>(
+    { queryKey: ["base-rows", pageId] },
+    (old) =>
+      old && {
+        ...old,
+        pages: old.pages.map((page) => ({
+          ...page,
+          items: page.items.map(patchRow),
+        })),
+      },
+  );
+  for (const rowId of Object.keys(items)) {
+    client.setQueryData<IBaseRow>(["base-row", pageId, rowId], (old) =>
+      old && patchRow(old),
+    );
+  }
+}
+
+type UpdateRelationLinksVariables = {
+  rowId: string;
+  propertyId: string;
+  add?: string[];
+  remove?: string[];
+};
+
+export function useUpdateRelationLinksMutation(pageId: string) {
+  const { t } = useTranslation();
+  return useMutation<
+    { preview: RelationPreview },
+    Error,
+    UpdateRelationLinksVariables
+  >({
+    mutationFn: (variables) =>
+      updateRelationLinks({ ...variables, pageId, requestId: newRequestId() }),
+    onSuccess: ({ preview }, variables) => {
+      patchRelationPreviews(queryClient, pageId, {
+        [variables.rowId]: { [variables.propertyId]: preview },
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["base-relations", "list", pageId, variables.rowId, variables.propertyId],
+      });
+    },
+    onError: (error) => {
+      notifications.show({
+        message: getApiErrorMessage(error, t("Failed to update row")),
+        color: "red",
+      });
+    },
+  });
+}
+
+export function useRelationCandidatesQuery(args: {
+  pageId: string;
+  propertyId: string;
+  rowId?: string;
+  query: string;
+  enabled: boolean;
+}) {
+  const { pageId, propertyId, rowId, query, enabled } = args;
+  return useQuery({
+    queryKey: ["base-relations", "candidates", pageId, propertyId, rowId ?? null, query],
+    queryFn: () => searchRelationCandidates({ pageId, propertyId, rowId, query }),
+    enabled,
+    staleTime: 15_000,
+  });
+}
+
+export function useRelationRowsInfiniteQuery(args: {
+  pageId: string;
+  rowId: string;
+  propertyId: string;
+  enabled: boolean;
+}) {
+  const { pageId, rowId, propertyId, enabled } = args;
+  return useInfiniteQuery({
+    queryKey: ["base-relations", "list", pageId, rowId, propertyId],
+    queryFn: ({ pageParam }) =>
+      listRelationRows({ pageId, rowId, propertyId, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.meta.nextCursor ?? undefined,
+    enabled,
+  });
+}
+
+export function useResolveRelationRows(args: {
+  pageId: string;
+  propertyId: string;
+  rowIds: string[];
+}) {
+  const { pageId, propertyId, rowIds } = args;
+  const sortedIds = [...rowIds].sort();
+  return useQuery({
+    queryKey: ["base-relations", "resolve", pageId, propertyId, sortedIds],
+    queryFn: () => resolveRelationRows({ pageId, propertyId, rowIds: sortedIds }),
+    enabled: sortedIds.length > 0,
+  });
+}
+
+export function useRelationTargetsQuery(query: string) {
+  return useQuery({
+    queryKey: ["base-relations", "targets", query],
+    queryFn: () => searchRelationTargets(query),
+  });
+}

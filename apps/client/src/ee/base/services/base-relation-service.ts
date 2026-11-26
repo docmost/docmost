@@ -1,0 +1,79 @@
+import api from "@/lib/api-client";
+import type { IPaginationMeta } from "@/lib/types";
+import type { RelationPreview, RelationPreviewRow } from "@/ee/base/types/base.types";
+
+export type RelationCandidate = RelationPreviewRow & { linked?: boolean };
+
+export type RelationTarget = {
+  id: string;
+  title: string;
+  icon: string | null;
+  slugId: string;
+  spaceId: string;
+  spaceName: string;
+  spaceSlug: string;
+};
+
+export type UpdateRelationLinksInput = {
+  pageId: string;
+  rowId: string;
+  propertyId: string;
+  add?: string[];
+  remove?: string[];
+  requestId?: string;
+};
+
+type RelationPage<T> = { items: T[]; meta: IPaginationMeta };
+
+export async function updateRelationLinks(
+  data: UpdateRelationLinksInput,
+): Promise<{ preview: RelationPreview }> {
+  const req = await api.post("/bases/relations/update", data);
+  return req.data;
+}
+
+export async function listRelationRows(data: {
+  pageId: string;
+  rowId: string;
+  propertyId: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<RelationPage<RelationPreviewRow>> {
+  const req = await api.post("/bases/relations/list", data);
+  return req.data;
+}
+
+export async function searchRelationCandidates(data: {
+  pageId: string;
+  propertyId: string;
+  rowId?: string;
+  query?: string;
+  cursor?: string;
+}): Promise<RelationPage<RelationCandidate>> {
+  const req = await api.post("/bases/relations/candidates", data);
+  return req.data;
+}
+
+export async function resolveRelationRows(data: {
+  pageId: string;
+  propertyId: string;
+  rowIds: string[];
+}): Promise<{ items: RelationPreviewRow[] }> {
+  const req = await api.post("/bases/relations/resolve", data);
+  return req.data;
+}
+
+export async function fetchRelationPreviews(
+  pageId: string,
+  rowIds: string[],
+): Promise<Record<string, Record<string, RelationPreview>>> {
+  const req = await api.post("/bases/relations/previews", { pageId, rowIds });
+  return req.data.items;
+}
+
+export async function searchRelationTargets(
+  query?: string,
+): Promise<RelationTarget[]> {
+  const req = await api.post("/bases/relations/targets", { query });
+  return req.data.items;
+}

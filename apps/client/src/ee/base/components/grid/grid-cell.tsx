@@ -207,6 +207,7 @@ export const GridCell = memo(function GridCell({
         property={property}
         rowId={rowId}
         isEditing={isEditing}
+        relation={cell.row.original.relations?.[property.id]}
         readOnly={readOnly}
         onCommit={handleCommit}
         onValueChange={handleValueChange}

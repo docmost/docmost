@@ -11,7 +11,12 @@ vi.mock("@/main.tsx", async () => ({
   queryClient: new (await import("@tanstack/react-query")).QueryClient(),
 }));
 
-const { retainBaseSubscription } = await import("./use-base-socket");
+vi.mock("@/ee/base/services/base-relation-service", () => ({
+  fetchRelationPreviews: vi.fn(),
+}));
+
+const { retainBaseSubscription, markRequestIdOutbound } = await import("./use-base-socket");
+const { fetchRelationPreviews } = await import("@/ee/base/services/base-relation-service");
 
 function createFakeSocket() {
   const listeners = new Map<string, Set<(raw: unknown) => void>>();
@@ -192,6 +197,46 @@ describe("retainBaseSubscription", () => {
     expect(appClient.getQueryState(key)?.isInvalidated).toBe(false);
     vi.advanceTimersByTime(300);
     expect(appClient.getQueryState(key)?.isInvalidated).toBe(true);
+
+    release();
+  });
+
+  it("relations updated refetches previews for cached rows only and skips its own echo", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const key = ["base-rows", "page-7", "view-1"];
+    appClient.setQueryData(key, {
+      pages: [{ items: [{ id: "row-1", relations: {} }], meta: {} }],
+      pageParams: [null],
+    });
+    vi.mocked(fetchRelationPreviews).mockReset();
+    vi.mocked(fetchRelationPreviews).mockResolvedValue({
+      "row-1": { rel: { count: 1, rows: [{ id: "t1", title: "T1" }] } },
+    });
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-7", appClient);
+    const event = (rowIds: string[], requestId: string | null) => ({
+      operation: "base:relations:updated",
+      pageId: "page-7",
+      rowIds,
+      propertyIds: ["rel"],
+      actorId: "u2",
+      requestId,
+    });
+
+    markRequestIdOutbound("own-request");
+    receive(event(["row-1"], "own-request"));
+    receive(event(["not-cached"], null));
+    await vi.advanceTimersByTimeAsync(200);
+    expect(fetchRelationPreviews).not.toHaveBeenCalled();
+
+    receive(event(["row-1", "not-cached"], null));
+    receive(event(["row-1"], null));
+    await vi.advanceTimersByTimeAsync(150);
+    expect(fetchRelationPreviews).toHaveBeenCalledTimes(1);
+    expect(fetchRelationPreviews).toHaveBeenCalledWith("page-7", ["row-1"]);
+    const data = appClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(key)!;
+    expect(data.pages[0].items[0].relations?.rel.count).toBe(1);
 
     release();
   });

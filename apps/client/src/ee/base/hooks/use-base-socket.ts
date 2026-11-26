@@ -33,6 +33,8 @@ import {
   cancelRowsRefresh,
   scheduleRowsRefresh,
 } from "@/ee/base/queries/rows-refresh";
+import { patchRelationPreviews } from "@/ee/base/queries/base-relation-query";
+import { fetchRelationPreviews } from "@/ee/base/services/base-relation-service";
 import {
   formShareQueryKey,
   invalidatePublicFormForView,
@@ -161,6 +163,7 @@ type BaseInboundEvent =
   | BaseRowsDeleted
   | BaseRowReordered
   | BaseRowsUpdated
+  | BaseRelationsUpdated
   | BaseFormulaRecomputeStarted
   | BaseFormulaRecomputeCompleted
   | BaseSchemaBumped
@@ -186,9 +189,66 @@ export function markRequestIdOutbound(requestId: string): void {
   }
 }
 
+type BaseRelationsUpdated = {
+  operation: "base:relations:updated";
+  pageId: string;
+  rowIds: string[];
+  propertyIds: string[];
+  actorId: string | null;
+  requestId: string | null;
+};
+
 type BaseSubscriptionState = {
   missedEvents: boolean;
+  relationRefresh?: {
+    timer: ReturnType<typeof setTimeout>;
+    rowIds: Set<string>;
+  };
 };
+
+const RELATIONS_REFRESH_DELAY_MS = 150;
+
+function cachedRowIds(queryClient: QueryClient, pageId: string): Set<string> {
+  const ids = new Set<string>();
+  for (const [, data] of queryClient.getQueriesData<
+    InfiniteData<IPagination<IBaseRow>>
+  >({ queryKey: ["base-rows", pageId] })) {
+    for (const page of data?.pages ?? []) {
+      for (const row of page.items) ids.add(row.id);
+    }
+  }
+  return ids;
+}
+
+function scheduleRelationPreviewRefresh(
+  pageId: string,
+  queryClient: QueryClient,
+  state: BaseSubscriptionState,
+  rowIds: string[],
+) {
+  const cached = cachedRowIds(queryClient, pageId);
+  const touched = rowIds.filter((id) => cached.has(id));
+  if (touched.length === 0) return;
+
+  const pending = state.relationRefresh;
+  if (pending) {
+    touched.forEach((id) => pending.rowIds.add(id));
+    return;
+  }
+  const next = {
+    rowIds: new Set(touched),
+    timer: setTimeout(() => {
+      state.relationRefresh = undefined;
+      const stillCached = cachedRowIds(queryClient, pageId);
+      const ids = [...next.rowIds].filter((id) => stillCached.has(id));
+      if (ids.length === 0) return;
+      fetchRelationPreviews(pageId, ids)
+        .then((items) => patchRelationPreviews(queryClient, pageId, items))
+        .catch(() => {});
+    }, RELATIONS_REFRESH_DELAY_MS),
+  };
+  state.relationRefresh = next;
+}
 
 function createBaseEventHandler(
   pageId: string,
@@ -423,6 +483,11 @@ function createBaseEventHandler(
         }
         break;
       }
+      case "base:relations:updated": {
+        const e = event as BaseRelationsUpdated;
+        scheduleRelationPreviewRefresh(pageId, queryClient, state, e.rowIds);
+        break;
+      }
       case "base:schema:bumped": {
         // Worker committed a type conversion or cell GC; re-fetch under the new schema.
         queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
@@ -594,6 +659,7 @@ export function retainBaseSubscription(
     if (retained.count > 0) return;
     subscriptions.delete(pageId);
     cancelRowsRefresh(pageId);
+    clearTimeout(retained.state.relationRefresh?.timer);
     socket.off("message", retained.handler);
     socket.off("connect", retained.subscribe);
     socket.off("disconnect", retained.markMissedEvents);
