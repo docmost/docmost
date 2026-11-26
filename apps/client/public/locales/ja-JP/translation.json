@@ -1934,6 +1934,7 @@
   "No active spaces. Archived spaces are under Archived.": "アクティブなスペースはありません。アーカイブ済みのスペースは［アーカイブ済み］にあります。",
   "AI answers don't cover archived spaces.": "AI の回答にはアーカイブ済みのスペースは含まれません。",
   "Include archived": "アーカイブ済みを含める",
+  "Verified only": "Verified only",
   "Add cover": "カバーを追加",
   "Change cover": "カバーを変更",
   "Reposition": "位置を調整",
