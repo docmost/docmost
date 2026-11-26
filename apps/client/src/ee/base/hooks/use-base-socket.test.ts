@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { InfiniteData, QueryClient, QueryObserver } from "@tanstack/react-query";
+import { createElement, type ReactNode } from "react";
+import {
+  InfiniteData,
+  QueryClient,
+  QueryClientProvider,
+  QueryObserver,
+} from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { getDefaultStore } from "jotai";
 import type { Socket } from "socket.io-client";
 import { baseImportProgressAtomFamily } from "@/ee/base/atoms/base-atoms";
@@ -13,10 +20,17 @@ vi.mock("@/main.tsx", async () => ({
 
 vi.mock("@/ee/base/services/base-relation-service", () => ({
   fetchRelationPreviews: vi.fn(),
+  updateRelationLinks: vi.fn(),
+}));
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-const { retainBaseSubscription, markRequestIdOutbound } = await import("./use-base-socket");
-const { fetchRelationPreviews } = await import("@/ee/base/services/base-relation-service");
+const { retainBaseSubscription } = await import("./use-base-socket");
+const { fetchRelationPreviews, updateRelationLinks } = await import(
+  "@/ee/base/services/base-relation-service"
+);
+const { useUpdateRelationLinksMutation } = await import("@/ee/base/queries/base-relation-query");
 
 function createFakeSocket() {
   const listeners = new Map<string, Set<(raw: unknown) => void>>();
@@ -201,7 +215,7 @@ describe("retainBaseSubscription", () => {
     release();
   });
 
-  it("relations updated refetches previews for cached rows only and skips its own echo", async () => {
+  it("relations updated refetches previews for cached rows only", async () => {
     vi.useFakeTimers();
     const { queryClient: appClient } = await import("@/main.tsx");
     const key = ["base-rows", "page-7", "view-1"];
@@ -215,29 +229,193 @@ describe("retainBaseSubscription", () => {
     });
     const { socket, receive } = createFakeSocket();
     const release = retainBaseSubscription(socket, "page-7", appClient);
-    const event = (rowIds: string[], requestId: string | null) => ({
+    const event = (rowIds: string[]) => ({
       operation: "base:relations:updated",
       pageId: "page-7",
       rowIds,
       propertyIds: ["rel"],
       actorId: "u2",
-      requestId,
+      requestId: null,
     });
 
-    markRequestIdOutbound("own-request");
-    receive(event(["row-1"], "own-request"));
-    receive(event(["not-cached"], null));
+    receive(event(["not-cached"]));
     await vi.advanceTimersByTimeAsync(200);
     expect(fetchRelationPreviews).not.toHaveBeenCalled();
 
-    receive(event(["row-1", "not-cached"], null));
-    receive(event(["row-1"], null));
+    receive(event(["row-1", "not-cached"]));
+    receive(event(["row-1"]));
     await vi.advanceTimersByTimeAsync(150);
     expect(fetchRelationPreviews).toHaveBeenCalledTimes(1);
     expect(fetchRelationPreviews).toHaveBeenCalledWith("page-7", ["row-1"]);
     const data = appClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(key)!;
     expect(data.pages[0].items[0].relations?.rel.count).toBe(1);
 
+    release();
+  });
+
+  it("own relation edits refresh the other rows the event names", async () => {
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const key = ["base-rows", "page-14", "view-1"];
+    appClient.setQueryData(key, {
+      pages: [{ items: [{ id: "row-x", relations: {} }, { id: "row-y", relations: {} }], meta: {} }],
+      pageParams: [null],
+    });
+    vi.mocked(updateRelationLinks).mockReset();
+    vi.mocked(updateRelationLinks).mockResolvedValue({
+      preview: { count: 1, rows: [{ id: "row-y", title: "Y" }] },
+    });
+    vi.mocked(fetchRelationPreviews).mockReset();
+    vi.mocked(fetchRelationPreviews).mockResolvedValue({
+      "row-x": { rel: { count: 1, rows: [{ id: "row-y", title: "Y" }] } },
+      "row-y": { inverse: { count: 1, rows: [{ id: "row-x", title: "X" }] } },
+    });
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-14", appClient);
+    const { result, unmount } = renderHook(() => useUpdateRelationLinksMutation("page-14"), {
+      wrapper: ({ children }: { children: ReactNode }) =>
+        createElement(QueryClientProvider, { client: appClient }, children),
+    });
+    try {
+      await act(async () => {
+        await result.current.mutateAsync({ rowId: "row-x", propertyId: "rel", add: ["row-y"] });
+      });
+      // the server tags the editing base's event with whatever request id it was sent
+      const sent = vi.mocked(updateRelationLinks).mock.calls[0][0];
+      receive({
+        operation: "base:relations:updated",
+        pageId: "page-14",
+        rowIds: ["row-x", "row-y"],
+        propertyIds: ["rel", "inverse"],
+        actorId: "me",
+        requestId: sent.requestId ?? null,
+      });
+
+      await waitFor(() =>
+        expect(fetchRelationPreviews).toHaveBeenCalledWith("page-14", ["row-x", "row-y"]),
+      );
+      await waitFor(() => {
+        const rows = appClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(key)!.pages[0].items;
+        expect(rows[1].relations?.inverse?.count).toBe(1);
+      });
+    } finally {
+      unmount();
+      release();
+    }
+  });
+
+  it("relation preview refresh splits into requests of 100", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const ids = Array.from({ length: 250 }, (_, i) => `row-${i}`);
+    const key = ["base-rows", "page-17", "view-1"];
+    appClient.setQueryData(key, {
+      pages: [{ items: ids.map((id) => ({ id, relations: {} })), meta: {} }],
+      pageParams: [null],
+    });
+    vi.mocked(fetchRelationPreviews).mockReset();
+    vi.mocked(fetchRelationPreviews).mockImplementation(async (_pageId, rowIds) =>
+      Object.fromEntries(rowIds.map((id) => [id, { rel: { count: 1, rows: [] } }])),
+    );
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-17", appClient);
+
+    receive({
+      operation: "base:relations:updated",
+      pageId: "page-17",
+      rowIds: [...ids, "not-cached"],
+      propertyIds: ["rel"],
+      actorId: "u2",
+      requestId: null,
+    });
+    await vi.advanceTimersByTimeAsync(150);
+
+    expect(vi.mocked(fetchRelationPreviews).mock.calls.map(([, rowIds]) => rowIds)).toEqual([
+      ids.slice(0, 100),
+      ids.slice(100, 200),
+      ids.slice(200),
+    ]);
+    const rows = appClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(key)!.pages[0].items;
+    expect(rows.filter((row) => row.relations?.rel?.count === 1)).toHaveLength(250);
+    release();
+  });
+
+  it("a failed preview refresh falls back to a rows refresh", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const key = ["base-rows", "page-18", "view-1"];
+    appClient.setQueryData(key, {
+      pages: [{ items: [{ id: "row-1", relations: {} }], meta: {} }],
+      pageParams: [null],
+    });
+    vi.mocked(fetchRelationPreviews).mockReset();
+    vi.mocked(fetchRelationPreviews).mockRejectedValue(new Error("Request failed with status code 400"));
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-18", appClient);
+
+    receive({
+      operation: "base:relations:updated",
+      pageId: "page-18",
+      rowIds: ["row-1"],
+      propertyIds: ["rel"],
+      actorId: "u2",
+      requestId: null,
+    });
+    await vi.advanceTimersByTimeAsync(150);
+    expect(fetchRelationPreviews).toHaveBeenCalledTimes(1);
+    expect(appClient.getQueryState(key)?.isInvalidated).toBe(false);
+    await vi.advanceTimersByTimeAsync(300);
+    expect(appClient.getQueryState(key)?.isInvalidated).toBe(true);
+    release();
+  });
+
+  it("relation updates refresh a deep-linked row", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const key = ["base-row", "page-16", "row-1"];
+    appClient.setQueryData(key, { id: "row-1", pageId: "page-16", cells: {}, relations: {} });
+    vi.mocked(fetchRelationPreviews).mockReset();
+    vi.mocked(fetchRelationPreviews).mockResolvedValue({
+      "row-1": { rel: { count: 1, rows: [{ id: "t1", title: "T1" }] } },
+    });
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-16", appClient);
+
+    receive({
+      operation: "base:relations:updated",
+      pageId: "page-16",
+      rowIds: ["row-1", "row-2"],
+      propertyIds: ["rel"],
+      actorId: "u2",
+      requestId: null,
+    });
+    await vi.advanceTimersByTimeAsync(150);
+
+    expect(fetchRelationPreviews).toHaveBeenCalledWith("page-16", ["row-1"]);
+    expect(appClient.getQueryData<IBaseRow>(key)?.relations?.rel.count).toBe(1);
+    release();
+  });
+
+  it("a created relation property refreshes the base's rows", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const key = ["base-rows", "page-15", "view-1"];
+    appClient.setQueryData(key, { pages: [{ items: [{ id: "row-1" }], meta: {} }], pageParams: [null] });
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-15", appClient);
+    const created = (property: object) => ({
+      operation: "base:property:created",
+      pageId: "page-15",
+      property,
+      requestId: null,
+    });
+
+    receive(created({ id: "num", type: "number" }));
+    vi.advanceTimersByTime(5000);
+    expect(appClient.getQueryState(key)?.isInvalidated).toBe(false);
+
+    receive(created({ id: "inverse", type: "relation" }));
+    vi.advanceTimersByTime(300);
+    expect(appClient.getQueryState(key)?.isInvalidated).toBe(true);
     release();
   });
 
@@ -267,20 +445,15 @@ describe("retainBaseSubscription", () => {
     }
     const { socket, receive } = createFakeSocket();
     const release = retainBaseSubscription(socket, "page-6", queryClient);
-    const event = (requestId: string | null) => ({
-      operation: "base:relations:updated",
-      pageId: "page-6",
-      rowIds: ["row-1"],
-      propertyIds: ["rel", "inverse"],
-      actorId: "u2",
-      requestId,
-    });
     try {
-      markRequestIdOutbound("own-list-request");
-      receive(event("own-list-request"));
-      expect(queryClient.getQueryState(openList)?.isInvalidated).toBe(false);
-
-      receive(event(null));
+      receive({
+        operation: "base:relations:updated",
+        pageId: "page-6",
+        rowIds: ["row-1"],
+        propertyIds: ["rel", "inverse"],
+        actorId: "u2",
+        requestId: null,
+      });
       await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(1));
       expect(queryClient.getQueryState(closedList)?.isInvalidated).toBe(true);
       expect(queryClient.getQueryState(otherRow)?.isInvalidated).toBe(false);

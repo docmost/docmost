@@ -19,7 +19,6 @@ import {
 } from "@/ee/base/services/base-relation-service";
 import type { IBaseRowsPage } from "@/ee/base/services/base-service";
 import type { IBaseRow, RelationPreview } from "@/ee/base/types/base.types";
-import { newRequestId } from "@/ee/base/queries/base-row-query";
 
 type PreviewsByRow = Record<string, Record<string, RelationPreview>>;
 
@@ -67,8 +66,8 @@ export function useUpdateRelationLinksMutation(pageId: string) {
     Error,
     UpdateRelationLinksVariables
   >({
-    mutationFn: (variables) =>
-      updateRelationLinks({ ...variables, pageId, requestId: newRequestId() }),
+    // no request id: the live event can name rows this tab didn't patch, so it must not be dropped
+    mutationFn: (variables) => updateRelationLinks({ ...variables, pageId }),
     onSuccess: ({ preview }, variables) => {
       patchRelationPreviews(queryClient, pageId, {
         [variables.rowId]: { [variables.propertyId]: preview },

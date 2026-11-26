@@ -68,15 +68,13 @@ describe("relation queries", () => {
       await result.current.mutateAsync({ rowId: "r1", propertyId: "rel", add: ["t0", "t1"] });
     });
 
-    expect(updateRelationLinks).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pageId: "p1",
-        rowId: "r1",
-        propertyId: "rel",
-        add: ["t0", "t1"],
-        requestId: expect.any(String),
-      }),
-    );
+    // no request id, so this tab also takes the live event for the other rows the change touched
+    expect(updateRelationLinks).toHaveBeenCalledWith({
+      pageId: "p1",
+      rowId: "r1",
+      propertyId: "rel",
+      add: ["t0", "t1"],
+    });
     await waitFor(() => expect(cachedRows()[0].relations?.rel).toEqual(preview(2)));
     expect(cachedRows()[1].relations).toBeUndefined();
     expect(queryClient.getQueryData<IBaseRow>(["base-row", "p1", "r1"])?.relations?.rel).toEqual(

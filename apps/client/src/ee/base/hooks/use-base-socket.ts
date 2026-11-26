@@ -35,6 +35,7 @@ import {
 } from "@/ee/base/queries/rows-refresh";
 import { patchRelationPreviews } from "@/ee/base/queries/base-relation-query";
 import { fetchRelationPreviews } from "@/ee/base/services/base-relation-service";
+import { RELATION_MAX_IDS_PER_CALL } from "@/ee/base/constants/relations";
 import {
   formShareQueryKey,
   invalidatePublicFormForView,
@@ -217,6 +218,12 @@ function cachedRowIds(queryClient: QueryClient, pageId: string): Set<string> {
       for (const row of page.items) ids.add(row.id);
     }
   }
+  // a row modal opened from a link holds its row outside the lists
+  for (const [, row] of queryClient.getQueriesData<IBaseRow>({
+    queryKey: ["base-row", pageId],
+  })) {
+    if (row) ids.add(row.id);
+  }
   return ids;
 }
 
@@ -242,9 +249,16 @@ function scheduleRelationPreviewRefresh(
       const stillCached = cachedRowIds(queryClient, pageId);
       const ids = [...next.rowIds].filter((id) => stillCached.has(id));
       if (ids.length === 0) return;
-      fetchRelationPreviews(pageId, ids)
-        .then((items) => patchRelationPreviews(queryClient, pageId, items))
-        .catch(() => {});
+      const chunks: string[][] = [];
+      for (let i = 0; i < ids.length; i += RELATION_MAX_IDS_PER_CALL) {
+        chunks.push(ids.slice(i, i + RELATION_MAX_IDS_PER_CALL));
+      }
+      Promise.all(chunks.map((chunk) => fetchRelationPreviews(pageId, chunk)))
+        .then((results) =>
+          patchRelationPreviews(queryClient, pageId, Object.assign({}, ...results)),
+        )
+        // refetched rows carry fresh previews, so no chip is left stale
+        .catch(() => scheduleRowsRefresh(pageId, "all"));
     }, RELATIONS_REFRESH_DELAY_MS),
   };
   state.relationRefresh = next;
@@ -593,6 +607,9 @@ function createBaseEventHandler(
               invalidatePublicFormForView(pageId, view.id);
             }
           }
+        } else if (e.operation === "base:property:created" && e.property?.type === "relation") {
+          // rows loaded before this side existed carry no preview for it
+          scheduleRowsRefresh(pageId, "all");
         } else if (e.operation === "base:view:updated" && e.view?.type === "form") {
           invalidatePublicFormForView(pageId, e.view.id);
         } else if (e.operation === "base:view:deleted" && e.viewId) {
