@@ -9,7 +9,7 @@ import {
   IconUser,
   IconPaperclip,
   IconFileDescription,
-  IconRelationManyToMany,
+  IconArrowUpRight,
   IconCheckbox,
   IconLink,
   IconMail,
@@ -173,7 +173,7 @@ export const PROPERTY_TYPE_REGISTRY: Record<
   relation: {
     type: "relation",
     cellComponent: CellRelation,
-    icon: IconRelationManyToMany,
+    icon: IconArrowUpRight,
     labelKey: "Relation",
     filterOperators: ["any", "none", "isEmpty", "isNotEmpty"],
     filterInput: "relation",
