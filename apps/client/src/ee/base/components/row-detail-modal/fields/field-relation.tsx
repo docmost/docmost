@@ -129,6 +129,7 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
           ref={showAllRef}
           type="button"
           className={classes.fieldChipButton}
+          aria-label={t("Show all {{count}} links for {{name}}", { count, name: property.name })}
           onClick={(e) => {
             e.stopPropagation();
             if (!expanded) {
@@ -149,6 +150,7 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
           ref={addLinkRef}
           type="button"
           className={classes.fieldChipButton}
+          aria-label={t("Add a link for {{name}}", { name: property.name })}
           aria-haspopup="dialog"
           aria-expanded={opened}
         >
@@ -192,7 +194,11 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
           {chips}
         </FieldShell>
       </Popover.Target>
-      <Popover.Dropdown p={0} role="dialog" aria-label={property.name}>
+      <Popover.Dropdown
+        p={0}
+        role="dialog"
+        aria-label={t("Link rows for {{name}}", { name: property.name })}
+      >
         <RelationPicker
           pageId={property.pageId}
           rowId={rowId}
