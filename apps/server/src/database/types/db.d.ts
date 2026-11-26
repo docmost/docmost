@@ -807,6 +807,7 @@ export interface OauthTokens {
   refreshExpiresAt: Timestamp | null;
   refreshTokenHash: string | null;
   revokedAt: Timestamp | null;
+  rotatedAt: Timestamp | null;
   scopes: Json;
   workspaceId: string;
 }

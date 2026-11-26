@@ -185,7 +185,7 @@ export default function TemplateList() {
                   useLoading={variables.loadingId === template.id}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
-                  canManage={isWorkspaceAdmin}
+                  canManage={template.permissions?.canEdit}
                 />
               ))}
             </SimpleGrid>
@@ -223,7 +223,11 @@ export default function TemplateList() {
             onClose={() => { variables.cancel(); closePreview(); }}
             onUse={() => variables.choose(selectedTemplate)}
             useLoading={!!variables.loadingId}
-            onEdit={isWorkspaceAdmin ? () => handleEdit(selectedTemplate) : undefined}
+            onEdit={
+              selectedTemplate.permissions?.canEdit
+                ? () => handleEdit(selectedTemplate)
+                : undefined
+            }
           />
           <UseTemplateModal
             template={selectedTemplate}
