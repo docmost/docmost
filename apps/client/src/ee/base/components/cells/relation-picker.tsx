@@ -184,14 +184,15 @@ export function RelationPicker({
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setLink(row, !linked)}
       >
-        <IconFile
-          size={16}
+        <span
           aria-hidden
           className={clsx(
             cellClasses.relationOptionIcon,
             linked && cellClasses.relationOptionIconLinked,
           )}
-        />
+        >
+          <IconFile size={12} stroke={1.75} />
+        </span>
         <span className={cellClasses.relationOptionTitle}>{row.title || t("Untitled")}</span>
         {linked ? (
           <span className={cellClasses.relationOptionRemove} aria-hidden>
@@ -248,7 +249,7 @@ export function RelationPicker({
         ) : loading ? (
           [72, 56, 64].map((width) => (
             <div key={width} className={cellClasses.relationOptionSkeleton} aria-hidden>
-              <Skeleton height={16} width={16} radius="sm" />
+              <Skeleton height={20} width={20} radius="sm" />
               <Skeleton height={10} width={`${width}%`} radius="xl" />
             </div>
           ))
