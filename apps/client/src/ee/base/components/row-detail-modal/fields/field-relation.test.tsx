@@ -1,6 +1,6 @@
 import { MantineProvider } from "@mantine/core";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IBaseProperty, RelationPreview } from "@/ee/base/types/base.types";
@@ -168,8 +168,9 @@ describe("FieldRelation", () => {
     renderField({ count: 60, rows: linked(1, 10) });
 
     fireEvent.click(screen.getByRole("button", { name: "Show all (60)" }));
+    await screen.findByText("Row 50");
+    await waitFor(() => expect(listRelationRows).toHaveBeenCalledTimes(2));
     const retry = await screen.findByRole("button", { name: "Show all (60)" });
-    expect(screen.getByText("Row 50")).toBeTruthy();
     expect(listRelationRows).toHaveBeenCalledTimes(2);
 
     fireEvent.click(retry);
@@ -177,6 +178,43 @@ describe("FieldRelation", () => {
     await waitFor(() => expect(screen.getByText("Row 60")).toBeTruthy());
     expect(listRelationRows).toHaveBeenLastCalledWith(expect.objectContaining({ cursor: "c1" }));
     expect(screen.queryByRole("button", { name: /^Show all/ })).toBeNull();
+  });
+
+  it("Show all keeps keyboard focus in the field", async () => {
+    let answer!: (page: Awaited<ReturnType<typeof listRelationRows>>) => void;
+    vi.mocked(listRelationRows).mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    renderField({ count: 12, rows: linked(1, 10) });
+    const showAll = screen.getByRole("button", { name: "Show all (12)" });
+    act(() => showAll.focus());
+
+    fireEvent.click(showAll);
+
+    expect(document.activeElement).toBe(showAll);
+    await act(async () =>
+      answer({ items: linked(1, 12), meta: { hasNextPage: false, nextCursor: null } as never }),
+    );
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole("link", { name: "Open Row 11" })),
+    );
+    expect(screen.queryByRole("button", { name: /^Show all/ })).toBeNull();
+  });
+
+  it("Show all leaves focus alone when the user moved on while it loaded", async () => {
+    let answer!: (page: Awaited<ReturnType<typeof listRelationRows>>) => void;
+    vi.mocked(listRelationRows).mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    renderField({ count: 12, rows: linked(1, 10) });
+    const showAll = screen.getByRole("button", { name: "Show all (12)" });
+    act(() => showAll.focus());
+    fireEvent.click(showAll);
+    const addLink = screen.getByRole("button", { name: "Add a link" });
+    act(() => addLink.focus());
+
+    await act(async () =>
+      answer({ items: linked(1, 12), meta: { hasNextPage: false, nextCursor: null } as never }),
+    );
+
+    await waitFor(() => expect(screen.getByText("Row 12")).toBeTruthy());
+    expect(document.activeElement).toBe(addLink);
   });
 
   it("field Add a link opens the picker", async () => {

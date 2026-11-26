@@ -486,6 +486,14 @@ function createBaseEventHandler(
       case "base:relations:updated": {
         const e = event as BaseRelationsUpdated;
         scheduleRelationPreviewRefresh(pageId, queryClient, state, e.rowIds);
+        // an open full list (row modal "Show all") refetches; closed ones go stale
+        const rowIds = new Set(e.rowIds);
+        const propertyIds = new Set(e.propertyIds);
+        queryClient.invalidateQueries({
+          queryKey: ["base-relations", "list", pageId],
+          predicate: ({ queryKey }) =>
+            rowIds.has(queryKey[3] as string) && propertyIds.has(queryKey[4] as string),
+        });
         break;
       }
       case "base:schema:bumped": {

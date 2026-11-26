@@ -241,6 +241,56 @@ describe("retainBaseSubscription", () => {
     release();
   });
 
+  it("relations updated refreshes an open full list for that row", async () => {
+    const queryClient = new QueryClient();
+    const listKey = (pageId: string, rowId: string, propertyId: string) => [
+      "base-relations",
+      "list",
+      pageId,
+      rowId,
+      propertyId,
+    ];
+    const openList = listKey("page-6", "row-1", "rel");
+    const read = vi.fn().mockResolvedValue({ pages: [], pageParams: [] });
+    queryClient.setQueryData(openList, { pages: [], pageParams: [] });
+    const observer = new QueryObserver(queryClient, {
+      queryKey: openList,
+      queryFn: read,
+      staleTime: Infinity,
+    });
+    const unsubscribe = observer.subscribe(() => {});
+    const closedList = listKey("page-6", "row-1", "inverse");
+    const otherRow = listKey("page-6", "row-2", "rel");
+    const otherBase = listKey("page-other", "row-1", "rel");
+    for (const key of [closedList, otherRow, otherBase]) {
+      queryClient.setQueryData(key, { pages: [], pageParams: [] });
+    }
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-6", queryClient);
+    const event = (requestId: string | null) => ({
+      operation: "base:relations:updated",
+      pageId: "page-6",
+      rowIds: ["row-1"],
+      propertyIds: ["rel", "inverse"],
+      actorId: "u2",
+      requestId,
+    });
+    try {
+      markRequestIdOutbound("own-list-request");
+      receive(event("own-list-request"));
+      expect(queryClient.getQueryState(openList)?.isInvalidated).toBe(false);
+
+      receive(event(null));
+      await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+      expect(queryClient.getQueryState(closedList)?.isInvalidated).toBe(true);
+      expect(queryClient.getQueryState(otherRow)?.isInvalidated).toBe(false);
+      expect(queryClient.getQueryState(otherBase)?.isInvalidated).toBe(false);
+    } finally {
+      release();
+      unsubscribe();
+    }
+  });
+
   it("drops a pending refresh when the last view of the base leaves", async () => {
     vi.useFakeTimers();
     const { queryClient: appClient } = await import("@/main.tsx");

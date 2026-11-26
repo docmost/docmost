@@ -13,6 +13,7 @@ import {
 } from "@/ee/base/queries/base-relation-query";
 import { useResolvedPages } from "@/ee/base/queries/base-page-resolver-query";
 import { useListKeyboardNav } from "@/ee/base/hooks/use-list-keyboard-nav";
+import { RELATION_MAX_IDS_PER_CALL } from "@/ee/base/constants/relations";
 import cellClasses from "@/ee/base/styles/cells.module.css";
 
 type FilterRelationInputProps = {
@@ -73,6 +74,7 @@ export function FilterRelationInput({
   const titleOf = (id: string) => titles.get(id) || t("Untitled");
 
   const options = (candidates?.items ?? []).filter((row) => !ids.includes(row.id));
+  const atLimit = ids.length >= RELATION_MAX_IDS_PER_CALL;
   const { activeIndex, setActiveIndex, handleNavKey, setOptionRef } =
     useListKeyboardNav(options.length, [query, opened]);
   const optionId = (index: number) => `${listboxId}-${index}`;
@@ -80,6 +82,7 @@ export function FilterRelationInput({
   const emit = (nextIds: string[]) => onChange(nextIds.length > 0 ? nextIds : undefined);
 
   const select = (row: RelationCandidate) => {
+    if (atLimit) return;
     setPickedTitles((prev) => ({ ...prev, [row.id]: row.title }));
     emit([...ids, row.id]);
     setSearch("");
@@ -189,6 +192,11 @@ export function FilterRelationInput({
           />
         </div>
         <div className={cellClasses.personDropdownDivider} />
+        {atLimit && (
+          <div role="status" className={cellClasses.personDropdownHint}>
+            {t("Up to {{max}} rows", { max: RELATION_MAX_IDS_PER_CALL })}
+          </div>
+        )}
         <div
           id={listboxId}
           role="listbox"
@@ -203,9 +211,11 @@ export function FilterRelationInput({
               ref={setOptionRef(index)}
               role="option"
               aria-selected={false}
+              aria-disabled={atLimit || undefined}
               className={clsx(
                 cellClasses.selectOption,
                 index === activeIndex && cellClasses.selectOptionKeyboardActive,
+                atLimit && cellClasses.selectOptionDisabled,
               )}
               onMouseEnter={() => setActiveIndex(index)}
               // keeps focus in the search box

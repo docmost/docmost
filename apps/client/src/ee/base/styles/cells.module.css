@@ -321,6 +321,12 @@
   background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-blue-8));
 }
 
+/* Same dimming as a field that can't be hidden in the properties list. */
+.selectOptionDisabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .selectCategoryLabel {
   font-size: 11px;
   font-weight: 600;

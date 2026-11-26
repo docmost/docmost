@@ -25,6 +25,10 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
   const [expanded, setExpanded] = useState(false);
   // rows unlinked here, hidden until the rows stop listing them
   const [unlinkedIds, setUnlinkedIds] = useState<string[]>([]);
+  // first chip Show all loads; keyboard focus moves to it once it renders
+  const [focusChipIndex, setFocusChipIndex] = useState<number | null>(null);
+  const chipsRef = useRef<HTMLDivElement>(null);
+  const showAllRef = useRef<HTMLButtonElement>(null);
   const addLinkRef = useRef<HTMLButtonElement>(null);
   const rowHref = useRelationRowHref(targetBaseId);
   const updateLinks = useUpdateRelationLinksMutation(property.pageId);
@@ -50,6 +54,14 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
     if (expanded && hasNextPage && !isFetching && !isError) fetchNextPage();
   }, [expanded, hasNextPage, isFetching, isError, fetchNextPage]);
 
+  useEffect(() => {
+    if (focusChipIndex === null || !listData) return;
+    if (document.activeElement === showAllRef.current) {
+      chipsRef.current?.children[focusChipIndex]?.querySelector<HTMLElement>("a, button")?.focus();
+    }
+    setFocusChipIndex(null);
+  }, [focusChipIndex, listData]);
+
   if (preview?.restricted) {
     return (
       <FieldShell>
@@ -71,55 +83,61 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
   };
 
   const count = preview?.count ?? 0;
-  // after a failed request the button retries it
-  const showAll = expanded ? isError && !isFetching : count > linkedRows.length;
+  const visibleRows = linkedRows.filter((row) => !unlinkedIds.includes(row.id));
+  // stays until the list and the focus hand-off are done, and retries a failed request
+  const showAll = expanded
+    ? !listData || isError || focusChipIndex !== null
+    : count > linkedRows.length;
 
   const chips = (
-    <div className={classes.fieldChips}>
-      {linkedRows
-        .filter((row) => !unlinkedIds.includes(row.id))
-        .map((row) => {
-          const title = row.title || t("Untitled");
-          const href = rowHref(row.id);
-          return (
-            <span key={row.id} className={clsx(cellClasses.badge, cellClasses.pagePill)}>
-              {href ? (
-                <Link
-                  to={href}
-                  className={clsx(cellClasses.pagePillText, classes.fieldChipLink)}
-                  aria-label={t("Open {{name}}", { name: title })}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {title}
-                </Link>
-              ) : (
-                <span className={cellClasses.pagePillText}>{title}</span>
-              )}
-              {!readOnly && (
-                <button
-                  type="button"
-                  className={clsx(cellClasses.personTagRemove, cellClasses.badgeRemoveBtn)}
-                  aria-label={t("Remove {{name}}", { name: title })}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    unlink(row.id);
-                  }}
-                >
-                  <IconX size={10} />
-                </button>
-              )}
-            </span>
-          );
-        })}
+    <div ref={chipsRef} className={classes.fieldChips}>
+      {visibleRows.map((row) => {
+        const title = row.title || t("Untitled");
+        const href = rowHref(row.id);
+        return (
+          <span key={row.id} className={clsx(cellClasses.badge, cellClasses.pagePill)}>
+            {href ? (
+              <Link
+                to={href}
+                className={clsx(cellClasses.pagePillText, classes.fieldChipLink)}
+                aria-label={t("Open {{name}}", { name: title })}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {title}
+              </Link>
+            ) : (
+              <span className={cellClasses.pagePillText}>{title}</span>
+            )}
+            {!readOnly && (
+              <button
+                type="button"
+                className={clsx(cellClasses.personTagRemove, cellClasses.badgeRemoveBtn)}
+                aria-label={t("Remove {{name}}", { name: title })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  unlink(row.id);
+                }}
+              >
+                <IconX size={10} />
+              </button>
+            )}
+          </span>
+        );
+      })}
       {showAll && (
         <button
+          ref={showAllRef}
           type="button"
           className={classes.fieldChipButton}
           onClick={(e) => {
             e.stopPropagation();
-            if (!expanded) setExpanded(true);
-            else if (hasNextPage) fetchNextPage();
-            else refetch();
+            if (!expanded) {
+              setFocusChipIndex(visibleRows.length);
+              setExpanded(true);
+            } else if (!isFetching) {
+              if (hasNextPage) fetchNextPage();
+              else refetch();
+            }
           }}
         >
           {t("Show all ({{count}})", { count })}
