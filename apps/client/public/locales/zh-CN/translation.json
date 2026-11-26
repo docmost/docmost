@@ -2391,5 +2391,11 @@
   "Recently updated settings": "最近更新设置",
   "Refresh recently updated pages": "刷新最近更新的页面",
   "Updated by {{name}}": "由 {{name}} 更新",
-  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "每个筛选器最多可使用 {{maxValues}} 个值，每个值最多 {{maxLength}} 个字符。"
+  "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "每个筛选器最多可使用 {{maxValues}} 个值，每个值最多 {{maxLength}} 个字符。",
+  "Refresh preview": "Refresh preview",
+  "Couldn't refresh the preview": "Couldn't refresh the preview",
+  "Link actions": "Link actions",
+  "Remove from list": "Remove from list",
+  "Remove {{name}} from list": "Remove {{name}} from list",
+  "Failed to remove workspace from list": "Failed to remove workspace from list"
 }
