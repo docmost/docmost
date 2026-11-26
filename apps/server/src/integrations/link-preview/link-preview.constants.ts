@@ -1,5 +1,3 @@
-const packageJson = require('../../../package.json');
-
 export const LINK_PREVIEW_MAX_REDIRECTS = 5;
 export const LINK_PREVIEW_TIMEOUT_MS = 8_000;
 export const LINK_PREVIEW_DNS_TIMEOUT_MS = 2_000;
@@ -14,7 +12,7 @@ export const LINK_PREVIEW_ERROR_CACHE_TTL = 300;
 
 export const LINK_PREVIEW_ACCEPT =
   'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8';
-export const LINK_PREVIEW_USER_AGENT = `Mozilla/5.0 (compatible; DocmostBot/${packageJson.version}; +https://docmost.com)`;
+export const LINK_PREVIEW_USER_AGENT = 'DocmostBot-LinkPreview (+https://docmost.com/robots)';
 
 export const LINK_PREVIEW_FETCH = 'LINK_PREVIEW_FETCH';
 
