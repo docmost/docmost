@@ -44,26 +44,27 @@ export default function JoinedWorkspaces() {
                 </Text>
               </Link>
 
-              <Tooltip label={t("Remove from list")} withArrow>
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  className={classes.remove}
-                  aria-label={t("Remove {{name}} from list", {
-                    name: workspace?.name,
-                  })}
-                  loading={
-                    removeMutation.isPending &&
-                    removeMutation.variables === workspace.id
-                  }
-                  onClick={() => removeMutation.mutate(workspace.id)}
-                >
-                  <IconX size={16} />
-                </ActionIcon>
-              </Tooltip>
-
               <IconChevronRight size={16} />
             </Group>
+
+            <Tooltip label={t("Remove from list")} withArrow>
+              <ActionIcon
+                variant="default"
+                size="sm"
+                radius="xl"
+                className={classes.remove}
+                aria-label={t("Remove {{name}} from list", {
+                  name: workspace?.name,
+                })}
+                loading={
+                  removeMutation.isPending &&
+                  removeMutation.variables === workspace.id
+                }
+                onClick={() => removeMutation.mutate(workspace.id)}
+              >
+                <IconX size={12} />
+              </ActionIcon>
+            </Tooltip>
           </div>
         );
       })}
