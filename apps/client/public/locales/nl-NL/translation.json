@@ -1934,7 +1934,7 @@
   "No active spaces. Archived spaces are under Archived.": "Geen actieve ruimtes. Gearchiveerde ruimtes staan onder Gearchiveerd.",
   "AI answers don't cover archived spaces.": "AI-antwoorden hebben geen betrekking op gearchiveerde ruimtes.",
   "Include archived": "Gearchiveerde items opnemen",
-  "Verified only": "Verified only",
+  "Verified only": "Alleen geverifieerd",
   "Add cover": "Omslag toevoegen",
   "Change cover": "Omslag wijzigen",
   "Reposition": "Opnieuw positioneren",
@@ -2392,10 +2392,10 @@
   "Refresh recently updated pages": "Recent bijgewerkte pagina's vernieuwen",
   "Updated by {{name}}": "Bijgewerkt door {{name}}",
   "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Gebruik maximaal {{maxValues}} waarden per filter en {{maxLength}} tekens per waarde.",
-  "Refresh preview": "Refresh preview",
-  "Couldn't refresh the preview": "Couldn't refresh the preview",
-  "Link actions": "Link actions",
-  "Remove from list": "Remove from list",
-  "Remove {{name}} from list": "Remove {{name}} from list",
-  "Failed to remove workspace from list": "Failed to remove workspace from list"
+  "Refresh preview": "Voorbeeld vernieuwen",
+  "Couldn't refresh the preview": "Kon het voorbeeld niet vernieuwen",
+  "Link actions": "Linkacties",
+  "Remove from list": "Verwijderen uit lijst",
+  "Remove {{name}} from list": "{{name}} verwijderen uit lijst",
+  "Failed to remove workspace from list": "Werkruimte kon niet uit de lijst worden verwijderd"
 }
