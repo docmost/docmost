@@ -1,6 +1,8 @@
 import type { CodeBlockOptions } from '@tiptap/extension-code-block';
 import CodeBlock from '@tiptap/extension-code-block';
 import { Plugin, Selection, TextSelection } from '@tiptap/pm/state';
+import type { NodeType, ResolvedPos } from '@tiptap/pm/model';
+import type { EditorView } from '@tiptap/pm/view';
 import { GapCursor } from '@tiptap/pm/gapcursor';
 
 import { LowlightPlugin } from './lowlight-plugin.js';
@@ -233,6 +235,105 @@ export const CustomCodeBlock = CodeBlock.extend<CodeBlockLowlightOptions>({
           },
         },
       }),
+      // A code block is a single textblock, so the default triple click
+      // selects all of it. Select the clicked line instead.
+      new Plugin({
+        props: {
+          handleTripleClick: (view, pos, event) => {
+            if (event.button !== 0) return false;
+
+            const line = codeLineRange(view.state.doc.resolve(pos), codeBlockType);
+            if (!line) return false;
+
+            selectWithPointer(view, line.from, line.to);
+            extendSelectionOnDrag(view, line, codeBlockType);
+            return true;
+          },
+        },
+      }),
     ];
   },
 });
+
+type TextRange = { from: number; to: number };
+
+// The line of a code block that holds $pos, without its line break.
+function codeLineRange(
+  $pos: ResolvedPos,
+  codeBlockType: NodeType,
+): TextRange | null {
+  if ($pos.parent.type !== codeBlockType) return null;
+
+  const text = $pos.parent.textContent;
+  const offset = $pos.parentOffset;
+  const lineStart = offset === 0 ? 0 : text.lastIndexOf('\n', offset - 1) + 1;
+  const newline = text.indexOf('\n', offset);
+  const lineEnd = newline === -1 ? text.length : newline;
+
+  const start = $pos.start();
+  return { from: start + lineStart, to: start + lineEnd };
+}
+
+function selectWithPointer(view: EditorView, anchor: number, head: number) {
+  if (!view.hasFocus()) view.focus();
+  view.dispatch(
+    view.state.tr
+      .setSelection(TextSelection.create(view.state.doc, anchor, head))
+      .setMeta('pointer', true),
+  );
+}
+
+// Handling the triple click skips ProseMirror's drag tracking, which extends
+// the selection by whole textblocks. Extend it by lines inside a code block
+// and by textblocks elsewhere until the mouse is released.
+function extendSelectionOnDrag(
+  view: EditorView,
+  start: TextRange,
+  codeBlockType: NodeType,
+) {
+  const startDoc = view.state.doc;
+  const target = view.dom.ownerDocument;
+
+  const stop = () => {
+    target.removeEventListener('mousemove', move);
+    target.removeEventListener('mouseup', stop);
+    target.removeEventListener('mousedown', stop, true);
+  };
+
+  const move = (event: MouseEvent) => {
+    if (
+      event.buttons === 0 ||
+      view.isDestroyed ||
+      !view.state.doc.eq(startDoc)
+    ) {
+      stop();
+      return;
+    }
+
+    const coords = view.posAtCoords({
+      left: event.clientX,
+      top: event.clientY,
+    });
+    if (!coords) return;
+
+    const $pos = view.state.doc.resolve(coords.pos);
+    const range =
+      codeLineRange($pos, codeBlockType) ??
+      ($pos.parent.inlineContent
+        ? { from: $pos.start(), to: $pos.end() }
+        : null);
+    if (!range) return;
+
+    event.preventDefault();
+    const [anchor, head] =
+      range.from < start.from
+        ? [start.to, range.from]
+        : [start.from, range.to];
+    selectWithPointer(view, anchor, head);
+  };
+
+  target.addEventListener('mousemove', move);
+  target.addEventListener('mouseup', stop);
+  // the triple click's own mousedown is already past the capture phase
+  target.addEventListener('mousedown', stop, true);
+}
