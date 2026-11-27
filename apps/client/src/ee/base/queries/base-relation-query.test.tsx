@@ -243,6 +243,33 @@ describe("relation queries", () => {
     await waitFor(() => expect(result.current.data?.[0].id).toBe("t1"));
   });
 
+  it("a linked-row list cached while the picker was closed refetches when it opens again", async () => {
+    // the app's client never refetches on mount by default
+    const client = new QueryClient({
+      defaultOptions: { queries: { refetchOnMount: false, retry: false } },
+    });
+    client.setQueryData(["base-relations", "list", "p1", "r1", "rel", ""], {
+      pages: [{ items: [{ id: "t0", title: "T0" }], meta: {} }],
+      pageParams: [undefined],
+    });
+    // t0 was unlinked from the row modal while the picker was closed
+    vi.mocked(listRelationRows).mockResolvedValue({
+      items: [{ id: "t1", title: "T1" }],
+      meta: { limit: 50, hasNextPage: false, hasPrevPage: false, nextCursor: null, prevCursor: null },
+    });
+
+    const { result } = renderHook(
+      () => useRelationRowsInfiniteQuery({ pageId: "p1", rowId: "r1", propertyId: "rel", enabled: true }),
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        ),
+      },
+    );
+
+    await waitFor(() => expect(result.current.data?.pages[0].items[0].id).toBe("t1"));
+  });
+
   it("suggestion pages continue from the last page's cursor", async () => {
     const meta = (nextCursor: string | null) => ({
       limit: 25,

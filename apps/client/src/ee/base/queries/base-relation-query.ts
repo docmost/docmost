@@ -144,8 +144,9 @@ export function useRelationRowsInfiniteQuery(args: {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.meta.nextCursor ?? undefined,
     enabled,
-    // links changed elsewhere only patch previews, so a cached list is always revalidated
+    // links changed while the picker was closed only patch previews, so reopening revalidates
     staleTime: 0,
+    refetchOnMount: true,
     placeholderData: keepPreviousData,
   });
 }
