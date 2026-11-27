@@ -147,9 +147,9 @@ describe("FieldRelation", () => {
     expect(screen.queryByText("Row 11")).toBeNull();
     expect(listRelationRows).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Show all 60 links for Projects" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show all 60 rows for Projects" }));
 
-    const showMore = await screen.findByRole("button", { name: "Show more links for Projects" });
+    const showMore = await screen.findByRole("button", { name: "Show more rows for Projects" });
     expect(showMore.textContent).toBe("Show more");
     expect(screen.getAllByRole("link", { name: /^Open Row/ })).toHaveLength(50);
     expect(listRelationRows).toHaveBeenCalledTimes(1);
@@ -183,14 +183,14 @@ describe("FieldRelation", () => {
       });
     renderField({ count: 60, rows: linked(1, 10) });
 
-    fireEvent.click(screen.getByRole("button", { name: "Show all 60 links for Projects" }));
-    const showMore = await screen.findByRole("button", { name: "Show more links for Projects" });
+    fireEvent.click(screen.getByRole("button", { name: "Show all 60 rows for Projects" }));
+    const showMore = await screen.findByRole("button", { name: "Show more rows for Projects" });
     fireEvent.click(showMore);
     await waitFor(() => expect(listRelationRows).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(showMore.getAttribute("aria-busy")).toBeNull());
     expect(screen.queryByText("Row 51")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Show more links for Projects" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show more rows for Projects" }));
 
     await waitFor(() => expect(screen.getByText("Row 60")).toBeTruthy());
     expect(listRelationRows).toHaveBeenCalledTimes(3);
@@ -202,7 +202,7 @@ describe("FieldRelation", () => {
     let answer!: (page: Awaited<ReturnType<typeof listRelationRows>>) => void;
     vi.mocked(listRelationRows).mockReturnValue(new Promise((resolve) => (answer = resolve)));
     renderField({ count: 12, rows: linked(1, 10) });
-    const showAll = screen.getByRole("button", { name: "Show all 12 links for Projects" });
+    const showAll = screen.getByRole("button", { name: "Show all 12 rows for Projects" });
     act(() => showAll.focus());
 
     fireEvent.click(showAll);
@@ -221,10 +221,10 @@ describe("FieldRelation", () => {
     let answer!: (page: Awaited<ReturnType<typeof listRelationRows>>) => void;
     vi.mocked(listRelationRows).mockReturnValue(new Promise((resolve) => (answer = resolve)));
     renderField({ count: 12, rows: linked(1, 10) });
-    const showAll = screen.getByRole("button", { name: "Show all 12 links for Projects" });
+    const showAll = screen.getByRole("button", { name: "Show all 12 rows for Projects" });
     act(() => showAll.focus());
     fireEvent.click(showAll);
-    const addLink = screen.getByRole("button", { name: "Add a link for Projects" });
+    const addLink = screen.getByRole("button", { name: "Link a row for Projects" });
     act(() => addLink.focus());
 
     await act(async () =>
@@ -235,14 +235,14 @@ describe("FieldRelation", () => {
     expect(document.activeElement).toBe(addLink);
   });
 
-  it("field Add a link opens the picker", async () => {
+  it("field Link a row opens the picker", async () => {
     vi.mocked(listRelationRows).mockResolvedValue({
       items: linked(1, 1),
       meta: { hasNextPage: false, nextCursor: null } as never,
     });
     renderField({ count: 1, rows: linked(1, 1) });
 
-    fireEvent.click(screen.getByRole("button", { name: "Add a link for Projects" }));
+    fireEvent.click(screen.getByRole("button", { name: "Link a row for Projects" }));
 
     expect(screen.getByRole("combobox", { name: "Search Projects" })).toBeTruthy();
     await waitFor(() =>
@@ -294,13 +294,13 @@ describe("FieldRelation", () => {
       </QueryClientProvider>,
     );
 
-    const showAll = screen.getByRole("button", { name: "Show all 12 links for Projects" });
+    const showAll = screen.getByRole("button", { name: "Show all 12 rows for Projects" });
     expect(showAll.textContent).toBe("Show all (12)");
-    expect(screen.getByRole("button", { name: "Show all 15 links for Tasks" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Add a link for Projects" }).textContent).toBe(
-      "Add a link",
+    expect(screen.getByRole("button", { name: "Show all 15 rows for Tasks" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Link a row for Projects" }).textContent).toBe(
+      "Link a row",
     );
-    fireEvent.click(screen.getByRole("button", { name: "Add a link for Tasks" }));
+    fireEvent.click(screen.getByRole("button", { name: "Link a row for Tasks" }));
     expect(screen.getByRole("dialog", { name: "Link rows for Tasks" })).toBeTruthy();
     expect(screen.getByRole("group", { name: "Tasks" })).toBeTruthy();
   });
@@ -308,13 +308,13 @@ describe("FieldRelation", () => {
   it("read-only users see the links without editing controls, restricted users see No access", () => {
     renderField({ count: 12, rows: linked(1, 10) }, true);
     expect(screen.getByRole("link", { name: "Open Row 1" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Show all 12 links for Projects" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Add a link for Projects" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Show all 12 rows for Projects" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Link a row for Projects" })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Remove/ })).toBeNull();
     cleanup();
 
     renderField({ count: 0, rows: [], restricted: true });
     expect(screen.getByText("No access")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Add a link for Projects" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Link a row for Projects" })).toBeNull();
   });
 });

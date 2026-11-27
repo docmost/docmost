@@ -2411,10 +2411,10 @@
   "No rows yet": "No rows yet",
   "Failed to load rows": "Failed to load rows",
   "Show all ({{count}})": "Show all ({{count}})",
-  "Add a link": "Add a link",
+  "Link a row": "Link a row",
   "Up to {{max}} rows": "Up to {{max}} rows",
-  "Show all {{count}} links for {{name}}": "Show all {{count}} links for {{name}}",
-  "Add a link for {{name}}": "Add a link for {{name}}",
+  "Show all {{count}} rows for {{name}}": "Show all {{count}} rows for {{name}}",
+  "Link a row for {{name}}": "Link a row for {{name}}",
   "Link rows for {{name}}": "Link rows for {{name}}",
-  "Show more links for {{name}}": "Show more links for {{name}}"
+  "Show more rows for {{name}}": "Show more rows for {{name}}"
 }

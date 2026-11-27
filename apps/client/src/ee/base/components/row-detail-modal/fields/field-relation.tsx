@@ -130,8 +130,8 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
           className={classes.fieldChipButton}
           aria-label={
             listData
-              ? t("Show more links for {{name}}", { name: property.name })
-              : t("Show all {{count}} links for {{name}}", { count, name: property.name })
+              ? t("Show more rows for {{name}}", { name: property.name })
+              : t("Show all {{count}} rows for {{name}}", { count, name: property.name })
           }
           aria-busy={isFetching || undefined}
           onClick={(e) => {
@@ -152,12 +152,12 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
           ref={addLinkRef}
           type="button"
           className={classes.fieldChipButton}
-          aria-label={t("Add a link for {{name}}", { name: property.name })}
+          aria-label={t("Link a row for {{name}}", { name: property.name })}
           aria-haspopup="dialog"
           aria-expanded={opened}
         >
           <IconPlus size={12} />
-          {t("Add a link")}
+          {t("Link a row")}
         </button>
       )}
     </div>
