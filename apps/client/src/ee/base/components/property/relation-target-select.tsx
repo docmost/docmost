@@ -11,6 +11,7 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { IconCheck, IconSearch, IconTable } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import clsx from "clsx";
+import { AutoTooltipText } from "@/components/ui/auto-tooltip-text";
 import { useRelationTargetsQuery } from "@/ee/base/queries/base-relation-query";
 import {
   useHydrateResolvedPage,
@@ -166,9 +167,24 @@ function RelationTargetLabel({
       <span className={classes.relationTargetIcon} aria-hidden>
         {icon || <IconTable size={14} />}
       </span>
-      <span className={classes.relationTargetTitle}>{title || t("Untitled")}</span>
+      <AutoTooltipText
+        span
+        inherit
+        className={classes.relationTargetTitle}
+        tooltipProps={{ withinPortal: true }}
+      >
+        {title || t("Untitled")}
+      </AutoTooltipText>
       {spaceName && (
-        <span className={classes.relationTargetSpace}>{spaceName}</span>
+        <AutoTooltipText
+          span
+          inherit
+          c="dimmed"
+          className={classes.relationTargetSpace}
+          tooltipProps={{ withinPortal: true }}
+        >
+          {spaceName}
+        </AutoTooltipText>
       )}
       {checked !== undefined && (
         <IconCheck
