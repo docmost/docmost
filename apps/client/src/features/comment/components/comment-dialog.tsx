@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Dialog, Group, Stack, Text } from "@mantine/core";
-import { useClickOutside } from "@mantine/hooks";
+import { useClickOutside, useLocalStorage } from "@mantine/hooks";
 import { useAtom, useSetAtom } from "jotai";
 import {
   activeCommentIdAtom,
   commentPanelTabAtom,
-  draftCommentIdAtom,
   showCommentPopupAtom,
   showReadOnlyCommentPopupAtom,
   readOnlyCommentDataAtom,
@@ -29,14 +28,20 @@ interface CommentDialogProps {
 
 function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
   const { t } = useTranslation();
-  const [comment, setComment] = useState("");
+  const [currentUser] = useAtom(currentUserAtom);
+  const draftKey = ["docmost","comment-draft",currentUser.user.workspaceId,currentUser.user.id,pageId].join(":");
+  const [storedDraft, setStoredDraft, clearStoredDraft] = useLocalStorage<any>({
+    key: draftKey,
+    defaultValue: "",
+    getInitialValueInEffect: false,
+  });
+  const [initialDraft] = useState(storedDraft);
+  const [comment, setComment] = useState<any>(initialDraft);
   const [, setShowCommentPopup] = useAtom(showCommentPopupAtom);
   const [, setShowReadOnlyCommentPopup] = useAtom(showReadOnlyCommentPopupAtom);
   const [readOnlyCommentData, setReadOnlyCommentData] = useAtom(readOnlyCommentDataAtom);
   const [, setActiveCommentId] = useAtom(activeCommentIdAtom);
   const setCommentPanelTab = useSetAtom(commentPanelTabAtom);
-  const [draftCommentId, setDraftCommentId] = useAtom(draftCommentIdAtom);
-  const [currentUser] = useAtom(currentUserAtom);
   const [, setAsideState] = useAtom(asideStateAtom);
   const useClickOutsideRef = useClickOutside(() => {
     if (document.querySelector("#mention")) return;
@@ -64,6 +69,11 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
     return editor.state.doc.textBetween(from, to);
   };
 
+  const handleCancel = () => {
+    clearStoredDraft()
+    handleDialogClose()
+  }
+
   const handleAddComment = async () => {
     if (readOnly) {
       await handleAddReadOnlyComment();
@@ -81,6 +91,8 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
 
       const createdComment =
         await createCommentMutation.mutateAsync(commentData);
+      clearStoredDraft();
+      
       if (isEditorReady(editor)) {
         editor
           .chain()
@@ -105,11 +117,8 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
           editor.view.dispatch(editor.state.tr.scrollIntoView());
         }
       }, 400);
-
-    } finally {
       setShowCommentPopup(false);
-      setDraftCommentId("");
-    }
+    } finally {}
   };
 
   const handleAddReadOnlyComment = async () => {
@@ -123,6 +132,7 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
         type: "inline",
         yjsSelection: readOnlyCommentData.yjsSelection,
       });
+      clearStoredDraft();
 
       setActiveCommentId(createdComment.id);
       setCommentPanelTab("open");
@@ -133,16 +143,21 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
         const commentElement = document.querySelector(selector);
         commentElement?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 400);
-    } finally {
       setShowReadOnlyCommentPopup(false);
       // @ts-ignore
       setReadOnlyCommentData(null);
-    }
+    } finally {}
   };
 
-  const handleCommentEditorChange = (newContent: any) => {
-    setComment(newContent);
-  };
+ const handleCommentEditorChange = (newContent: any, isEmpty: boolean) => {
+   setComment(newContent);
+
+   if (isEmpty) {
+     clearStoredDraft();
+   } else {
+     setStoredDraft(newContent);
+   }
+ };
 
   return (
     <Dialog
@@ -177,13 +192,19 @@ function CommentDialog({ editor, pageId, readOnly }: CommentDialogProps) {
 
         <CommentErrorBoundary>
           <CommentEditor
+            defaultContent={initialDraft || undefined}
             onUpdate={handleCommentEditorChange}
             onSave={handleAddComment}
             placeholder={t("Write a comment")}
             editable={true}
             autofocus={true}
           />
-          <CommentActions onSave={handleAddComment} isLoading={isPending} />
+          <CommentActions
+            isCommentEditor
+            onSave={handleAddComment}
+            onCancel={handleCancel}
+            isLoading={isPending}
+          />
         </CommentErrorBoundary>
       </Stack>
     </Dialog>
