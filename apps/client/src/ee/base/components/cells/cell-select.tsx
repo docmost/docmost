@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Popover, TextInput } from "@mantine/core";
+import { IconCheck } from "@tabler/icons-react";
 import clsx from "clsx";
 import {
   IBaseProperty,
@@ -191,6 +192,7 @@ export function CellSelect({
                   ref={setOptionRef(idx)}
                   className={clsx(
                     cellClasses.selectOption,
+                    cellClasses.choiceOption,
                     isSelected && cellClasses.selectOptionActive,
                     idx === activeIndex && cellClasses.selectOptionKeyboardActive,
                   )}
@@ -203,6 +205,9 @@ export function CellSelect({
                   >
                     {choice.name}
                   </span>
+                  {isSelected && (
+                    <IconCheck size={14} aria-hidden className={cellClasses.selectOptionCheck} />
+                  )}
                 </div>
               );
             })}

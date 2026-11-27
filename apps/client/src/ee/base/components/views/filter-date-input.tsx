@@ -7,7 +7,7 @@ import {
 } from "@mantine/core";
 import { DatePicker } from "@mantine/dates";
 import { isYmd, resolveOperand } from "@docmost/base-formula/client";
-import { IconChevronDown } from "@tabler/icons-react";
+import { IconCheck, IconChevronDown } from "@tabler/icons-react";
 import clsx from "clsx";
 import { useTranslation } from "react-i18next";
 import type {
@@ -87,11 +87,13 @@ export function FilterDateInput({ op, value, onChange }: FilterDateInputProps) {
       key={key}
       className={clsx(
         cellClasses.selectOption,
+        cellClasses.choiceOption,
         selected && cellClasses.selectOptionActive,
       )}
       onClick={onClick}
     >
       <span className={cellClasses.personOptionName}>{label}</span>
+      {selected && <IconCheck size={14} aria-hidden className={cellClasses.selectOptionCheck} />}
     </div>
   );
 

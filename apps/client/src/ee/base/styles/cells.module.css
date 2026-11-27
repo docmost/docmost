@@ -313,16 +313,24 @@
   background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
 }
 
-.selectOptionActive {
-  background-color: light-dark(var(--mantine-color-blue-0), var(--mantine-color-blue-9));
-}
-
 .selectOptionKeyboardActive {
   background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
 }
 
-.selectOptionActive.selectOptionKeyboardActive {
-  background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-blue-8));
+/* Single-choice lists mark the chosen row in grey, so their hover is lighter. */
+.choiceOption:hover,
+.choiceOption.selectOptionKeyboardActive {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
+.choiceOption.selectOptionActive {
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+}
+
+.selectOptionCheck {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
 }
 
 /* Same dimming as a field that can't be hidden in the properties list. */
