@@ -45,7 +45,7 @@ FROM node:26-slim
 LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl bash \
+  && apt-get install -y --no-install-recommends curl bash tini \
   && rm -rf /var/lib/apt/lists/*
 
 # drop npm and corepack
@@ -69,5 +69,9 @@ USER node
 VOLUME ["/app/data/storage"]
 
 EXPOSE 3000
+
+# node does not reap orphaned children as PID 1, so processes left behind by
+# healthchecks or `docker exec` would pile up as zombies
+ENTRYPOINT ["/usr/bin/tini", "--"]
 
 CMD ["node", "dist/main"]
