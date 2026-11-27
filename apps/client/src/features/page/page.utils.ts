@@ -22,7 +22,7 @@ const buildPageSlug = (pageSlugId: string, pageTitle?: string): string => {
     ],
   });
 
-  return `${titleSlug}-${pageSlugId}`;
+  return titleSlug ? `${titleSlug}-${pageSlugId}` : pageSlugId;
 };
 
 function appendSearchParams(
