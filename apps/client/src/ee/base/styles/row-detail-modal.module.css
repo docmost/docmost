@@ -83,7 +83,7 @@
 }
 
 .titleInput::placeholder {
-  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  color: light-dark(var(--mantine-color-placeholder), #9a9a9a);
   font-weight: 700;
 }
 
