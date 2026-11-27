@@ -70,12 +70,13 @@ describe("relation queries", () => {
       await result.current.mutateAsync({ rowId: "r1", propertyId: "rel", add: ["t0", "t1"] });
     });
 
-    // no request id, so this tab also takes the live event for the other rows the change touched
+    // the request id lets this tab tell its own live echo from other people's edits
     expect(updateRelationLinks).toHaveBeenCalledWith({
       pageId: "p1",
       rowId: "r1",
       propertyId: "rel",
       add: ["t0", "t1"],
+      requestId: expect.any(String),
     });
     await waitFor(() => expect(cachedRows()[0].relations?.rel).toEqual(preview(2)));
     expect(cachedRows()[1].relations).toBeUndefined();

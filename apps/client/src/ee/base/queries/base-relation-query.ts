@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
+import { v7 as uuid7 } from "uuid";
 import { queryClient } from "@/main";
 import { getApiErrorMessage } from "@/lib/api-error";
 import {
@@ -18,6 +19,7 @@ import {
   updateRelationLinks,
 } from "@/ee/base/services/base-relation-service";
 import type { IBaseRowsPage } from "@/ee/base/services/base-service";
+import { markRelationEditOutbound } from "@/ee/base/hooks/use-base-socket";
 import type { IBaseRow, RelationPreview } from "@/ee/base/types/base.types";
 
 type PreviewsByRow = Record<string, Record<string, RelationPreview>>;
@@ -66,8 +68,15 @@ export function useUpdateRelationLinksMutation(pageId: string) {
     Error,
     UpdateRelationLinksVariables
   >({
-    // no request id: the live event can name rows this tab didn't patch, so it must not be dropped
-    mutationFn: (variables) => updateRelationLinks({ ...variables, pageId }),
+    // the live echo still refreshes other rows the change touched; this cell and its list are done here
+    mutationFn: (variables) => {
+      const requestId = uuid7();
+      markRelationEditOutbound(requestId, {
+        rowId: variables.rowId,
+        propertyId: variables.propertyId,
+      });
+      return updateRelationLinks({ ...variables, pageId, requestId });
+    },
     onSuccess: ({ preview }, variables) => {
       patchRelationPreviews(queryClient, pageId, {
         [variables.rowId]: { [variables.propertyId]: preview },

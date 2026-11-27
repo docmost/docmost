@@ -190,6 +190,21 @@ export function markRequestIdOutbound(requestId: string): void {
   }
 }
 
+// Link edits this tab sent. Their echo can name rows this tab didn't patch, so it
+// isn't dropped; the handler skips only the cell and list the edit already refreshed.
+const ownRelationEdits = new Map<string, { rowId: string; propertyId: string }>();
+
+export function markRelationEditOutbound(
+  requestId: string,
+  edit: { rowId: string; propertyId: string },
+): void {
+  ownRelationEdits.set(requestId, edit);
+  if (ownRelationEdits.size > OUTBOUND_MAX) {
+    const oldest = ownRelationEdits.keys().next().value;
+    if (oldest) ownRelationEdits.delete(oldest);
+  }
+}
+
 type BaseRelationsUpdated = {
   operation: "base:relations:updated";
   pageId: string;
@@ -505,14 +520,26 @@ function createBaseEventHandler(
       }
       case "base:relations:updated": {
         const e = event as BaseRelationsUpdated;
-        scheduleRelationPreviewRefresh(pageId, queryClient, state, e.rowIds);
+        const own = e.requestId ? ownRelationEdits.get(e.requestId) : undefined;
+        if (e.requestId) ownRelationEdits.delete(e.requestId);
+        // the edit's response patched its cell, unless the change also reached other fields
+        const ownCellOnly = own !== undefined && e.propertyIds.every((id) => id === own.propertyId);
+        scheduleRelationPreviewRefresh(
+          pageId,
+          queryClient,
+          state,
+          ownCellOnly ? e.rowIds.filter((id) => id !== own?.rowId) : e.rowIds,
+        );
         // an open full list (row modal "Show all") refetches; closed ones go stale
         const rowIds = new Set(e.rowIds);
         const propertyIds = new Set(e.propertyIds);
         queryClient.invalidateQueries({
           queryKey: ["base-relations", "list", pageId],
           predicate: ({ queryKey }) =>
-            rowIds.has(queryKey[3] as string) && propertyIds.has(queryKey[4] as string),
+            rowIds.has(queryKey[3] as string) &&
+            propertyIds.has(queryKey[4] as string) &&
+            // the edit refetches its own list once it succeeds
+            !(own && queryKey[3] === own.rowId && queryKey[4] === own.propertyId),
         });
         break;
       }

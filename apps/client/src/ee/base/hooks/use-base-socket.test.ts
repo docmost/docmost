@@ -305,6 +305,99 @@ describe("retainBaseSubscription", () => {
     }
   });
 
+  it("the tab's own link echo skips the edited cell and its list, and refreshes the rest", async () => {
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const rowsKey = ["base-rows", "page-31", "view-1"];
+    const listKey = ["base-relations", "list", "page-31", "row-1", "rel", ""];
+    appClient.setQueryData(rowsKey, {
+      pages: [{ items: [{ id: "row-1", relations: {} }, { id: "row-2", relations: {} }], meta: {} }],
+      pageParams: [null],
+    });
+    appClient.setQueryData(listKey, { pages: [], pageParams: [] });
+    let finishUpdate = () => {};
+    vi.mocked(updateRelationLinks).mockReset();
+    vi.mocked(updateRelationLinks).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishUpdate = () => resolve({ preview: { count: 0, rows: [] } });
+        }),
+    );
+    vi.mocked(expandRows).mockReset();
+    vi.mocked(expandRows).mockResolvedValue({});
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-31", appClient);
+    const { result, unmount } = renderHook(() => useUpdateRelationLinksMutation("page-31"), {
+      wrapper: ({ children }: { children: ReactNode }) =>
+        createElement(QueryClientProvider, { client: appClient }, children),
+    });
+    try {
+      let done: Promise<unknown> = Promise.resolve();
+      act(() => {
+        done = result.current.mutateAsync({ rowId: "row-1", propertyId: "rel", remove: ["t1"] });
+      });
+      await waitFor(() => expect(updateRelationLinks).toHaveBeenCalled());
+      const sent = vi.mocked(updateRelationLinks).mock.calls[0][0];
+      // the echo can land before the response; this one also names a row the change moved
+      receive({
+        operation: "base:relations:updated",
+        pageId: "page-31",
+        rowIds: ["row-1", "row-2"],
+        propertyIds: ["rel"],
+        actorId: "me",
+        requestId: sent.requestId ?? null,
+      });
+
+      expect(appClient.getQueryState(listKey)?.isInvalidated).toBe(false);
+      await waitFor(() => expect(expandRows).toHaveBeenCalledWith("page-31", ["row-2"]));
+      expect(expandRows).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        finishUpdate();
+        await done;
+      });
+    } finally {
+      unmount();
+      release();
+    }
+  });
+
+  it("the tab's own echo of a one-cell link edit fetches nothing more", async () => {
+    const { queryClient: appClient } = await import("@/main.tsx");
+    appClient.setQueryData(["base-rows", "page-32", "view-1"], {
+      pages: [{ items: [{ id: "row-1", relations: {} }], meta: {} }],
+      pageParams: [null],
+    });
+    vi.mocked(updateRelationLinks).mockReset();
+    vi.mocked(updateRelationLinks).mockResolvedValue({ preview: { count: 0, rows: [] } });
+    vi.mocked(expandRows).mockReset();
+    vi.mocked(expandRows).mockResolvedValue({});
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-32", appClient);
+    const { result, unmount } = renderHook(() => useUpdateRelationLinksMutation("page-32"), {
+      wrapper: ({ children }: { children: ReactNode }) =>
+        createElement(QueryClientProvider, { client: appClient }, children),
+    });
+    try {
+      await act(async () => {
+        await result.current.mutateAsync({ rowId: "row-1", propertyId: "rel", remove: ["t1"] });
+      });
+      const sent = vi.mocked(updateRelationLinks).mock.calls[0][0];
+      receive({
+        operation: "base:relations:updated",
+        pageId: "page-32",
+        rowIds: ["row-1"],
+        propertyIds: ["rel"],
+        actorId: "me",
+        requestId: sent.requestId ?? null,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      expect(expandRows).not.toHaveBeenCalled();
+    } finally {
+      unmount();
+      release();
+    }
+  });
+
   it("relation preview refresh splits into requests of 100", async () => {
     vi.useFakeTimers();
     const { queryClient: appClient } = await import("@/main.tsx");
