@@ -59,9 +59,8 @@ export function FilterPersonInput({
     else setSearch("");
   }, [opened]);
 
-  const filtered: PersonSuggestion[] = multiple
-    ? suggestions.filter((s) => !selectedSet.has(s.id))
-    : suggestions;
+  // chosen people show as tags above, so the list leaves them out
+  const filtered: PersonSuggestion[] = suggestions.filter((s) => !selectedSet.has(s.id));
 
   const { activeIndex, setActiveIndex, handleNavKey, setOptionRef } =
     useListKeyboardNav(filtered.length, [search, opened]);
@@ -171,32 +170,31 @@ export function FilterPersonInput({
       </Popover.Target>
       <Popover.Dropdown p={0}>
         <div className={cellClasses.personTagArea}>
-          {multiple &&
-            ids.map((id) => {
-              const user = store.users[id];
-              const name = user?.name ?? id.substring(0, 8);
-              return (
-                <span key={id} className={cellClasses.personTag}>
-                  <CustomAvatar
-                    avatarUrl={user?.avatarUrl ?? ""}
-                    name={name}
-                    size={18}
-                    radius="xl"
-                  />
-                  <span className={cellClasses.personTagName}>{name}</span>
-                  <button
-                    type="button"
-                    className={cellClasses.personTagRemove}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemove(id);
-                    }}
-                  >
-                    <IconX size={10} />
-                  </button>
-                </span>
-              );
-            })}
+          {ids.map((id) => {
+            const user = store.users[id];
+            const name = user?.name ?? id.substring(0, 8);
+            return (
+              <span key={id} className={cellClasses.personTag}>
+                <CustomAvatar
+                  avatarUrl={user?.avatarUrl ?? ""}
+                  name={name}
+                  size={18}
+                  radius="xl"
+                />
+                <span className={cellClasses.personTagName}>{name}</span>
+                <button
+                  type="button"
+                  className={cellClasses.personTagRemove}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(id);
+                  }}
+                >
+                  <IconX size={10} />
+                </button>
+              </span>
+            );
+          })}
           <input
             ref={searchRef}
             className={cellClasses.personTagInput}
@@ -214,7 +212,6 @@ export function FilterPersonInput({
               ref={setOptionRef(idx)}
               className={clsx(
                 cellClasses.selectOption,
-                selectedSet.has(member.id) && cellClasses.selectOptionActive,
                 idx === activeIndex && cellClasses.selectOptionKeyboardActive,
               )}
               onMouseEnter={() => setActiveIndex(idx)}

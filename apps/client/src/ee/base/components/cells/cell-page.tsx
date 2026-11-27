@@ -163,7 +163,7 @@ function PagePicker({
     [debouncedSearch],
   );
 
-  const { data: suggestions = [] } = useQuery({
+  const { data: results = [] } = useQuery({
     queryKey: ["bases", "pages", "search", trimmed, spaceId ?? ""],
     queryFn: async () => {
       const res = await searchSuggestions({
@@ -177,6 +177,8 @@ function PagePicker({
     enabled: !pastedSlugId,
     staleTime: 15_000,
   });
+  // the current page shows as the tag above, so the list leaves it out
+  const suggestions = results.filter((page) => page.id !== pageId);
 
   // Once the pasted link resolves via slugId lookup, commit and close.
   const { data: linkedPage, isFetching: resolvingLink } = usePageQuery(
@@ -199,9 +201,9 @@ function PagePicker({
 
   const handleSelect = useCallback(
     (id: string) => {
-      onCommit(id === pageId ? null : id);
+      onCommit(id);
     },
-    [pageId, onCommit],
+    [onCommit],
   );
 
   const handleRemove = useCallback(() => {
