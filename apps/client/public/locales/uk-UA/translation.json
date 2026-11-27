@@ -1934,7 +1934,7 @@
   "No active spaces. Archived spaces are under Archived.": "Немає активних просторів. Архівовані простори знаходяться в розділі «Архівовані».",
   "AI answers don't cover archived spaces.": "Відповіді ШІ не охоплюють архівовані простори.",
   "Include archived": "Включити архівовані",
-  "Verified only": "Verified only",
+  "Verified only": "Лише перевірені",
   "Add cover": "Додати обкладинку",
   "Change cover": "Змінити обкладинку",
   "Reposition": "Змінити положення",
@@ -2392,10 +2392,10 @@
   "Refresh recently updated pages": "Оновити нещодавно оновлені сторінки",
   "Updated by {{name}}": "Оновлено {{name}}",
   "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Використовуйте до {{maxValues}} значень на фільтр і до {{maxLength}} символів на значення.",
-  "Refresh preview": "Refresh preview",
-  "Couldn't refresh the preview": "Couldn't refresh the preview",
-  "Link actions": "Link actions",
-  "Remove from list": "Remove from list",
-  "Remove {{name}} from list": "Remove {{name}} from list",
-  "Failed to remove workspace from list": "Failed to remove workspace from list"
+  "Refresh preview": "Оновити попередній перегляд",
+  "Couldn't refresh the preview": "Не вдалося оновити попередній перегляд",
+  "Link actions": "Дії з посиланнями",
+  "Remove from list": "Видалити зі списку",
+  "Remove {{name}} from list": "Видалити {{name}} зі списку",
+  "Failed to remove workspace from list": "Не вдалося видалити робочу область зі списку"
 }
