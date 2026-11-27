@@ -217,6 +217,9 @@ type BaseRelationsUpdated = {
   propertyIds: string[];
   actorId: string | null;
   requestId: string | null;
+  // sent when a link edit counts as an edit of these rows
+  updatedAt?: string;
+  lastUpdatedById?: string | null;
 };
 
 type BaseSubscriptionState = {
@@ -546,6 +549,31 @@ function createBaseEventHandler(
             // the edit refetches its own list once it succeeds
             !(own && queryKey[3] === own.rowId && queryKey[4] === own.propertyId),
         });
+        if (typeof e.updatedAt !== "string") break;
+
+        const stamp = { updatedAt: e.updatedAt, lastUpdatedById: e.lastUpdatedById ?? null };
+        const stampRow = (row: IBaseRow) => (rowIds.has(row.id) ? { ...row, ...stamp } : row);
+        queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+          { queryKey: ["base-rows", pageId] },
+          (old) =>
+            old && {
+              ...old,
+              pages: old.pages.map((page) => ({ ...page, items: page.items.map(stampRow) })),
+            },
+        );
+        for (const rowId of e.rowIds) {
+          queryClient.setQueryData<IBaseRow>(["base-row", pageId, rowId], (old) => old && stampRow(old));
+        }
+        const baseForLinks = queryClient.getQueryData<IBase>(["bases", pageId]);
+        const linkEditorUnknown =
+          typeof stamp.lastUpdatedById === "string" &&
+          (baseForLinks?.properties ?? []).some((p) => p.type === "lastEditedBy") &&
+          !getDefaultStore().get(referenceStoreAtomFamily(pageId)).users[stamp.lastUpdatedById];
+        if (linkEditorUnknown || rowsOrderDependsOn(pageId, [], baseForLinks)) {
+          scheduleRowsRefresh(pageId, "all");
+        } else if (invalidateAffectedCalendarWindows(queryClient, pageId, [], baseForLinks)) {
+          scheduleRowsRefresh(pageId, "calendar");
+        }
         break;
       }
       case "base:schema:bumped": {

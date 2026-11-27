@@ -360,6 +360,52 @@ describe("retainBaseSubscription", () => {
     }
   });
 
+  it("a link edit's stamp sets Last edited on the rows it names, and nothing else does", async () => {
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const rowsKey = ROWS("page-40");
+    const before = { updatedAt: "2026-11-20T09:00:00.000Z", lastUpdatedById: "u1" };
+    appClient.setQueryData(rowsKey, {
+      pages: [{ items: [{ id: "row-1", cells: {}, ...before }, { id: "row-2", cells: {}, ...before }], meta: {} }],
+      pageParams: [null],
+    });
+    appClient.setQueryData(["base-row", "page-40", "row-1"], { id: "row-1", cells: {}, ...before });
+    vi.mocked(expandRows).mockReset();
+    vi.mocked(expandRows).mockResolvedValue({});
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-40", appClient);
+    const rows = () =>
+      appClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(rowsKey)!.pages[0].items;
+    try {
+      const stamp = { updatedAt: "2026-11-27T10:00:00.000Z", lastUpdatedById: "u2" };
+      receive({
+        operation: "base:relations:updated",
+        pageId: "page-40",
+        rowIds: ["row-1"],
+        propertyIds: ["rel"],
+        actorId: "u2",
+        requestId: null,
+        ...stamp,
+      });
+
+      expect(rows()[0]).toMatchObject(stamp);
+      expect(rows()[1]).toMatchObject(before);
+      expect(appClient.getQueryData(["base-row", "page-40", "row-1"])).toMatchObject(stamp);
+
+      // a deleted row's links go without editing the rows that showed them
+      receive({
+        operation: "base:relations:updated",
+        pageId: "page-40",
+        rowIds: ["row-2"],
+        propertyIds: ["rel"],
+        actorId: "u3",
+        requestId: null,
+      });
+      expect(rows()[1]).toMatchObject(before);
+    } finally {
+      release();
+    }
+  });
+
   describe("a link edit that fails after the server saved it", () => {
     const setup = async (pageId: string) => {
       const { queryClient: appClient } = await import("@/main.tsx");
@@ -861,6 +907,43 @@ describe("retainBaseSubscription", () => {
       const { receive, allRowsRefreshes } = await observeList(undefined, sortOnDue);
       receive({ operation: "base:row:updated", pageId, rowId: "row-1", updatedCells: { prptext000001: "x" } });
       expect(allRowsRefreshes()).toBe(0);
+    });
+
+    const linkStamp = (extra: object = {}) => ({
+      operation: "base:relations:updated",
+      pageId,
+      rowIds: ["row-2"],
+      propertyIds: ["rel"],
+      actorId: "u2",
+      requestId: null,
+      ...extra,
+    });
+    const stamped = { updatedAt: "2026-11-27T10:00:00.000Z", lastUpdatedById: "u2" };
+    const withProperty = (property: object) => ({ ...base, properties: [...base.properties, property] });
+
+    it("refreshes all rows once when a link edit stamps a row under a list sorted by Last edited", async () => {
+      const { receive, allRowsRefreshes, appClient } = await observeList(undefined, [
+        { propertyId: "prpedited001", direction: "desc" },
+      ]);
+      appClient.setQueryData(["bases", pageId], withProperty({ id: "prpedited001", type: "lastEditedAt" }));
+      receive(linkStamp(stamped));
+      expect(allRowsRefreshes()).toBe(1);
+    });
+
+    it("refreshes nothing for a link change that stamps no row", async () => {
+      const { receive, allRowsRefreshes, appClient } = await observeList(undefined, [
+        { propertyId: "prpedited001", direction: "desc" },
+      ]);
+      appClient.setQueryData(["bases", pageId], withProperty({ id: "prpedited001", type: "lastEditedAt" }));
+      receive(linkStamp());
+      expect(allRowsRefreshes()).toBe(0);
+    });
+
+    it("refreshes all rows once when the link editor is not known yet and Last edited by shows", async () => {
+      const { receive, allRowsRefreshes, appClient } = await observeList(undefined, undefined);
+      appClient.setQueryData(["bases", pageId], withProperty({ id: "prpeditor001", type: "lastEditedBy" }));
+      receive(linkStamp({ ...stamped, actorId: "u9", lastUpdatedById: "u9" }));
+      expect(allRowsRefreshes()).toBe(1);
     });
 
     it("refreshes all rows once for a created row under a filtered list", async () => {
