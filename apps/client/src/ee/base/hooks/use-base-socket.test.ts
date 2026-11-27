@@ -360,6 +360,91 @@ describe("retainBaseSubscription", () => {
     }
   });
 
+  describe("a link edit that fails after the server saved it", () => {
+    const setup = async (pageId: string) => {
+      const { queryClient: appClient } = await import("@/main.tsx");
+      const listKey = ["base-relations", "list", pageId, "row-1", "rel", ""];
+      appClient.setQueryData(["base-rows", pageId, "view-1"], {
+        pages: [{ items: [{ id: "row-1", relations: { rel: { count: 1, rows: [{ id: "t1", title: "T1" }] } } }], meta: {} }],
+        pageParams: [null],
+      });
+      appClient.setQueryData(listKey, { pages: [], pageParams: [] });
+      let failUpdate = () => {};
+      vi.mocked(updateRelationLinks).mockReset();
+      vi.mocked(updateRelationLinks).mockImplementation(
+        () =>
+          new Promise((_resolve, reject) => {
+            failUpdate = () => reject(new Error("timeout of 30000ms exceeded"));
+          }),
+      );
+      vi.mocked(expandRows).mockReset();
+      vi.mocked(expandRows).mockResolvedValue({ "row-1": { relations: { rel: { count: 0, rows: [] } } } });
+      const { socket, receive } = createFakeSocket();
+      const release = retainBaseSubscription(socket, pageId, appClient);
+      const { result, unmount } = renderHook(() => useUpdateRelationLinksMutation(pageId), {
+        wrapper: ({ children }: { children: ReactNode }) =>
+          createElement(QueryClientProvider, { client: appClient }, children),
+      });
+      let done: Promise<unknown> = Promise.resolve();
+      act(() => {
+        done = result.current
+          .mutateAsync({ rowId: "row-1", propertyId: "rel", remove: ["t1"] })
+          .catch(() => {});
+      });
+      await waitFor(() => expect(updateRelationLinks).toHaveBeenCalled());
+      const echo = () =>
+        receive({
+          operation: "base:relations:updated",
+          pageId,
+          rowIds: ["row-1"],
+          propertyIds: ["rel"],
+          actorId: "me",
+          requestId: vi.mocked(updateRelationLinks).mock.calls[0][0].requestId ?? null,
+        });
+      const fail = async () => {
+        await act(async () => {
+          failUpdate();
+          await done;
+        });
+      };
+      const cell = () =>
+        appClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(["base-rows", pageId, "view-1"])!
+          .pages[0].items[0].relations?.rel;
+      const listStale = () => appClient.getQueryState(listKey)?.isInvalidated;
+      const freshList = () => appClient.setQueryData(listKey, { pages: [], pageParams: [] });
+      return { echo, fail, cell, listStale, freshList, cleanup: () => (unmount(), release()) };
+    };
+
+    it("refreshes the edited cell and its list when the echo came first", async () => {
+      const t = await setup("page-35");
+      try {
+        t.echo();
+        await t.fail();
+
+        await waitFor(() => expect(t.cell()).toEqual({ count: 0, rows: [] }));
+        expect(expandRows).toHaveBeenCalledWith("page-35", ["row-1"]);
+        expect(t.listStale()).toBe(true);
+      } finally {
+        t.cleanup();
+      }
+    });
+
+    it("lets a later echo refresh the edited cell and its list", async () => {
+      const t = await setup("page-36");
+      try {
+        await t.fail();
+        vi.mocked(expandRows).mockClear();
+        t.freshList();
+        t.echo();
+
+        await waitFor(() => expect(expandRows).toHaveBeenCalledWith("page-36", ["row-1"]));
+        expect(t.listStale()).toBe(true);
+      } finally {
+        t.cleanup();
+      }
+    });
+  });
+
   it("the tab's own echo of a one-cell link edit fetches nothing more", async () => {
     const { queryClient: appClient } = await import("@/main.tsx");
     appClient.setQueryData(["base-rows", "page-32", "view-1"], {

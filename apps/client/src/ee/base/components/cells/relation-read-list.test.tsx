@@ -70,6 +70,12 @@ describe("RelationReadList", () => {
     expect(screen.queryByText(/^\+/)).toBeNull();
   });
 
+  it("says Base deleted when the related base is in the trash or gone", () => {
+    renderList({ count: 0, rows: [], restricted: true, deleted: true });
+    expect(screen.getByText("Base deleted")).toBeTruthy();
+    expect(screen.queryByText("No access")).toBeNull();
+  });
+
   it("chips link to the other base's row without starting an edit", () => {
     resolved.pages = new Map([
       [

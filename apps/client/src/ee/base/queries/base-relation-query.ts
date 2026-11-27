@@ -18,8 +18,11 @@ import {
   suggestRelationRows,
   updateRelationLinks,
 } from "@/ee/base/services/base-relation-service";
-import type { IBaseRowsPage } from "@/ee/base/services/base-service";
-import { markRelationEditOutbound } from "@/ee/base/hooks/use-base-socket";
+import { expandRows, type IBaseRowsPage } from "@/ee/base/services/base-service";
+import {
+  forgetRelationEditOutbound,
+  markRelationEditOutbound,
+} from "@/ee/base/hooks/use-base-socket";
 import type { IBaseRow, RelationPreview } from "@/ee/base/types/base.types";
 
 type PreviewsByRow = Record<string, Record<string, RelationPreview>>;
@@ -63,39 +66,57 @@ type UpdateRelationLinksVariables = {
 
 export function useUpdateRelationLinksMutation(pageId: string) {
   const { t } = useTranslation();
+  const invalidateLists = ({ rowId, propertyId }: UpdateRelationLinksVariables) =>
+    Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ["base-relations", "list", pageId, rowId, propertyId],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["base-relations", "suggestions", pageId, propertyId, rowId],
+      }),
+    ]);
+
   return useMutation<
     { preview: RelationPreview },
     Error,
     UpdateRelationLinksVariables
   >({
     // the live echo still refreshes other rows the change touched; this cell and its list are done here
-    mutationFn: (variables) => {
+    mutationFn: async (variables) => {
       const requestId = uuid7();
       markRelationEditOutbound(requestId, {
         rowId: variables.rowId,
         propertyId: variables.propertyId,
       });
-      return updateRelationLinks({ ...variables, pageId, requestId });
+      try {
+        return await updateRelationLinks({ ...variables, pageId, requestId });
+      } catch (error) {
+        forgetRelationEditOutbound(requestId);
+        throw error;
+      }
     },
     onSuccess: ({ preview }, variables) => {
       patchRelationPreviews(queryClient, pageId, {
         [variables.rowId]: { [variables.propertyId]: preview },
       });
       // mutateAsync resolves once the open lists show the change
-      return Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["base-relations", "list", pageId, variables.rowId, variables.propertyId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["base-relations", "suggestions", pageId, variables.propertyId, variables.rowId],
-        }),
-      ]);
+      return invalidateLists(variables);
     },
-    onError: (error) => {
+    onError: (error, variables) => {
       notifications.show({
         message: getApiErrorMessage(error, t("Failed to update row")),
         color: "red",
       });
+      // a request that failed on the way back may still have saved the change
+      expandRows(pageId, [variables.rowId])
+        .then((items) => {
+          const relations = items[variables.rowId]?.relations;
+          if (relations) {
+            patchRelationPreviews(queryClient, pageId, { [variables.rowId]: relations });
+          }
+        })
+        .catch(() => {});
+      void invalidateLists(variables);
     },
   });
 }

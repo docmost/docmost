@@ -205,6 +205,11 @@ export function markRelationEditOutbound(
   }
 }
 
+// A failed edit may still have saved; its echo then refreshes like anyone else's.
+export function forgetRelationEditOutbound(requestId: string): void {
+  ownRelationEdits.delete(requestId);
+}
+
 type BaseRelationsUpdated = {
   operation: "base:relations:updated";
   pageId: string;

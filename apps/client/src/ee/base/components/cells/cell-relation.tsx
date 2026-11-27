@@ -16,7 +16,8 @@ export function CellRelation({
   onCancel,
 }: CellComponentProps) {
   const { targetBaseId } = property.typeOptions as RelationTypeOptions;
-  const canEdit = !readOnly && !relation?.restricted;
+  const canEdit =
+    !readOnly && !relation?.restricted && relation?.permissions?.canEdit !== false;
 
   // a cell that can't be edited hands focus straight back to the grid
   useEffect(() => {

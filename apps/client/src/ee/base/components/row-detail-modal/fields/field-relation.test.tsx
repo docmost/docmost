@@ -316,4 +316,13 @@ describe("FieldRelation", () => {
     expect(screen.getByText("No access")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Link a row for Projects" })).toBeNull();
   });
+
+  it("an editor sees a relation the server marks read-only without editing controls", () => {
+    renderField({ count: 2, rows: linked(1, 2), permissions: { canEdit: false } });
+    expect(screen.getByRole("link", { name: "Open Row 1" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Link a row for Projects" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Remove/ })).toBeNull();
+    fireEvent.click(screen.getByRole("group", { name: "Projects" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
 });

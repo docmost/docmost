@@ -121,6 +121,9 @@ export type RelationPreview = {
   count: number;
   rows: RelationPreviewRow[];
   restricted?: true;
+  // with restricted: the related base is in the trash or deleted
+  deleted?: true;
+  permissions?: { canEdit: boolean };
 };
 
 export type TypeOptions =

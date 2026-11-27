@@ -118,4 +118,15 @@ describe("CellRelation", () => {
     expect(screen.getAllByText("Alpha").length).toBeGreaterThan(0);
     expect(screen.queryByRole("combobox")).toBeNull();
   });
+
+  it("keeps a relation the server marks read-only closed for an editor", () => {
+    const { onCancel } = renderCell({
+      count: 1,
+      rows: [{ id: "a", title: "Alpha" }],
+      permissions: { canEdit: false },
+    });
+    expect(screen.getAllByText("Alpha").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(onCancel).toHaveBeenCalled();
+  });
 });

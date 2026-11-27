@@ -20,6 +20,7 @@ type FieldRelationProps = FieldProps & { preview: RelationPreview | undefined };
 
 export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelationProps) {
   const { t } = useTranslation();
+  const linksReadOnly = readOnly || preview?.permissions?.canEdit === false;
   const { targetBaseId } = property.typeOptions as RelationTypeOptions;
   const [opened, setOpened] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -107,7 +108,7 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
             ) : (
               <span className={cellClasses.pagePillText}>{title}</span>
             )}
-            {!readOnly && (
+            {!linksReadOnly && (
               <button
                 type="button"
                 className={clsx(cellClasses.personTagRemove, cellClasses.badgeRemoveBtn)}
@@ -146,7 +147,7 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
           {listData ? t("Show more") : t("Show all ({{count}})", { count })}
         </button>
       )}
-      {!readOnly && (
+      {!linksReadOnly && (
         // opens the picker through the shell's click
         <button
           ref={addLinkRef}
@@ -163,7 +164,7 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
     </div>
   );
 
-  if (readOnly) {
+  if (linksReadOnly) {
     return (
       <FieldShell role="group" aria-label={property.name}>
         {chips}

@@ -25,7 +25,7 @@ export function RelationReadList({
   if (preview?.restricted) {
     return (
       <Text size="xs" c="dimmed">
-        {t("No access")}
+        {preview.deleted ? t("Base deleted") : t("No access")}
       </Text>
     );
   }
