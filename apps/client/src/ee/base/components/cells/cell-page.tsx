@@ -247,21 +247,18 @@ function PagePicker({
       <Popover.Dropdown p={0}>
         <div className={cellClasses.personTagArea}>
           {pageId && resolvedPage && (
-            <span className={cellClasses.personTag}>
+            <span className={clsx(cellClasses.badge, cellClasses.pagePill)}>
               {resolvedPage.icon ? (
-                <span>{resolvedPage.icon}</span>
+                <span className={cellClasses.pagePillIcon}>{resolvedPage.icon}</span>
               ) : (
-                <IconFileDescription
-                  size={14}
-                  color="var(--mantine-color-dimmed)"
-                />
+                <IconFileDescription size={14} stroke={1.75} className={cellClasses.pagePillIconFallback} />
               )}
-              <span className={cellClasses.personTagName}>
+              <span className={cellClasses.pagePillText}>
                 {getPageTitle(resolvedPage.title, undefined, t)}
               </span>
               <button
                 type="button"
-                className={cellClasses.personTagRemove}
+                className={clsx(cellClasses.personTagRemove, cellClasses.badgeRemoveBtn)}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRemove();
@@ -296,14 +293,12 @@ function PagePicker({
             </div>
           )}
           {suggestions.map((page, idx) => {
-            const isSelected = page.id === pageId;
             return (
               <div
                 key={page.id}
                 ref={setOptionRef(idx)}
                 className={clsx(
                   cellClasses.selectOption,
-                  isSelected && cellClasses.selectOptionActive,
                   idx === activeIndex && cellClasses.selectOptionKeyboardActive,
                 )}
                 onMouseEnter={() => setActiveIndex(idx)}
