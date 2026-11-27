@@ -11,7 +11,7 @@
 }
 
 .cellInput::placeholder {
-  color: light-dark(var(--mantine-color-placeholder), #9a9a9a);
+  color: var(--mantine-color-placeholder);
 }
 
 .numberValue {
@@ -222,7 +222,7 @@
 }
 
 .personTagInput::placeholder {
-  color: light-dark(var(--mantine-color-placeholder), #9a9a9a);
+  color: var(--mantine-color-placeholder);
 }
 
 .personDropdownDivider {
@@ -540,7 +540,7 @@
 }
 
 .relationPickerInput::placeholder {
-  color: light-dark(var(--mantine-color-placeholder), #9a9a9a);
+  color: var(--mantine-color-placeholder);
 }
 
 .relationPickerList {
