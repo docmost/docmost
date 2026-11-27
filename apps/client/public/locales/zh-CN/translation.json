@@ -1934,7 +1934,7 @@
   "No active spaces. Archived spaces are under Archived.": "没有活跃空间。已归档空间位于“已归档”下。",
   "AI answers don't cover archived spaces.": "AI 回答不涵盖已归档空间。",
   "Include archived": "包含已归档内容",
-  "Verified only": "Verified only",
+  "Verified only": "仅显示已验证",
   "Add cover": "添加封面",
   "Change cover": "更换封面",
   "Reposition": "重新定位",
@@ -2392,10 +2392,10 @@
   "Refresh recently updated pages": "刷新最近更新的页面",
   "Updated by {{name}}": "由 {{name}} 更新",
   "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "每个筛选器最多可使用 {{maxValues}} 个值，每个值最多 {{maxLength}} 个字符。",
-  "Refresh preview": "Refresh preview",
-  "Couldn't refresh the preview": "Couldn't refresh the preview",
-  "Link actions": "Link actions",
-  "Remove from list": "Remove from list",
-  "Remove {{name}} from list": "Remove {{name}} from list",
-  "Failed to remove workspace from list": "Failed to remove workspace from list"
+  "Refresh preview": "刷新预览",
+  "Couldn't refresh the preview": "无法刷新预览",
+  "Link actions": "链接操作",
+  "Remove from list": "从列表中移除",
+  "Remove {{name}} from list": "将 {{name}} 从列表中移除",
+  "Failed to remove workspace from list": "无法从列表中移除工作区"
 }
