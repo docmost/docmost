@@ -19,17 +19,19 @@ vi.mock("@/main.tsx", async () => ({
 }));
 
 vi.mock("@/ee/base/services/base-relation-service", () => ({
-  fetchRelationPreviews: vi.fn(),
   updateRelationLinks: vi.fn(),
+}));
+vi.mock("@/ee/base/services/base-service", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/ee/base/services/base-service")>()),
+  expandRows: vi.fn(),
 }));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
 const { retainBaseSubscription } = await import("./use-base-socket");
-const { fetchRelationPreviews, updateRelationLinks } = await import(
-  "@/ee/base/services/base-relation-service"
-);
+const { updateRelationLinks } = await import("@/ee/base/services/base-relation-service");
+const { expandRows } = await import("@/ee/base/services/base-service");
 const { useUpdateRelationLinksMutation } = await import("@/ee/base/queries/base-relation-query");
 
 function createFakeSocket() {
@@ -223,9 +225,9 @@ describe("retainBaseSubscription", () => {
       pages: [{ items: [{ id: "row-1", relations: {} }], meta: {} }],
       pageParams: [null],
     });
-    vi.mocked(fetchRelationPreviews).mockReset();
-    vi.mocked(fetchRelationPreviews).mockResolvedValue({
-      "row-1": { rel: { count: 1, rows: [{ id: "t1", title: "T1" }] } },
+    vi.mocked(expandRows).mockReset();
+    vi.mocked(expandRows).mockResolvedValue({
+      "row-1": { relations: { rel: { count: 1, rows: [{ id: "t1", title: "T1" }] } } },
     });
     const { socket, receive } = createFakeSocket();
     const release = retainBaseSubscription(socket, "page-7", appClient);
@@ -240,13 +242,13 @@ describe("retainBaseSubscription", () => {
 
     receive(event(["not-cached"]));
     await vi.advanceTimersByTimeAsync(200);
-    expect(fetchRelationPreviews).not.toHaveBeenCalled();
+    expect(expandRows).not.toHaveBeenCalled();
 
     receive(event(["row-1", "not-cached"]));
     receive(event(["row-1"]));
     await vi.advanceTimersByTimeAsync(150);
-    expect(fetchRelationPreviews).toHaveBeenCalledTimes(1);
-    expect(fetchRelationPreviews).toHaveBeenCalledWith("page-7", ["row-1"]);
+    expect(expandRows).toHaveBeenCalledTimes(1);
+    expect(expandRows).toHaveBeenCalledWith("page-7", ["row-1"]);
     const data = appClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(key)!;
     expect(data.pages[0].items[0].relations?.rel.count).toBe(1);
 
@@ -264,10 +266,10 @@ describe("retainBaseSubscription", () => {
     vi.mocked(updateRelationLinks).mockResolvedValue({
       preview: { count: 1, rows: [{ id: "row-y", title: "Y" }] },
     });
-    vi.mocked(fetchRelationPreviews).mockReset();
-    vi.mocked(fetchRelationPreviews).mockResolvedValue({
-      "row-x": { rel: { count: 1, rows: [{ id: "row-y", title: "Y" }] } },
-      "row-y": { inverse: { count: 1, rows: [{ id: "row-x", title: "X" }] } },
+    vi.mocked(expandRows).mockReset();
+    vi.mocked(expandRows).mockResolvedValue({
+      "row-x": { relations: { rel: { count: 1, rows: [{ id: "row-y", title: "Y" }] } } },
+      "row-y": { relations: { inverse: { count: 1, rows: [{ id: "row-x", title: "X" }] } } },
     });
     const { socket, receive } = createFakeSocket();
     const release = retainBaseSubscription(socket, "page-14", appClient);
@@ -291,7 +293,7 @@ describe("retainBaseSubscription", () => {
       });
 
       await waitFor(() =>
-        expect(fetchRelationPreviews).toHaveBeenCalledWith("page-14", ["row-x", "row-y"]),
+        expect(expandRows).toHaveBeenCalledWith("page-14", ["row-x", "row-y"]),
       );
       await waitFor(() => {
         const rows = appClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(key)!.pages[0].items;
@@ -312,9 +314,9 @@ describe("retainBaseSubscription", () => {
       pages: [{ items: ids.map((id) => ({ id, relations: {} })), meta: {} }],
       pageParams: [null],
     });
-    vi.mocked(fetchRelationPreviews).mockReset();
-    vi.mocked(fetchRelationPreviews).mockImplementation(async (_pageId, rowIds) =>
-      Object.fromEntries(rowIds.map((id) => [id, { rel: { count: 1, rows: [] } }])),
+    vi.mocked(expandRows).mockReset();
+    vi.mocked(expandRows).mockImplementation(async (_pageId, rowIds) =>
+      Object.fromEntries(rowIds.map((id) => [id, { relations: { rel: { count: 1, rows: [] } } }])),
     );
     const { socket, receive } = createFakeSocket();
     const release = retainBaseSubscription(socket, "page-17", appClient);
@@ -329,7 +331,7 @@ describe("retainBaseSubscription", () => {
     });
     await vi.advanceTimersByTimeAsync(150);
 
-    expect(vi.mocked(fetchRelationPreviews).mock.calls.map(([, rowIds]) => rowIds)).toEqual([
+    expect(vi.mocked(expandRows).mock.calls.map(([, rowIds]) => rowIds)).toEqual([
       ids.slice(0, 100),
       ids.slice(100, 200),
       ids.slice(200),
@@ -347,8 +349,8 @@ describe("retainBaseSubscription", () => {
       pages: [{ items: [{ id: "row-1", relations: {} }], meta: {} }],
       pageParams: [null],
     });
-    vi.mocked(fetchRelationPreviews).mockReset();
-    vi.mocked(fetchRelationPreviews).mockRejectedValue(new Error("Request failed with status code 400"));
+    vi.mocked(expandRows).mockReset();
+    vi.mocked(expandRows).mockRejectedValue(new Error("Request failed with status code 400"));
     const { socket, receive } = createFakeSocket();
     const release = retainBaseSubscription(socket, "page-18", appClient);
 
@@ -361,7 +363,7 @@ describe("retainBaseSubscription", () => {
       requestId: null,
     });
     await vi.advanceTimersByTimeAsync(150);
-    expect(fetchRelationPreviews).toHaveBeenCalledTimes(1);
+    expect(expandRows).toHaveBeenCalledTimes(1);
     expect(appClient.getQueryState(key)?.isInvalidated).toBe(false);
     await vi.advanceTimersByTimeAsync(300);
     expect(appClient.getQueryState(key)?.isInvalidated).toBe(true);
@@ -373,9 +375,9 @@ describe("retainBaseSubscription", () => {
     const { queryClient: appClient } = await import("@/main.tsx");
     const key = ["base-row", "page-16", "row-1"];
     appClient.setQueryData(key, { id: "row-1", pageId: "page-16", cells: {}, relations: {} });
-    vi.mocked(fetchRelationPreviews).mockReset();
-    vi.mocked(fetchRelationPreviews).mockResolvedValue({
-      "row-1": { rel: { count: 1, rows: [{ id: "t1", title: "T1" }] } },
+    vi.mocked(expandRows).mockReset();
+    vi.mocked(expandRows).mockResolvedValue({
+      "row-1": { relations: { rel: { count: 1, rows: [{ id: "t1", title: "T1" }] } } },
     });
     const { socket, receive } = createFakeSocket();
     const release = retainBaseSubscription(socket, "page-16", appClient);
@@ -390,7 +392,7 @@ describe("retainBaseSubscription", () => {
     });
     await vi.advanceTimersByTimeAsync(150);
 
-    expect(fetchRelationPreviews).toHaveBeenCalledWith("page-16", ["row-1"]);
+    expect(expandRows).toHaveBeenCalledWith("page-16", ["row-1"]);
     expect(appClient.getQueryData<IBaseRow>(key)?.relations?.rel.count).toBe(1);
     release();
   });

@@ -62,14 +62,6 @@ export async function resolveRelationRows(data: {
   return req.data;
 }
 
-export async function fetchRelationPreviews(
-  pageId: string,
-  rowIds: string[],
-): Promise<Record<string, Record<string, RelationPreview>>> {
-  const req = await api.post("/bases/relations/previews", { pageId, rowIds });
-  return req.data.items;
-}
-
 export async function searchRelationTargets(
   query?: string,
 ): Promise<RelationTarget[]> {

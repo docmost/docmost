@@ -34,7 +34,7 @@ import {
   scheduleRowsRefresh,
 } from "@/ee/base/queries/rows-refresh";
 import { patchRelationPreviews } from "@/ee/base/queries/base-relation-query";
-import { fetchRelationPreviews } from "@/ee/base/services/base-relation-service";
+import { expandRows } from "@/ee/base/services/base-service";
 import { RELATION_MAX_IDS_PER_CALL } from "@/ee/base/constants/relations";
 import {
   formShareQueryKey,
@@ -253,10 +253,16 @@ function scheduleRelationPreviewRefresh(
       for (let i = 0; i < ids.length; i += RELATION_MAX_IDS_PER_CALL) {
         chunks.push(ids.slice(i, i + RELATION_MAX_IDS_PER_CALL));
       }
-      Promise.all(chunks.map((chunk) => fetchRelationPreviews(pageId, chunk)))
-        .then((results) =>
-          patchRelationPreviews(queryClient, pageId, Object.assign({}, ...results)),
-        )
+      Promise.all(chunks.map((chunk) => expandRows(pageId, chunk)))
+        .then((results) => {
+          const relationsByRow: Record<string, NonNullable<IBaseRow["relations"]>> = {};
+          for (const items of results) {
+            for (const [rowId, row] of Object.entries(items)) {
+              if (row.relations) relationsByRow[rowId] = row.relations;
+            }
+          }
+          patchRelationPreviews(queryClient, pageId, relationsByRow);
+        })
         // refetched rows carry fresh previews, so no chip is left stale
         .catch(() => scheduleRowsRefresh(pageId, "all"));
     }, RELATIONS_REFRESH_DELAY_MS),

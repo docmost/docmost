@@ -15,7 +15,6 @@ vi.mock("@/ee/base/services/base-relation-service", () => ({
   listRelationRows: vi.fn(),
   suggestRelationRows: vi.fn(),
   resolveRelationRows: vi.fn(),
-  fetchRelationPreviews: vi.fn(),
   searchRelationTargets: vi.fn(),
 }));
 vi.mock("@mantine/notifications", () => ({ notifications: { show: vi.fn() } }));
