@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Input, InputBase, Popover, Text } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { IconChevronDown, IconX } from "@tabler/icons-react";
+import { IconChevronDown, IconFile, IconX } from "@tabler/icons-react";
 import { isAxiosError } from "axios";
 import { useTranslation } from "react-i18next";
 import clsx from "clsx";
@@ -158,6 +158,7 @@ export function FilterRelationInput({
             <span className={cellClasses.filterTriggerChips}>
               {shownIds.map((id) => (
                 <span key={id} className={clsx(cellClasses.badge, cellClasses.pagePill)}>
+                  <IconFile size={14} stroke={1.75} aria-hidden className={cellClasses.pagePillIconFallback} />
                   <span className={cellClasses.pagePillText}>{titleOf(id)}</span>
                 </span>
               ))}
@@ -173,6 +174,7 @@ export function FilterRelationInput({
             const title = titleOf(id);
             return (
               <span key={id} className={clsx(cellClasses.badge, cellClasses.pagePill)}>
+                <IconFile size={14} stroke={1.75} aria-hidden className={cellClasses.pagePillIconFallback} />
                 <span className={cellClasses.pagePillText}>{title}</span>
                 <button
                   type="button"

@@ -32,7 +32,7 @@ export function RelationReadList({
   if (!preview || preview.count === 0) return null;
 
   const titles = preview.rows.map((row) => row.title || t("Untitled"));
-  const chipClass = clsx(cellClasses.badge, cellClasses.pagePill, cellClasses.relationChip);
+  const chipClass = clsx(cellClasses.badge, cellClasses.pagePill);
   const chips = preview.rows.map((row, index) => {
     const label = (
       <>

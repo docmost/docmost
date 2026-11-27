@@ -245,7 +245,7 @@ function PageField({
         {resolvedPage.icon ? (
           <span className={cellClasses.pagePillIcon}>{resolvedPage.icon}</span>
         ) : (
-          <IconFileDescription size={14} className={cellClasses.pagePillIconFallback} />
+          <IconFileDescription size={14} stroke={1.75} className={cellClasses.pagePillIconFallback} />
         )}
         <span className={cellClasses.pagePillText}>{title}</span>
       </Link>

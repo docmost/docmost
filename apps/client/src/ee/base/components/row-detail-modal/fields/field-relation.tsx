@@ -92,7 +92,7 @@ export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelat
         return (
           <span
             key={row.id}
-            className={clsx(cellClasses.badge, cellClasses.pagePill, cellClasses.relationChip)}
+            className={clsx(cellClasses.badge, cellClasses.pagePill)}
           >
             <IconFile size={14} stroke={1.75} aria-hidden className={cellClasses.pagePillIconFallback} />
             {href ? (
