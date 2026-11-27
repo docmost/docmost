@@ -404,6 +404,12 @@ export function isHttpUrl(url: string | null | undefined): boolean {
   }
 }
 
+// Only web urls survive, kept as given because sanitizeUrl decodes percent-escapes.
+export function sanitizeHttpUrl(url: string | null | undefined): string {
+  const trimmed = url?.trim() ?? "";
+  return isHttpUrl(trimmed) && isHttpUrl(sanitizeUrl(trimmed)) ? trimmed : "";
+}
+
 export function isInternalFileUrl(url: string | undefined): boolean {
   if (!url) return false;
   const normalized = url.trim();

@@ -8,6 +8,11 @@ import { PageRepo } from '@docmost/db/repos/page/page.repo';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { ShareRepo } from '@docmost/db/repos/share/share.repo';
 import { PagePermissionRepo } from '@docmost/db/repos/page/page-permission.repo';
+import {
+  resolveVerificationStatus,
+  VerificationStatus,
+} from '../page/verification/page-verification-status.utils';
+import { verifiedPageFilter } from '@docmost/db/repos/page/verified-page-filter';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const tsquery = require('pg-tsquery')();
@@ -32,10 +37,12 @@ export class SearchService {
   ): Promise<{ items: SearchResponseDto[] }> {
     const query = searchParams.query?.trim() ?? '';
     const labelIds = [...new Set(searchParams.labelIds ?? [])];
-    // selected filters (labels, creator) are browsable without a query
+    // selected filters (labels, creator, verified) are browsable without a query
     const browseByFilters =
       query.length < 1 &&
-      (labelIds.length > 0 || Boolean(searchParams.creatorId));
+      (labelIds.length > 0 ||
+        Boolean(searchParams.creatorId) ||
+        searchParams.verifiedOnly === true);
 
     if (query.length < 1 && !browseByFilters) {
       return { items: [] };
@@ -97,6 +104,9 @@ export class SearchService {
             .select('pageId')
             .where('labelId', 'in', labelIds),
         ),
+      )
+      .$if(searchParams.verifiedOnly === true, (qb) =>
+        qb.where((eb) => verifiedPageFilter(eb)),
       )
       .where('deletedAt', 'is', null)
       .$if(browseByFilters, (qb) => qb.orderBy('updatedAt', 'desc'))
@@ -338,5 +348,29 @@ export class SearchService {
     }
 
     return { users, groups, pages };
+  }
+
+  async withVerificationStatus<T extends { id: string }>(
+    items: T[],
+  ): Promise<Array<T & { verificationStatus?: VerificationStatus }>> {
+    if (items.length === 0) return items;
+
+    const rows = await this.db
+      .selectFrom('pageVerifications')
+      .select(['pageId', 'type', 'status', 'expiresAt', 'invalidatedAt'])
+      .where(
+        'pageId',
+        'in',
+        items.map((item) => item.id),
+      )
+      .execute();
+    const statusByPageId = new Map(
+      rows.map((row) => [row.pageId, resolveVerificationStatus(row)]),
+    );
+
+    return items.map((item) => {
+      const verificationStatus = statusByPageId.get(item.id);
+      return verificationStatus ? { ...item, verificationStatus } : item;
+    });
   }
 }

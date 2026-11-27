@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import {
+  embeddedNat64Ipv4,
   isAlwaysBlockedAddress,
   isHardBlockedAddress,
   isPrivateAddress,
@@ -169,7 +170,7 @@ describe('OutboundUrlGuard.validate', () => {
           guard(false, [{ address: ip, family: family(ip) }], value).validate(
             'http://siem.internal',
           ),
-        ).rejects.toThrow(/link-local, metadata or reserved address .* which is never allowed/);
+        ).rejects.toThrow(/resolves to a link-local, metadata or reserved address, which is never allowed/);
       }
     },
   );
@@ -183,7 +184,7 @@ describe('OutboundUrlGuard.validate', () => {
             'http://siem.internal',
           ),
         ).rejects.toThrow(
-          /resolves to a loopback or reserved address .* Set ALLOWED_PRIVATE_NETWORKS on the server to allow it/,
+          /resolves to a loopback or reserved address\. Set ALLOWED_PRIVATE_NETWORKS on the server to allow it/,
         );
       }
     },
@@ -195,7 +196,7 @@ describe('OutboundUrlGuard.validate', () => {
       await expect(
         guard(false, [{ address: ip, family: 4 }]).validate('http://siem.internal'),
       ).rejects.toThrow(
-        /resolves to a private address .* Set ALLOWED_PRIVATE_NETWORKS on the server to allow it/,
+        /resolves to a private address\. Set ALLOWED_PRIVATE_NETWORKS on the server to allow it/,
       );
     },
   );
@@ -335,7 +336,7 @@ describe('OutboundUrlGuard.validate', () => {
       guard(false, [{ address: 'not-an-ip', family: 4 }], 'all').validate(
         'http://siem.internal',
       ),
-    ).rejects.toThrow(/is not an IP address/);
+    ).rejects.toThrow(/did not resolve to an IP address/);
   });
 
   it('refuses the whole host when any one of its addresses is refused', async () => {
@@ -408,5 +409,165 @@ describe('isHardBlockedAddress', () => {
     for (const ip of ['0.0.0.0', '169.254.169.254', 'fe80::1', 'ff02::1']) {
       expect(isAlwaysBlockedAddress(ip)).toBe(true);
     }
+  });
+});
+
+describe('embeddedNat64Ipv4', () => {
+  it.each([
+    ['64:ff9b::129a:5406', '18.154.84.6'],
+    ['64:ff9b::18.154.84.6', '18.154.84.6'],
+    ['64:ff9b:0:0:0:0:7f00:1', '127.0.0.1'],
+    ['64:FF9B::A9FE:A9FE', '169.254.169.254'],
+    ['64:ff9b::', '0.0.0.0'],
+    ['64:ff9b:0::0:7f00:1', '127.0.0.1'],
+    ['0064:ff9b:0000:0000:0000:0000:0a00:0005', '10.0.0.5'],
+  ])('reads the IPv4 carried by %s', (ip, expected) => {
+    expect(embeddedNat64Ipv4(ip)).toBe(expected);
+  });
+
+  it.each(['64:ff9b:1::a00:5', '2001:db8::1', '10.0.0.1', '::ffff:10.0.0.1', '64:ff9b::1:0:1'])(
+    'returns null for %s',
+    (ip) => {
+      expect(embeddedNat64Ipv4(ip)).toBeNull();
+    },
+  );
+});
+
+describe('OutboundUrlGuard.validate with NAT64 addresses', () => {
+  const nat = (address: string) => [{ address, family: 6 }];
+
+  it('allows a NAT64 address that carries a public IPv4', async () => {
+    await expect(
+      guard(false, nat('64:ff9b::129a:5406')).validate('https://typesense.org/docs/'),
+    ).resolves.toMatchObject({ address: '64:ff9b::129a:5406', family: 6 });
+  });
+
+  it('refuses a NAT64 address that carries 127.0.0.1', async () => {
+    await expect(
+      guard(false, nat('64:ff9b::7f00:1'), 'all').validate('https://x.example.com'),
+    ).rejects.toThrow(/loopback or reserved/);
+  });
+
+  it('refuses a NAT64 address that carries 10.0.0.5 unless the policy names it', async () => {
+    const host = nat('64:ff9b::a00:5');
+    await expect(guard(false, host, 'none').validate('https://x.example.com')).rejects.toThrow(/private address/);
+    await expect(guard(false, host, '10.0.0.0/8').validate('https://x.example.com')).resolves.toMatchObject({
+      address: '64:ff9b::a00:5',
+    });
+  });
+
+  it.each([
+    [
+      '64:ff9b::a00:5',
+      'none',
+      'resolves to a private address. Set ALLOWED_PRIVATE_NETWORKS on the server to allow it',
+    ],
+    [
+      '64:ff9b::7f00:1',
+      'all',
+      'resolves to a loopback or reserved address. Set ALLOWED_PRIVATE_NETWORKS on the server to allow it',
+    ],
+    [
+      '64:ff9b::a9fe:a9fe',
+      'all',
+      'resolves to a link-local, metadata or reserved address, which is never allowed',
+    ],
+    [
+      '10.0.0.5',
+      'none',
+      'resolves to a private address. Set ALLOWED_PRIVATE_NETWORKS on the server to allow it',
+    ],
+  ])('describes the refusal of %s by its kind', async (address, policy, expected) => {
+    const err = await guard(false, [{ address, family: family(address) }], policy)
+      .validate('https://x.example.com')
+      .catch((e) => e);
+    expect(err.message).toBe(`Destination host "x.example.com" ${expected}`);
+  });
+
+  it('on Cloud describes the refusal by its kind', async () => {
+    const err = await guard(true, nat('64:ff9b::a00:5'))
+      .validate('https://x.example.com')
+      .catch((e) => e);
+    expect(err.message).toBe(
+      'Destination host "x.example.com" resolves to a private or reserved address, which is not allowed',
+    );
+  });
+
+  it('a policy naming the NAT64 prefix allows what it carries, except never-allowed addresses', async () => {
+    const policy = '[64:ff9b::/96]';
+    await expect(
+      guard(false, nat('64:ff9b::a9fe:a9fe'), policy).validate('https://x.example.com'),
+    ).rejects.toThrow(/never allowed/);
+    await expect(
+      guard(false, nat('64:ff9b::a00:5'), policy).validate('https://x.example.com'),
+    ).resolves.toMatchObject({ address: '64:ff9b::a00:5' });
+  });
+
+  it('never allows a NAT64 address that carries the metadata address', async () => {
+    await expect(
+      guard(false, nat('64:ff9b::a9fe:a9fe'), 'all').validate('https://x.example.com'),
+    ).rejects.toThrow(/never allowed/);
+  });
+
+  it('keeps refusing the local-use NAT64 prefix', async () => {
+    await expect(
+      guard(false, nat('64:ff9b:1::a00:5'), '10.0.0.0/8').validate('https://x.example.com'),
+    ).rejects.toThrow(/loopback or reserved/);
+  });
+
+  it('on Cloud allows a public carried IPv4 and refuses a private one', async () => {
+    await expect(guard(true, nat('64:ff9b::129a:5406')).validate('https://x.example.com')).resolves.toBeDefined();
+    await expect(guard(true, nat('64:ff9b::a00:5')).validate('https://x.example.com')).rejects.toThrow(
+      /private or reserved/,
+    );
+  });
+
+  it('allows a host that answers with a public IPv4 and its NAT64 form', async () => {
+    await expect(
+      guard(false, [
+        { address: '18.154.84.6', family: 4 },
+        { address: '64:ff9b::129a:5406', family: 6 },
+      ]).validate('https://typesense.org/docs/'),
+    ).resolves.toMatchObject({ address: '18.154.84.6' });
+  });
+});
+
+describe('OutboundUrlGuard.validate for public addresses only', () => {
+  const policy = 'all,127.0.0.0/8,::1/128,[64:ff9b::/96]';
+
+  it.each([
+    '10.1.2.3',
+    '192.168.1.10',
+    '100.64.0.1',
+    'fc00::1',
+    '127.0.0.1',
+    '::1',
+    '64:ff9b::a00:5',
+    '169.254.169.254',
+  ])('refuses %s whatever the policy allows', async (address) => {
+    const err = await guard(false, [{ address, family: family(address) }], policy)
+      .validate('http://x.example.com', { publicOnly: true })
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(OutboundUrlError);
+    expect(err.message).toBe(
+      'Destination host "x.example.com" resolves to a private or reserved address, which is not allowed',
+    );
+  });
+
+  it.each(['8.8.8.8', '2606:4700::1111', '64:ff9b::129a:5406'])(
+    'allows the public address %s over http on self-hosted',
+    async (address) => {
+      await expect(
+        guard(false, [{ address, family: family(address) }]).validate('http://x.example.com', {
+          publicOnly: true,
+        }),
+      ).resolves.toMatchObject({ address });
+    },
+  );
+
+  it('leaves the policy in charge without the option', async () => {
+    await expect(
+      guard(false, [{ address: '10.1.2.3', family: 4 }], policy).validate('http://x.example.com'),
+    ).resolves.toMatchObject({ address: '10.1.2.3' });
   });
 });

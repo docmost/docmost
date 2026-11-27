@@ -1,15 +1,19 @@
 import {
   IsArray,
   IsBoolean,
+  IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export const SEARCH_QUERY_MAX_LENGTH = 200;
+// three pages of 100; ranked results past that are rarely relevant
+export const SEARCH_MAX_OFFSET = 200;
 
 export class SearchDTO {
   @IsOptional()
@@ -38,17 +42,25 @@ export class SearchDTO {
   @IsBoolean()
   titleOnly?: boolean;
 
+  @IsOptional()
+  @IsBoolean()
+  verifiedOnly?: boolean;
+
   // searches without a spaceId leave archived spaces out unless this is set
   @IsOptional()
   @IsBoolean()
   includeArchived?: boolean;
 
   @IsOptional()
-  @IsNumber()
+  @IsInt()
+  @Min(1)
+  @Max(100)
   limit?: number;
 
   @IsOptional()
-  @IsNumber()
+  @IsInt()
+  @Min(0)
+  @Max(SEARCH_MAX_OFFSET)
   offset?: number;
 }
 
@@ -95,6 +107,8 @@ export class SearchSuggestionDTO {
   spaceId?: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsInt()
+  @Min(1)
+  @Max(100)
   limit?: number;
 }

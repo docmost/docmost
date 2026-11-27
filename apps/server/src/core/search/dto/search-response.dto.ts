@@ -1,3 +1,4 @@
+import { VerificationStatus } from '../../page/verification/page-verification-status.utils';
 import { Space } from '@docmost/db/types/entity.types';
 
 export class SearchResponseDto {
@@ -13,4 +14,5 @@ export class SearchResponseDto {
   createdAt: Date;
   updatedAt: Date;
   space: Partial<Space>;
+  verificationStatus?: VerificationStatus;
 }

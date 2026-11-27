@@ -1,6 +1,5 @@
 .workspace {
-    display: block;
-    width: 100%;
+    position: relative;
     padding: var(--mantine-spacing-xs);
     margin-bottom: var(--mantine-spacing-xs);
     color: light-dark(var(--mantine-color-black), var(--mantine-color-dark-0));
@@ -9,5 +8,48 @@
 
     @mixin hover {
         background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+    }
+}
+
+.link {
+    flex: 1;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+
+    /* Stretch the link over the whole row; the remove button stays outside it. */
+    &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: var(--mantine-spacing-xs);
+    }
+
+    &:focus-visible {
+        outline: none;
+    }
+
+    &:focus-visible::after {
+        outline: 2px solid var(--mantine-primary-color-filled);
+        outline-offset: 2px;
+    }
+}
+
+.remove {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    z-index: 1;
+}
+
+/* Touch devices have no hover, so the button stays visible there. */
+@media (hover: hover) {
+    .remove {
+        opacity: 0;
+    }
+
+    .workspace:hover .remove,
+    .workspace:focus-within .remove {
+        opacity: 1;
     }
 }

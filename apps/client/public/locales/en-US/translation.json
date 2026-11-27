@@ -1934,6 +1934,7 @@
   "No active spaces. Archived spaces are under Archived.": "No active spaces. Archived spaces are under Archived.",
   "AI answers don't cover archived spaces.": "AI answers don't cover archived spaces.",
   "Include archived": "Include archived",
+  "Verified only": "Verified only",
   "Add cover": "Add cover",
   "Change cover": "Change cover",
   "Reposition": "Reposition",
@@ -2416,5 +2417,11 @@
   "Show all {{count}} rows for {{name}}": "Show all {{count}} rows for {{name}}",
   "Link a row for {{name}}": "Link a row for {{name}}",
   "Link rows for {{name}}": "Link rows for {{name}}",
-  "Show more rows for {{name}}": "Show more rows for {{name}}"
+  "Show more rows for {{name}}": "Show more rows for {{name}}",
+  "Refresh preview": "Refresh preview",
+  "Couldn't refresh the preview": "Couldn't refresh the preview",
+  "Link actions": "Link actions",
+  "Remove from list": "Remove from list",
+  "Remove {{name}} from list": "Remove {{name}} from list",
+  "Failed to remove workspace from list": "Failed to remove workspace from list"
 }

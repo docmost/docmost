@@ -93,20 +93,35 @@ export class ShareController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('/info')
-  async getShare(@Body() dto: ShareIdDto) {
+  async getShare(
+    @Body() dto: ShareIdDto,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
     const share = await this.shareRepo.findById(dto.shareId, {
       includeSharedPage: true,
     });
 
-    if (!share) {
+    if (!share || share.workspaceId !== workspace.id) {
+      throw new NotFoundException('Share not found');
+    }
+
+    const page = await this.pageRepo.findById(share.pageId);
+    if (!page || page.deletedAt) {
       throw new NotFoundException('Share not found');
     }
 
     const sharingAllowed = await this.shareService.isSharingAllowed(
-      share.workspaceId,
+      workspace.id,
       share.spaceId,
     );
     if (!sharingAllowed) {
+      throw new NotFoundException('Share not found');
+    }
+
+    const isRestricted = await this.pagePermissionRepo.hasRestrictedAncestor(
+      share.pageId,
+    );
+    if (isRestricted) {
       throw new NotFoundException('Share not found');
     }
 

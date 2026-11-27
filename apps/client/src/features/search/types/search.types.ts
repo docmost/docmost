@@ -2,6 +2,7 @@ import { IUser } from "@/features/user/types/user.types.ts";
 import { IGroup } from "@/features/group/types/group.types.ts";
 import { ISpace } from "@/features/space/types/space.types.ts";
 import { IPage } from "@/features/page/types/page.types.ts";
+import { VerificationStatus } from "@/ee/page-verification/types/page-verification.types";
 
 export interface IPageSearch {
   id: string;
@@ -17,6 +18,7 @@ export interface IPageSearch {
   matchedText: string[];
   wholeWord: boolean;
   space: Partial<ISpace>;
+  verificationStatus?: VerificationStatus;
 }
 
 export interface SearchSuggestionParams {
@@ -44,6 +46,7 @@ export interface IPageSearchParams {
   labelIds?: string[];
   titleOnly?: boolean;
   includeArchived?: boolean;
+  verifiedOnly?: boolean;
 }
 
 export interface IAttachmentSearch {

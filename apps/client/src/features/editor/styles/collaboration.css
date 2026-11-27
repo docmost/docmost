@@ -23,4 +23,19 @@
     top: -1.4em;
     user-select: none;
     white-space: nowrap;
+    z-index: 1; /* over neighboring table cells */
+}
+
+/* A table clips labels above its first row and a pinned header row covers those above the second, so they go below the caret */
+.ProseMirror table tr:first-child .collaboration-carets__label,
+.ProseMirror .tableHeaderPinned tr:first-child + tr .collaboration-carets__label {
+    border-radius: 0 3px 3px 3px;
+    top: 100%;
+}
+
+/* A one-row table has no room above or below either */
+.ProseMirror table tr:only-child .collaboration-carets__label {
+    border-radius: 0 3px 3px 0;
+    left: 1px;
+    top: 0;
 }
