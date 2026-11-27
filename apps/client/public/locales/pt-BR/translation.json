@@ -1934,7 +1934,7 @@
   "No active spaces. Archived spaces are under Archived.": "Não há espaços ativos. Os espaços arquivados estão em Arquivados.",
   "AI answers don't cover archived spaces.": "As respostas da IA não abrangem espaços arquivados.",
   "Include archived": "Incluir arquivados",
-  "Verified only": "Verified only",
+  "Verified only": "Somente verificados",
   "Add cover": "Adicionar capa",
   "Change cover": "Alterar capa",
   "Reposition": "Reposicionar",
@@ -2392,10 +2392,10 @@
   "Refresh recently updated pages": "Atualizar páginas atualizadas recentemente",
   "Updated by {{name}}": "Atualizado por {{name}}",
   "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "Use até {{maxValues}} valores por filtro e {{maxLength}} caracteres por valor.",
-  "Refresh preview": "Refresh preview",
-  "Couldn't refresh the preview": "Couldn't refresh the preview",
-  "Link actions": "Link actions",
-  "Remove from list": "Remove from list",
-  "Remove {{name}} from list": "Remove {{name}} from list",
-  "Failed to remove workspace from list": "Failed to remove workspace from list"
+  "Refresh preview": "Atualizar visualização",
+  "Couldn't refresh the preview": "Não foi possível atualizar a visualização",
+  "Link actions": "Ações do link",
+  "Remove from list": "Remover da lista",
+  "Remove {{name}} from list": "Remover {{name}} da lista",
+  "Failed to remove workspace from list": "Falha ao remover o workspace da lista"
 }
