@@ -1934,7 +1934,7 @@
   "No active spaces. Archived spaces are under Archived.": "アクティブなスペースはありません。アーカイブ済みのスペースは［アーカイブ済み］にあります。",
   "AI answers don't cover archived spaces.": "AI の回答にはアーカイブ済みのスペースは含まれません。",
   "Include archived": "アーカイブ済みを含める",
-  "Verified only": "Verified only",
+  "Verified only": "確認済みのみ",
   "Add cover": "カバーを追加",
   "Change cover": "カバーを変更",
   "Reposition": "位置を調整",
@@ -2392,10 +2392,10 @@
   "Refresh recently updated pages": "最近更新されたページを更新",
   "Updated by {{name}}": "更新者 {{name}}",
   "Use up to {{maxValues}} values per filter and {{maxLength}} characters per value.": "各フィルターには最大 {{maxValues}} 個の値を使用でき、各値は最大 {{maxLength}} 文字まで入力できます。",
-  "Refresh preview": "Refresh preview",
-  "Couldn't refresh the preview": "Couldn't refresh the preview",
-  "Link actions": "Link actions",
-  "Remove from list": "Remove from list",
-  "Remove {{name}} from list": "Remove {{name}} from list",
-  "Failed to remove workspace from list": "Failed to remove workspace from list"
+  "Refresh preview": "プレビューを更新",
+  "Couldn't refresh the preview": "プレビューを更新できませんでした",
+  "Link actions": "リンクのアクション",
+  "Remove from list": "リストから削除",
+  "Remove {{name}} from list": "{{name}}をリストから削除",
+  "Failed to remove workspace from list": "ワークスペースをリストから削除できませんでした"
 }
