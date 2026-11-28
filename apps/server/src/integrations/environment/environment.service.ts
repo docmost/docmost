@@ -267,6 +267,18 @@ export class EnvironmentService {
     return disable === 'true';
   }
 
+  getLinkPreviewDriver(): string {
+    return this.getConfigValue('LINK_PREVIEW_DRIVER', '').toLowerCase();
+  }
+
+  getIframelyUrl(): string {
+    return this.getConfigValue('IFRAMELY_URL', 'https://iframe.ly/api');
+  }
+
+  getIframelyApiKey(): string | undefined {
+    return this.getConfigValue('IFRAMELY_API_KEY');
+  }
+
   isDisableLinkPreviews(): boolean {
     const disable = this.getConfigValue(
       'DISABLE_LINK_PREVIEWS',

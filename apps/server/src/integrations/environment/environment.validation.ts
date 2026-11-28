@@ -104,6 +104,25 @@ export class EnvironmentVariables {
   TYPESENSE_LOCALE: string;
 
   @IsOptional()
+  @IsIn(['iframely'])
+  @IsString()
+  LINK_PREVIEW_DRIVER: string;
+
+  @IsOptional()
+  @IsUrl(
+    {
+      protocols: ['http', 'https'],
+      require_tld: false,
+      allow_underscores: true,
+    },
+    {
+      message: 'IFRAMELY_URL must be a valid url e.g https://iframe.ly/api',
+    },
+  )
+  @ValidateIf((obj) => obj.LINK_PREVIEW_DRIVER === 'iframely')
+  IFRAMELY_URL: string;
+
+  @IsOptional()
   @ValidateIf((obj) => obj.AI_DRIVER)
   @IsIn(['openai', 'openai-compatible', 'gemini', 'ollama'])
   @IsString()
