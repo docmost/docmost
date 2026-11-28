@@ -10,6 +10,18 @@ import { OutboundAgentFactory } from '../outbound/outbound-agent.factory';
 const keyFor = (url: string) =>
   'link-preview:' + createHash('sha256').update(url).digest('hex');
 
+const json = (body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+
+const page = (head: string, body = '') =>
+  new Response(`<html><head>${head}</head><body>${body}</body></html>`, {
+    status: 200,
+    headers: { 'content-type': 'text/html; charset=utf-8' },
+  });
+
 const html = (title: string) =>
   new Response(`<html><head><title>${title}</title></head><body></body></html>`, {
     status: 200,
@@ -82,6 +94,16 @@ describe('LinkPreviewService', () => {
     });
   });
 
+  it('asks for English and sends no user setting', async () => {
+    fetchFn.mockResolvedValue(html('Hello'));
+    await build().getPreview('https://example.com/a');
+    expect(fetchFn.mock.calls[0][1].headers).toEqual({
+      accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+      'accept-language': 'en',
+      'user-agent': 'DocmostBot-LinkPreview (+https://docmost.com/robots)',
+    });
+  });
+
   it('fetches with manual redirects and an abort signal', async () => {
     fetchFn.mockResolvedValue(html('Hello'));
     await build().getPreview('https://example.com/a');
@@ -90,12 +112,163 @@ describe('LinkPreviewService', () => {
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it('drops the fragment before fetching and caching', async () => {
+  it('keeps the fragment in the cache key but not in the request', async () => {
     fetchFn.mockResolvedValue(html('Hello'));
     await build().getPreview('https://example.com/a#part');
     expect(lease.mock.calls[0][0]).toBe('https://example.com/a');
+    expect(redis.set.mock.calls[0][0]).toBe(keyFor('https://example.com/a#part'));
+  });
+
+  it('caches an empty fragment under the plain URL', async () => {
+    fetchFn.mockResolvedValue(html('Hello'));
+    await build().getPreview('https://example.com/a#');
     expect(redis.set.mock.calls[0][0]).toBe(keyFor('https://example.com/a'));
   });
+
+  it('titles a fragment link with its section, reading past the head', async () => {
+    const chunks = [
+      '<html><head><title>Guide</title></head>',
+      '<body><h2 id="install">Install</h2><p>Run it.</p></body></html>',
+    ].map((c) => new TextEncoder().encode(c));
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        const next = chunks.shift();
+        if (next) controller.enqueue(next);
+        else controller.close();
+      },
+    });
+    fetchFn.mockResolvedValue(
+      new Response(body, { headers: { 'content-type': 'text/html' } }),
+    );
+    const result = await build().getPreview('https://example.com/guide#install');
+    expect(result).toMatchObject({ title: 'Install - Guide', description: 'Run it.' });
+  });
+
+  it('falls back to host and path when the page has no title', async () => {
+    fetchFn.mockResolvedValue(page(''));
+    const result = await build().getPreview('https://example.com/docs/');
+    expect(result?.title).toBe('example.com/docs');
+  });
+
+  describe('oEmbed', () => {
+    const video = 'https://www.youtube.com/watch?v=abc';
+
+    it('asks a known provider first and skips the page', async () => {
+      fetchFn.mockResolvedValueOnce(
+        json({
+          title: 'Video',
+          thumbnail_url: 'https://i.ytimg.com/vi/abc/hqdefault.jpg',
+          provider_url: 'https://www.youtube.com/',
+          html: '<iframe></iframe>',
+        }),
+      );
+      const result = await build().getPreview(video);
+      expect(result).toEqual({
+        title: 'Video',
+        image: 'https://i.ytimg.com/vi/abc/hqdefault.jpg',
+        icon: 'https://www.youtube.com/favicon.ico',
+      });
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+      const endpoint = new URL(lease.mock.calls[0][0]);
+      expect(endpoint.origin + endpoint.pathname).toBe('https://www.youtube.com/oembed');
+      expect(endpoint.searchParams.get('url')).toBe(video);
+      expect(fetchFn.mock.calls[0][1].headers.accept).toBe('application/json');
+    });
+
+    it('fetches the page when the provider fails', async () => {
+      fetchFn
+        .mockResolvedValueOnce(new Response('Not Found', { status: 404 }))
+        .mockResolvedValueOnce(html('Channel'));
+      const result = await build().getPreview('https://www.youtube.com/@channel');
+      expect(result?.title).toBe('Channel');
+      expect(lease.mock.calls[1][0]).toBe('https://www.youtube.com/@channel');
+    });
+
+    it('fetches the page when the provider answers without a title', async () => {
+      fetchFn
+        .mockResolvedValueOnce(json({ thumbnail_url: 'https://i.ytimg.com/x.jpg' }))
+        .mockResolvedValueOnce(html('From page'));
+      expect((await build().getPreview(video))?.title).toBe('From page');
+    });
+
+    it('fetches the page when the provider answers with something other than JSON', async () => {
+      fetchFn
+        .mockResolvedValueOnce(html('Consent'))
+        .mockResolvedValueOnce(html('From page'));
+      expect((await build().getPreview(video))?.title).toBe('From page');
+    });
+
+    const withLink = (head: string) =>
+      page(`${head}<link rel="alternate" type="application/json+oembed" href="/oembed?u=1">`);
+
+    it("follows the page's oEmbed link when the page has no image", async () => {
+      fetchFn
+        .mockResolvedValueOnce(withLink('<title>Track</title>'))
+        .mockResolvedValueOnce(
+          json({ title: 'Other title', thumbnail_url: 'https://cdn.example.com/t.jpg' }),
+        );
+      const result = await build().getPreview('https://example.com/track');
+      expect(result).toMatchObject({ title: 'Track', image: 'https://cdn.example.com/t.jpg' });
+      expect(result).not.toHaveProperty('oembedUrl');
+      expect(lease.mock.calls[1][0]).toBe('https://example.com/oembed?u=1');
+    });
+
+    it("uses the oEmbed title when the page has none", async () => {
+      fetchFn
+        .mockResolvedValueOnce(withLink(''))
+        .mockResolvedValueOnce(json({ title: 'Named by oEmbed' }));
+      expect((await build().getPreview('https://example.com/track'))?.title).toBe(
+        'Named by oEmbed',
+      );
+    });
+
+    it('skips the oEmbed link when the page has a title and an image', async () => {
+      fetchFn.mockResolvedValueOnce(
+        withLink('<title>Track</title><meta property="og:image" content="https://cdn.example.com/og.jpg">'),
+      );
+      const result = await build().getPreview('https://example.com/track');
+      expect(result?.image).toBe('https://cdn.example.com/og.jpg');
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the page's preview when its oEmbed link fails", async () => {
+      fetchFn
+        .mockResolvedValueOnce(withLink('<title>Track</title>'))
+        .mockResolvedValueOnce(new Response('boom', { status: 500 }));
+      const result = await build().getPreview('https://example.com/track');
+      expect(result?.title).toBe('Track');
+      expect(result?.image).toBeUndefined();
+    });
+  });
+
+  describe('cookies', () => {
+    const redirectWithCookie = (location: string) =>
+      new Response(null, {
+        status: 302,
+        headers: [
+          ['location', location],
+          ['set-cookie', 'session=1; Path=/; HttpOnly'],
+        ],
+      });
+
+    it('sends a cookie set during a redirect back to the same host', async () => {
+      fetchFn
+        .mockResolvedValueOnce(redirectWithCookie('/landing'))
+        .mockResolvedValueOnce(html('Hello'));
+      expect((await build().getPreview('https://example.com/start'))?.title).toBe('Hello');
+      expect(fetchFn.mock.calls[0][1].headers.cookie).toBeUndefined();
+      expect(fetchFn.mock.calls[1][1].headers.cookie).toBe('session=1');
+    });
+
+    it('never sends that cookie to another host', async () => {
+      fetchFn
+        .mockResolvedValueOnce(redirectWithCookie('https://other.example.net/'))
+        .mockResolvedValueOnce(html('Other'));
+      await build().getPreview('https://example.com/start');
+      expect(fetchFn.mock.calls[1][1].headers.cookie).toBeUndefined();
+    });
+  });
+
 
   it('on Cloud fetches an http link over https and caches it under the given URL', async () => {
     isCloud = true;
@@ -103,7 +276,7 @@ describe('LinkPreviewService', () => {
     const result = await build().getPreview('http://example.com/a#part');
     expect(result?.title).toBe('Secure');
     expect(lease.mock.calls[0][0]).toBe('https://example.com/a');
-    expect(redis.set.mock.calls[0][0]).toBe(keyFor('http://example.com/a'));
+    expect(redis.set.mock.calls[0][0]).toBe(keyFor('http://example.com/a#part'));
   });
 
   it('fetches an http link as given when self-hosted', async () => {
@@ -225,7 +398,7 @@ describe('LinkPreviewService', () => {
       `https://example.com/${'a'.repeat(2100)}.png`,
     );
     expect(result?.title).toBeDefined();
-    expect(result).not.toHaveProperty('image');
+    expect(result?.image).toBeUndefined();
   });
 
   it('describes other files by name', async () => {

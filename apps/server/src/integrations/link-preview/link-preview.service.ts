@@ -10,6 +10,7 @@ import { OutboundAgentFactory } from '../outbound/outbound-agent.factory';
 import { EnvironmentService } from '../environment/environment.service';
 import {
   LINK_PREVIEW_ACCEPT,
+  LINK_PREVIEW_ACCEPT_LANGUAGE,
   LINK_PREVIEW_CACHE_PREFIX,
   LINK_PREVIEW_CACHE_TTL,
   LINK_PREVIEW_DNS_TIMEOUT_MS,
@@ -17,17 +18,28 @@ import {
   LINK_PREVIEW_FETCH,
   LINK_PREVIEW_MAX_BYTES,
   LINK_PREVIEW_MAX_REDIRECTS,
+  LINK_PREVIEW_OEMBED_ACCEPT,
+  LINK_PREVIEW_OEMBED_MAX_BYTES,
   LINK_PREVIEW_TIMEOUT_MS,
   LINK_PREVIEW_URL_MAX_LENGTH,
   LINK_PREVIEW_USER_AGENT,
 } from './link-preview.constants';
-import { LinkPreview, LinkPreviewHop } from './link-preview.types';
 import {
+  LinkPreview,
+  LinkPreviewHop,
+  LinkPreviewPage,
+  LinkPreviewRequest,
+} from './link-preview.types';
+import {
+  buildFallbackTitle,
   decodeHtml,
   getFileNameTitle,
+  getOembedEndpoint,
   isSignInUrl,
+  mergeCookies,
   parseLinkPreview,
-  readUntilHeadEnd,
+  parseOembed,
+  readBody,
 } from './link-preview.utils';
 
 @Injectable()
@@ -57,7 +69,8 @@ export class LinkPreviewService {
   ): Promise<LinkPreview | null> {
     const parsed = this.parseHttpUrl(url);
     if (!parsed) return null;
-    parsed.hash = '';
+    const fragment = parsed.hash.slice(1);
+    if (!fragment) parsed.hash = '';
 
     const key =
       LINK_PREVIEW_CACHE_PREFIX +
@@ -68,11 +81,12 @@ export class LinkPreviewService {
       if (cached !== null) return JSON.parse(cached);
     }
 
+    parsed.hash = '';
     // Cloud refuses plain http, so try the same address over https.
     if (parsed.protocol === 'http:' && this.environmentService.isCloud()) {
       parsed.protocol = 'https:';
     }
-    const result = await this.fetchPreview(parsed.href);
+    const result = await this.fetchPreview(parsed.href, fragment);
 
     await this.redis.set(
       key,
@@ -94,18 +108,76 @@ export class LinkPreviewService {
     }
   }
 
-  private async fetchPreview(url: string): Promise<LinkPreview | null> {
+  private async fetchPreview(
+    url: string,
+    fragment: string,
+  ): Promise<LinkPreview | null> {
     const signal = AbortSignal.timeout(LINK_PREVIEW_TIMEOUT_MS);
+    const oembedRequest = { signal, accept: LINK_PREVIEW_OEMBED_ACCEPT };
+
+    const endpoint = getOembedEndpoint(url);
+    if (endpoint) {
+      const known = await this.request(endpoint, oembedRequest, (response) =>
+        this.readOembed(response, url),
+      );
+      if (known?.title) {
+        return { title: known.title, image: known.image, icon: known.icon };
+      }
+    }
+
+    const page = await this.request(
+      url,
+      { signal, accept: LINK_PREVIEW_ACCEPT },
+      async (response, finalUrl) => ({
+        finalUrl,
+        ...(await this.readPage(response, finalUrl, fragment)),
+      }),
+    );
+    if (!page) return null;
+
+    const { finalUrl, oembedUrl, ...found } = page;
+    const extra =
+      oembedUrl && (!found.title || !found.image)
+        ? await this.request(oembedUrl, oembedRequest, (response) =>
+            this.readOembed(response, finalUrl),
+          )
+        : null;
+
+    return {
+      title: found.title ?? extra?.title ?? buildFallbackTitle(finalUrl),
+      description: found.description,
+      image: found.image ?? extra?.image,
+      icon: found.icon ?? extra?.icon,
+    };
+  }
+
+  private async request<T>(
+    url: string,
+    options: LinkPreviewRequest,
+    read: (response: Response, finalUrl: string) => Promise<T>,
+  ): Promise<T | null> {
+    // Per host, for this request only: some sites set a cookie and redirect to themselves.
+    const cookies = new Map<string, string>();
     let current = url;
     let redirected = false;
 
     try {
       for (let hop = 0; hop <= LINK_PREVIEW_MAX_REDIRECTS; hop++) {
-        signal.throwIfAborted();
-        const { response, release } = await this.openHop(current, signal);
+        options.signal.throwIfAborted();
+        const { host } = new URL(current);
+        const { response, release } = await this.openHop(
+          current,
+          options,
+          cookies.get(host),
+        );
         try {
           const location = response.headers.get('location');
           if (response.status >= 300 && response.status < 400 && location) {
+            const cookie = mergeCookies(
+              cookies.get(host),
+              response.headers.getSetCookie(),
+            );
+            if (cookie) cookies.set(host, cookie);
             await this.discard(response);
             current = new URL(location, current).href;
             redirected = true;
@@ -123,7 +195,7 @@ export class LinkPreviewService {
             await this.discard(response);
             return null;
           }
-          return await this.readPreview(response, current);
+          return await read(response, current);
         } finally {
           await release();
         }
@@ -156,14 +228,17 @@ export class LinkPreviewService {
 
   private async openHop(
     url: string,
-    signal: AbortSignal,
+    options: LinkPreviewRequest,
+    cookie?: string,
   ): Promise<LinkPreviewHop> {
     const init = {
       redirect: 'manual' as const,
-      signal,
+      signal: options.signal,
       headers: {
-        accept: LINK_PREVIEW_ACCEPT,
+        accept: options.accept,
+        'accept-language': LINK_PREVIEW_ACCEPT_LANGUAGE,
         'user-agent': LINK_PREVIEW_USER_AGENT,
+        ...(cookie && { cookie }),
       },
     };
 
@@ -185,10 +260,11 @@ export class LinkPreviewService {
     }
   }
 
-  private async readPreview(
+  private async readPage(
     response: Response,
     finalUrl: string,
-  ): Promise<LinkPreview> {
+    fragment: string,
+  ): Promise<LinkPreviewPage> {
     const contentType = response.headers.get('content-type');
     const type = (contentType ?? '').toLowerCase();
 
@@ -204,8 +280,29 @@ export class LinkPreviewService {
       return { title: getFileNameTitle(finalUrl) };
     }
 
-    const bytes = await readUntilHeadEnd(response.body, LINK_PREVIEW_MAX_BYTES);
-    return parseLinkPreview(decodeHtml(bytes, contentType), finalUrl);
+    // Only a section link needs the body; the rest is in <head>.
+    const bytes = await readBody(
+      response.body,
+      LINK_PREVIEW_MAX_BYTES,
+      !fragment,
+    );
+    return parseLinkPreview(decodeHtml(bytes, contentType), finalUrl, fragment);
+  }
+
+  private async readOembed(
+    response: Response,
+    pageUrl: string,
+  ): Promise<Partial<LinkPreview>> {
+    const bytes = await readBody(
+      response.body,
+      LINK_PREVIEW_OEMBED_MAX_BYTES,
+      false,
+    );
+    try {
+      return parseOembed(JSON.parse(new TextDecoder().decode(bytes)), pageUrl);
+    } catch {
+      return {};
+    }
   }
 
   private async discard(response: Response): Promise<void> {

@@ -3,8 +3,11 @@ import {
   decodeHtml,
   detectCharset,
   getFileNameTitle,
+  getOembedEndpoint,
   isSignInUrl,
+  mergeCookies,
   parseLinkPreview,
+  parseOembed,
 } from './link-preview.utils';
 
 const page = 'https://example.com/docs/page';
@@ -54,9 +57,145 @@ describe('parseLinkPreview', () => {
     expect(parseLinkPreview(html, page).title).toBe('Named OG');
   });
 
-  it('falls back to host and path without a title', () => {
-    expect(parseLinkPreview('<html></html>', 'https://example.com/docs/').title).toBe('example.com/docs');
-    expect(parseLinkPreview('<html></html>', 'https://example.com').title).toBe('example.com');
+  it('leaves the title out when the page has none', () => {
+    expect(parseLinkPreview('<html></html>', page).title).toBeUndefined();
+  });
+
+  it('drops an og:image declared under 100px and falls back to twitter:image', () => {
+    const html = head(`
+      <meta property="og:image" content="https://cdn.example.com/logo.png">
+      <meta property="og:image:width" content="64">
+      <meta property="og:image:height" content="64">
+      <meta name="twitter:image" content="https://cdn.example.com/card.png">`);
+    expect(parseLinkPreview(html, page).image).toBe('https://cdn.example.com/card.png');
+  });
+
+  it('keeps an og:image declared at 100px or more', () => {
+    const html = head(`
+      <meta property="og:image" content="https://cdn.example.com/og.png">
+      <meta property="og:image:width" content="1200">
+      <meta property="og:image:height" content="100">`);
+    expect(parseLinkPreview(html, page).image).toBe('https://cdn.example.com/og.png');
+  });
+
+  it('finds a JSON oEmbed link and resolves it against the page', () => {
+    const html = head(`
+      <link rel="alternate" type="text/xml+oembed" href="/oembed.xml">
+      <link rel="alternate" type="application/json+oembed" href="/oembed?url=x&amp;format=json">`);
+    expect(parseLinkPreview(html, page).oembedUrl).toBe(
+      'https://example.com/oembed?url=x&format=json',
+    );
+  });
+
+  it('ignores an XML-only oEmbed link', () => {
+    const html = head(`<link rel="alternate" type="text/xml+oembed" href="/oembed.xml">`);
+    expect(parseLinkPreview(html, page).oembedUrl).toBeUndefined();
+  });
+
+  describe('titles a fragment link with its section', () => {
+    const doc = (body: string, title = 'Guide') =>
+      `<html><head><title>${title}</title><meta name="description" content="Page desc"></head><body>${body}</body></html>`;
+
+    it('uses the heading with the id and the paragraph after it', () => {
+      const html = doc('<h2 id="install">Install</h2><p>Run the installer.</p>');
+      expect(parseLinkPreview(html, page, 'install')).toMatchObject({
+        title: 'Install - Guide',
+        description: 'Run the installer.',
+      });
+    });
+
+    it('uses the heading inside a section with the id', () => {
+      const html = doc('<section id="setup"><h3>Setup</h3><p>Set it up.</p></section>');
+      expect(parseLinkPreview(html, page, 'setup')).toMatchObject({
+        title: 'Setup - Guide',
+        description: 'Set it up.',
+      });
+    });
+
+    it('uses the heading around a named anchor', () => {
+      const html = doc('<h2><a name="faq"></a>FAQ</h2><p>Questions.</p>');
+      expect(parseLinkPreview(html, page, 'faq')).toMatchObject({
+        title: 'FAQ - Guide',
+        description: 'Questions.',
+      });
+    });
+
+    it('uses the heading just before a user-content anchor', () => {
+      const html = doc(
+        '<div><h2>Usage</h2><a id="user-content-usage" href="#usage"></a></div><p>Call it.</p>',
+      );
+      expect(parseLinkPreview(html, page, 'usage')).toMatchObject({
+        title: 'Usage - Guide',
+        description: 'Call it.',
+      });
+    });
+
+    it('finds the paragraph after a wrapped heading', () => {
+      const html = doc(
+        '<div class="mw-heading"><h2 id="History">History</h2><span>[edit]</span></div><figure>x</figure><p>It began in 1995.</p>',
+      );
+      expect(parseLinkPreview(html, page, 'History')).toMatchObject({
+        title: 'History - Guide',
+        description: 'It began in 1995.',
+      });
+    });
+
+    it('skips paragraphs inside a history table', () => {
+      const html = doc(
+        '<h3 id="read">read()</h3><div><details><table><tr><td><p>Added in v2.</p></td></tr></table></details></div><p>Reads the file.</p>',
+      );
+      expect(parseLinkPreview(html, page, 'read').description).toBe('Reads the file.');
+    });
+
+    it('does not borrow a paragraph from the next section', () => {
+      const html = doc(
+        '<h2 id="links">Links</h2><ul><li>One</li></ul><div><h2 id="next">Next</h2></div><p>Other text.</p>',
+      );
+      expect(parseLinkPreview(html, page, 'links').description).toBe('Page desc');
+    });
+
+    it('uses a definition term and its description', () => {
+      const html = doc(
+        '<dl><dt id="os.walk">os.walk(top)<a class="headerlink" href="#os.walk">¶</a></dt><dd><p>Generate the file names.</p></dd></dl>',
+      );
+      expect(parseLinkPreview(html, page, 'os.walk')).toMatchObject({
+        title: 'os.walk(top) - Guide',
+        description: 'Generate the file names.',
+      });
+    });
+
+    it('drops permalink markers but keeps a # that belongs to the text', () => {
+      const html = doc('<h2 id="cs">C# notes <a href="#cs">#</a></h2>');
+      expect(parseLinkPreview(html, page, 'cs').title).toBe('C# notes - Guide');
+    });
+
+    it('decodes the fragment', () => {
+      const html = doc('<h2 id="über">Über</h2>');
+      expect(parseLinkPreview(html, page, '%C3%BCber').title).toBe('Über - Guide');
+    });
+
+    it('keeps the page title and description when nothing matches', () => {
+      const html = doc('<h2 id="install">Install</h2>');
+      expect(parseLinkPreview(html, page, 'missing')).toMatchObject({
+        title: 'Guide',
+        description: 'Page desc',
+      });
+    });
+
+    it('does not repeat a heading the page title already has', () => {
+      const html = doc('<h1 id="install">Install</h1>', 'Install - Guide');
+      expect(parseLinkPreview(html, page, 'install').title).toBe('Install - Guide');
+    });
+
+    it('uses the section alone when the page has no title', () => {
+      const html = '<html><body><h2 id="install">Install</h2></body></html>';
+      expect(parseLinkPreview(html, page, 'install').title).toBe('Install');
+    });
+
+    it('cuts the section to 100 before adding the page title', () => {
+      const html = doc(`<h2 id="long">${'a'.repeat(150)}</h2>`);
+      expect(parseLinkPreview(html, page, 'long').title).toBe(`${'a'.repeat(100)} - Guide`);
+    });
   });
 
   it('resolves relative images against <base href>', () => {
@@ -121,6 +260,54 @@ describe('parseLinkPreview', () => {
     it('collapses whitespace and decodes entities', () => {
       const html = head(`<title>  A &amp; B\n\t C </title>`);
       expect(parseLinkPreview(html, page).title).toBe('A & B C');
+    });
+
+    describe('escaped HTML in meta text', () => {
+      const description = (content: string) =>
+        parseLinkPreview(head(`<meta property="og:description" content="${content}">`), page)
+          .description;
+
+      it('drops a link and decodes a double-escaped space', () => {
+        expect(
+          description(
+            'From the album,&amp;nbsp;featured in &lt;a href=&quot;https://x.test/ad&quot;&gt;this ad&lt;/a&gt;.',
+          ),
+        ).toBe('From the album, featured in this ad.');
+      });
+
+      it('joins inline tags without adding spaces', () => {
+        expect(description('Hello &lt;b&gt;world&lt;/b&gt;!')).toBe('Hello world!');
+      });
+
+      it('turns block tags and line breaks into spaces', () => {
+        expect(description('&lt;p&gt;One&lt;/p&gt;&lt;p&gt;Two&lt;br /&gt;Three&lt;/p&gt;')).toBe(
+          'One Two Three',
+        );
+      });
+
+      it('keeps a tag named in prose', () => {
+        expect(description('The &lt;a&gt; HTML element creates a link.')).toBe(
+          'The <a> HTML element creates a link.',
+        );
+        expect(parseLinkPreview(head('<title>&lt;a&gt;: The Anchor element</title>'), page).title).toBe(
+          '<a>: The Anchor element',
+        );
+      });
+
+      it('keeps comparisons that look nothing like tags', () => {
+        expect(description('Use a &lt; b when b &gt; 0')).toBe('Use a < b when b > 0');
+      });
+
+      it('decodes a double-escaped title', () => {
+        const html = head('<meta property="og:title" content="Tom &amp;amp; Jerry &amp;#8211; Pilot">');
+        expect(parseLinkPreview(html, page).title).toBe('Tom & Jerry – Pilot');
+      });
+
+      it('stays fast on a long unclosed tag', () => {
+        const start = Date.now();
+        description(`&lt;a ${'='.repeat(200_000)}`);
+        expect(Date.now() - start).toBeLessThan(1000);
+      });
     });
 
     it('strips control characters without doubling spaces', () => {
@@ -234,5 +421,92 @@ describe('isSignInUrl', () => {
     'https://www.youtube.com/watch?v=x',
   ])('is false for %s', (url) => {
     expect(isSignInUrl(url)).toBe(false);
+  });
+});
+
+describe('parseOembed', () => {
+  it('reads the title, thumbnail and provider icon, never the html', () => {
+    expect(
+      parseOembed(
+        {
+          title: ' A  video ',
+          thumbnail_url: 'https://i.ytimg.com/vi/x/hqdefault.jpg',
+          provider_url: 'https://www.youtube.com/',
+          html: '<iframe src="https://www.youtube.com/embed/x"></iframe>',
+        },
+        'https://youtu.be/x',
+      ),
+    ).toEqual({
+      title: 'A video',
+      image: 'https://i.ytimg.com/vi/x/hqdefault.jpg',
+      icon: 'https://www.youtube.com/favicon.ico',
+    });
+  });
+
+  it('uses the page origin for the icon without a provider URL', () => {
+    expect(parseOembed({ title: 'T' }, page).icon).toBe('https://example.com/favicon.ico');
+  });
+
+  it('drops a thumbnail declared under 100px', () => {
+    expect(
+      parseOembed(
+        { title: 'T', thumbnail_url: 'https://cdn.example.com/t.jpg', thumbnail_width: 80, thumbnail_height: 80 },
+        page,
+      ).image,
+    ).toBeUndefined();
+  });
+
+  it('ignores fields that are not strings and unsafe thumbnails', () => {
+    expect(parseOembed({ title: 5, thumbnail_url: 'javascript:alert(1)' }, page)).toEqual({
+      icon: 'https://example.com/favicon.ico',
+    });
+    expect(parseOembed(null, page)).toEqual({});
+    expect(parseOembed('text', page)).toEqual({});
+  });
+
+  it('cuts a long title to 300', () => {
+    expect(parseOembed({ title: 'c'.repeat(400) }, page).title).toHaveLength(300);
+  });
+
+  it('decodes an escaped title', () => {
+    expect(parseOembed({ title: 'Q&amp;A &lt;b&gt;live&lt;/b&gt;' }, page).title).toBe('Q&A live');
+  });
+});
+
+describe('getOembedEndpoint', () => {
+  it.each([
+    ['https://www.youtube.com/watch?v=abc', 'https://www.youtube.com/oembed'],
+    ['https://youtu.be/abc', 'https://www.youtube.com/oembed'],
+    ['https://m.youtube.com/watch?v=abc', 'https://www.youtube.com/oembed'],
+    ['https://vimeo.com/76979871', 'https://vimeo.com/api/oembed.json'],
+    ['https://www.nytimes.com/2026/01/01/us/story.html', 'https://www.nytimes.com/svc/oembed/json/'],
+  ])('asks the provider endpoint for %s', (url, endpoint) => {
+    const result = new URL(getOembedEndpoint(url)!);
+    expect(`${result.origin}${result.pathname}`).toBe(endpoint);
+    expect(result.searchParams.get('url')).toBe(url);
+  });
+
+  it.each([
+    'https://example.com/watch?v=abc',
+    'https://notyoutube.com/watch?v=abc',
+    'https://youtube.com.example.net/watch?v=abc',
+  ])('has no endpoint for %s', (url) => {
+    expect(getOembedEndpoint(url)).toBeUndefined();
+  });
+});
+
+
+describe('mergeCookies', () => {
+  it('keeps the name and value of each Set-Cookie', () => {
+    expect(mergeCookies(undefined, ['a=1; Path=/', 'b=2; HttpOnly'])).toBe('a=1; b=2');
+  });
+
+  it('replaces a cookie that is set again', () => {
+    expect(mergeCookies('a=1; b=2', ['a=3; Secure'])).toBe('a=3; b=2');
+  });
+
+  it('has no header when nothing usable is set', () => {
+    expect(mergeCookies(undefined, [])).toBeUndefined();
+    expect(mergeCookies(undefined, ['no-equals-sign', '=nameless'])).toBeUndefined();
   });
 });
