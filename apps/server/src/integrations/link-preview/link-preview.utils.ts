@@ -213,6 +213,16 @@ export function isIframelyAccountError(code: string): boolean {
   );
 }
 
+export function describeIframelyOrigin(base: string): string {
+  try {
+    const { origin } = new URL(base);
+    if (origin !== 'null') return origin;
+  } catch {
+    // fall through
+  }
+  return 'the configured IFRAMELY_URL';
+}
+
 export function detectCharset(
   contentType: string | null,
   head: Uint8Array,

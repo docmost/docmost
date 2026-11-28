@@ -1,6 +1,7 @@
 import {
   buildFallbackTitle,
   decodeHtml,
+  describeIframelyOrigin,
   detectCharset,
   getFileNameTitle,
   isIframelyAccountError,
@@ -291,4 +292,18 @@ describe('isIframelyAccountError', () => {
     '%s is about the account', (code) => expect(isIframelyAccountError(code)).toBe(true));
   it.each(['api.url.invalid', 'origin.net.timeout', 'origin.http.404', 'iframely.robots.disallowed'])(
     '%s is about the URL', (code) => expect(isIframelyAccountError(code)).toBe(false));
+});
+
+describe('describeIframelyOrigin', () => {
+  it.each([
+    ['https://iframe.ly/api', 'https://iframe.ly'],
+    ['http://user:secret@iframely:8061/x', 'http://iframely:8061'],
+  ])('gives the origin of %s', (base, origin) =>
+    expect(describeIframelyOrigin(base)).toBe(origin));
+
+  it.each(['iframe.ly/api', 'iframely:8061'])(
+    'names the setting for %s, which has no usable origin',
+    (base) =>
+      expect(describeIframelyOrigin(base)).toBe('the configured IFRAMELY_URL'),
+  );
 });

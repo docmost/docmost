@@ -10,6 +10,7 @@ const json = (body: unknown, status = 200) =>
 describe('IframelyClient', () => {
   let fetchFn: jest.Mock;
   let warn: jest.SpyInstance;
+  let debug: jest.SpyInstance;
   let env: { url: string; key?: string };
   const build = () =>
     new IframelyClient(
@@ -23,7 +24,7 @@ describe('IframelyClient', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
-    jest.spyOn(Logger.prototype, 'debug').mockImplementation();
+    debug = jest.spyOn(Logger.prototype, 'debug').mockImplementation();
     fetchFn = jest.fn();
     env = { url: 'https://iframe.ly/api', key: 'secret-key' };
   });
@@ -104,6 +105,68 @@ describe('IframelyClient', () => {
     );
     expect(await build().getPreview('https://example.com/a')).toBeNull();
     expect(warn).toHaveBeenCalled();
+  });
+
+  it('logs no part of a fetch error message, which can hold the API key', async () => {
+    const otherLevels = (['log', 'error', 'verbose', 'fatal'] as const).map(
+      (level) => jest.spyOn(Logger.prototype, level).mockImplementation(),
+    );
+    fetchFn.mockRejectedValue(
+      new Error(
+        'Failed to parse URL from https://iframe.ly/api/iframely?url=x&api_key=secret-key',
+      ),
+    );
+    expect(await build().getPreview('https://example.com/a')).toBeNull();
+    expect(warn).toHaveBeenCalled();
+    const logged = JSON.stringify(
+      [warn, debug, ...otherLevels].map((spy) => spy.mock.calls),
+    );
+    expect(logged).not.toContain('secret-key');
+    expect(logged).not.toContain('Failed to parse');
+  });
+
+  it('warns with the origin, error name and code when Iframely cannot be reached', async () => {
+    env = { url: 'http://iframely:8061/' };
+    fetchFn.mockRejectedValue(
+      Object.assign(new TypeError('fetch failed'), {
+        cause: Object.assign(
+          new Error('connect ECONNREFUSED 172.18.0.5:8061'),
+          { code: 'ECONNREFUSED' },
+        ),
+      }),
+    );
+    expect(await build().getPreview('https://example.com/a')).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+    const [message] = warn.mock.calls[0];
+    expect(message).toContain('http://iframely:8061');
+    expect(message).toContain('TypeError');
+    expect(message).toContain('ECONNREFUSED');
+    expect(message).not.toContain('fetch failed');
+    expect(message).not.toContain('172.18.0.5');
+  });
+
+  it('warns that Iframely timed out', async () => {
+    fetchFn.mockRejectedValue(
+      Object.assign(new Error('The operation was aborted due to timeout'), {
+        name: 'TimeoutError',
+      }),
+    );
+    expect(await build().getPreview('https://example.com/a')).toBeNull();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringMatching(/https:\/\/iframe\.ly .*timed out/),
+    );
+  });
+
+  it('names the setting instead of an origin when IFRAMELY_URL has no protocol', async () => {
+    const client = new IframelyClient({
+      getIframelyUrl: () => 'iframe.ly/api',
+      getIframelyApiKey: () => 'secret-key',
+    } as any);
+    expect(await client.getPreview('https://example.com/a')).toBeNull();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('the configured IFRAMELY_URL'),
+    );
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('secret-key');
   });
 
   it('returns null when Iframely ends on a sign-in page the pasted link was not', async () => {
