@@ -1,8 +1,9 @@
 import { Editor, Node, type JSONContent } from "@tiptap/core";
 import { StarterKit } from "@tiptap/starter-kit";
-import type { UploadTarget } from "@docmost/editor-ext";
+import { Drawio, Excalidraw, type UploadTarget } from "@docmost/editor-ext";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TiptapDocument } from "@/features/editor/extensions/document";
+import type { IAttachment } from "@/features/attachments/types/attachment.types";
 import {
   getAttachmentInfo,
   uploadFile,
@@ -21,7 +22,8 @@ vi.mock("@/features/page/services/page-service.ts", () => ({
 
 const SOURCE_ID = "019a1f00-0000-7000-8000-0000000000aa";
 const COPY_ID = "019a1f00-0000-7000-8000-0000000000bb";
-const imageHtml = `<img src="/api/files/${SOURCE_ID}/photo.png" data-attachment-id="${SOURCE_ID}">`;
+const imageHtml = (fileName = "photo.png") =>
+  `<img src="/api/files/${SOURCE_ID}/${fileName}" data-attachment-id="${SOURCE_ID}">`;
 
 const Image = Node.create({
   name: "image",
@@ -71,6 +73,8 @@ function createEditor(content: JSONContent[], target: UploadTarget) {
       Footnotes,
       Footnote,
       Image,
+      Drawio,
+      Excalidraw,
     ],
     content: { type: "doc", content },
     editorProps: {
@@ -106,12 +110,15 @@ const paragraph = (text?: string): JSONContent => ({
 
 describe("pasted file re-upload", () => {
   beforeEach(() => {
-    vi.mocked(uploadFile).mockResolvedValue({
-      id: COPY_ID,
-      fileName: "photo.png",
-      fileSize: 3,
-      mimeType: "image/png",
-    } as any);
+    vi.mocked(uploadFile).mockImplementation(
+      async (file) =>
+        ({
+          id: COPY_ID,
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type,
+        }) as IAttachment,
+    );
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({
@@ -127,24 +134,86 @@ describe("pasted file re-upload", () => {
     vi.clearAllMocks();
   });
 
-  it("copies a lone image pasted as the last block of a template", async () => {
+  it.each(["photo.png", "diagram.drawio.svg"])(
+    "copies %s as an ordinary image at the end of a template",
+    async (fileName) => {
+      vi.mocked(getAttachmentInfo).mockResolvedValue({
+        fileName,
+        pageId: "page-1",
+        templateId: null,
+        diagramType: null,
+      } as IAttachment);
+      const target = { templateId: "tpl-1" };
+      createEditor([paragraph("Intro"), paragraph()], target);
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+
+      pasteHtml(imageHtml(fileName));
+
+      await vi.waitFor(() => expect(imageAttachmentIds()).toEqual([COPY_ID]));
+      expect(uploadFile).toHaveBeenCalledWith(
+        expect.objectContaining({ name: fileName }),
+        target,
+      );
+    },
+  );
+
+  it.each([
+    ["drawio", "/api/files", "drawio"],
+    ["excalidraw", "/api/files", "excalidraw"],
+    ["drawio", "/files", null],
+  ] as const)(
+    "copies a %s diagram from %s with stored type %s",
+    async (type, prefix, diagramType) => {
+      const fileName = `Café #1.${type}.svg`;
+      const encoded = encodeURIComponent(fileName);
+      vi.mocked(getAttachmentInfo).mockResolvedValue({
+        fileName,
+        pageId: "page-1",
+        diagramType,
+      } as IAttachment);
+      const target = { pageId: "page-2" };
+      createEditor([paragraph()], target);
+      pasteHtml(
+        `<div data-type="${type}" data-attachment-id="${SOURCE_ID}" data-src="${prefix}/${SOURCE_ID}/${encoded}"></div>`,
+      );
+
+      await vi.waitFor(() =>
+        expect(editor.state.doc.firstChild.attrs).toMatchObject({
+          attachmentId: COPY_ID,
+          src: `/api/files/${COPY_ID}/${encoded}`,
+          title: fileName,
+        }),
+      );
+      expect(uploadFile).toHaveBeenCalledWith(
+        expect.objectContaining({ name: fileName }),
+        target,
+        { type },
+      );
+    },
+  );
+
+  it("keeps the copy untyped when an image and a diagram share its attachment", async () => {
+    const fileName = "diagram.drawio.svg";
     vi.mocked(getAttachmentInfo).mockResolvedValue({
+      fileName,
       pageId: "page-1",
-      templateId: null,
-    } as any);
-    createEditor([paragraph("Intro"), paragraph()], { templateId: "tpl-1" });
-    editor.commands.setTextSelection(editor.state.doc.content.size - 1);
-
-    pasteHtml(imageHtml);
-
+    } as IAttachment);
+    const target = { pageId: "page-2" };
+    createEditor([paragraph()], target);
+    pasteHtml(
+      imageHtml(fileName) +
+        `<div data-type="drawio" data-attachment-id="${SOURCE_ID}" data-src="/api/files/${SOURCE_ID}/${fileName}"></div>`,
+    );
     await vi.waitFor(() => expect(imageAttachmentIds()).toEqual([COPY_ID]));
-    expect(uploadFile).toHaveBeenCalledWith(expect.any(File), {
-      templateId: "tpl-1",
-    });
+    expect(uploadFile).toHaveBeenCalledExactlyOnceWith(
+      expect.any(File),
+      target,
+    );
   });
 
   it("copies a template image pasted between paragraphs of a page", async () => {
     vi.mocked(getAttachmentInfo).mockResolvedValue({
+      fileName: "photo.png",
       pageId: null,
       templateId: "tpl-1",
     } as any);
@@ -153,7 +222,7 @@ describe("pasted file re-upload", () => {
     });
     editor.commands.setTextSelection(8);
 
-    pasteHtml(imageHtml);
+    pasteHtml(imageHtml());
 
     await vi.waitFor(() => expect(imageAttachmentIds()).toEqual([COPY_ID]));
     expect(uploadFile).toHaveBeenCalledWith(expect.any(File), {
@@ -169,7 +238,7 @@ describe("pasted file re-upload", () => {
     createEditor([paragraph("Intro"), paragraph()], { templateId: "tpl-1" });
     editor.commands.setTextSelection(editor.state.doc.content.size - 1);
 
-    pasteHtml(imageHtml);
+    pasteHtml(imageHtml());
 
     await vi.waitFor(() => expect(getAttachmentInfo).toHaveBeenCalled());
     await new Promise((resolve) => setTimeout(resolve, 0));

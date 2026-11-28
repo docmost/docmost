@@ -494,6 +494,7 @@ export class TransclusionService {
         await this.attachmentRepo.insertAttachment({
           id: plan.newAttachmentId,
           type: old.type,
+          diagramType: old.diagramType,
           filePath: newFilePath,
           fileName: old.fileName,
           fileSize: old.fileSize,

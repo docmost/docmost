@@ -1,3 +1,5 @@
+export type DiagramType = "drawio" | "excalidraw";
+
 export interface IAttachment {
   id: string;
   fileName: string;
@@ -6,6 +8,7 @@ export interface IAttachment {
   fileExt: string;
   mimeType: string;
   type: string;
+  diagramType: DiagramType | null;
   creatorId: string;
   pageId: string | null;
   templateId?: string | null;

@@ -11,7 +11,10 @@ import { getMimeType, sanitizeFileName } from '../../../common/helpers';
 import { v7 } from 'uuid';
 import { FileTask } from '@docmost/db/types/entity.types';
 import { getAttachmentFolderPath } from '../../../core/attachment/attachment.utils';
-import { AttachmentType } from '../../../core/attachment/attachment.constants';
+import {
+  AttachmentType,
+  type DiagramType,
+} from '../../../core/attachment/attachment.constants';
 import { unwrapFromParagraph } from '../utils/import-formatter';
 import { resolveRelativeAttachmentPath } from '../utils/import.utils';
 import { imageDimensionsFromData } from 'image-dimensions';
@@ -76,11 +79,7 @@ export class ImportAttachmentService {
       failedFiles: [] as string[],
     };
 
-    /**
-     * Cache keyed by the *relative* path that appears in the HTML.
-     * Ensures we upload (and DB-insert) each attachment at most once,
-     * even if it's referenced multiple times on the page.
-     */
+    // Reuse each archive path within the same attachment format.
     const processed = new Map<
       string,
       {
@@ -154,6 +153,7 @@ export class ImportAttachmentService {
                 fileSize: svgBuffer.length,
                 mimeType: 'image/svg+xml',
                 type: 'file',
+                diagramType: 'drawio',
                 fileExt: '.svg',
                 creatorId: fileTask.creatorId,
                 workspaceId: fileTask.workspaceId,
@@ -215,23 +215,28 @@ export class ImportAttachmentService {
       }
     }
 
-    const uploadOnce = (relPath: string) => {
+    const processFile = (relPath: string, format?: DiagramType) => {
       const abs = attachmentCandidates.get(relPath)!;
-      const attachmentId = v7();
-
       const realName = attachmentNameByRelPath.get(relPath);
       const baseName = realName || path.basename(abs);
       const ext = path.extname(baseName);
+      const normalizedExt = ext.toLowerCase();
+      const diagramType = normalizedExt === '.svg' ? (format ?? null) : null;
+      const key = diagramType ? `${relPath}\0${diagramType}` : relPath;
+      const cached = processed.get(key);
+      if (cached) return cached;
 
+      const attachmentId = v7();
       const fileNameWithExt =
-        sanitizeFileName(path.basename(baseName, ext)) + ext.toLowerCase();
+        sanitizeFileName(path.basename(baseName, ext)) +
+        (diagramType ? ext : normalizedExt);
 
       const storageFilePath = `${getAttachmentFolderPath(
         AttachmentType.File,
         fileTask.workspaceId,
       )}/${attachmentId}/${fileNameWithExt}`;
 
-      const apiFilePath = `/api/files/${attachmentId}/${fileNameWithExt}`;
+      const apiFilePath = `/api/files/${attachmentId}/${encodeURIComponent(fileNameWithExt)}`;
 
       attachmentTasks.push(() =>
         this.uploadWithRetry({
@@ -239,36 +244,61 @@ export class ImportAttachmentService {
           storageFilePath,
           attachmentId,
           fileNameWithExt,
-          ext,
+          diagramType,
+          ext: diagramType ? normalizedExt : ext,
           pageId,
           fileTask,
           uploadStats,
         }),
       );
 
-      return {
+      const attachment = {
         attachmentId,
         storageFilePath,
         apiFilePath,
         fileNameWithExt,
         abs,
       };
-    };
-
-    /**
-     * – Returns cached data if we’ve already processed this path.
-     * – Otherwise calls `uploadOnce`, stores the result, and returns it.
-     */
-    const processFile = (relPath: string) => {
-      const cached = processed.get(relPath);
-      if (cached) return cached;
-
-      const fresh = uploadOnce(relPath);
-      processed.set(relPath, fresh);
-      return fresh;
+      processed.set(key, attachment);
+      return attachment;
     };
 
     const $ = loadImportHtml(html);
+
+    // Restore diagram blocks before processing their exported image previews.
+    for (const type of ['excalidraw', 'drawio'] as const) {
+      for (const el of $(`div[data-type="${type}"]`).toArray()) {
+        const $oldDiv = $(el);
+        const rawSrc = cleanUrlString($oldDiv.attr('data-src') ?? '')!;
+        if (!rawSrc || rawSrc.startsWith('http')) continue;
+
+        const relPath = resolveRelativeAttachmentPath(
+          rawSrc,
+          pageDir,
+          attachmentCandidates,
+        );
+        if (!relPath) continue;
+
+        const { attachmentId, apiFilePath, fileNameWithExt } = processFile(
+          relPath,
+          type,
+        );
+
+        const width = $oldDiv.attr('data-width') || '600';
+        const align = $oldDiv.attr('data-align') || 'center';
+
+        const $newDiv = $('<div>')
+          .attr('data-type', type)
+          .attr('data-src', apiFilePath)
+          .attr('data-title', fileNameWithExt)
+          .attr('data-width', width)
+          .attr('data-align', align)
+          .attr('data-attachment-id', attachmentId);
+
+        $oldDiv.replaceWith($newDiv);
+        unwrapFromParagraph($, $newDiv);
+      }
+    }
 
     // image
     for (const imgEl of $('img').toArray()) {
@@ -499,39 +529,6 @@ export class ImportAttachmentService {
 
         $a.replaceWith($div);
         unwrapFromParagraph($, $div);
-      }
-    }
-
-    // excalidraw and drawio
-    for (const type of ['excalidraw', 'drawio'] as const) {
-      for (const el of $(`div[data-type="${type}"]`).toArray()) {
-        const $oldDiv = $(el);
-        const rawSrc = cleanUrlString($oldDiv.attr('data-src') ?? '')!;
-        if (!rawSrc || rawSrc.startsWith('http')) continue;
-
-        const relPath = resolveRelativeAttachmentPath(
-          rawSrc,
-          pageDir,
-          attachmentCandidates,
-        );
-        if (!relPath) continue;
-
-        const { attachmentId, apiFilePath, abs } = processFile(relPath);
-        const fileName = path.basename(abs);
-
-        const width = $oldDiv.attr('data-width') || '600';
-        const align = $oldDiv.attr('data-align') || 'center';
-
-        const $newDiv = $('<div>')
-          .attr('data-type', type)
-          .attr('data-src', apiFilePath)
-          .attr('data-title', fileName)
-          .attr('data-width', width)
-          .attr('data-align', align)
-          .attr('data-attachment-id', attachmentId);
-
-        $oldDiv.replaceWith($newDiv);
-        unwrapFromParagraph($, $newDiv);
       }
     }
 
@@ -899,6 +896,7 @@ export class ImportAttachmentService {
     storageFilePath: string;
     attachmentId: string;
     fileNameWithExt: string;
+    diagramType: DiagramType | null;
     ext: string;
     pageId: string;
     fileTask: FileTask;
@@ -937,6 +935,7 @@ export class ImportAttachmentService {
             id: attachmentId,
             filePath: storageFilePath,
             fileName: fileNameWithExt,
+            diagramType: opts.diagramType,
             fileSize: stat.size,
             mimeType: getMimeType(fileNameWithExt),
             type: 'file',

@@ -173,15 +173,17 @@ export function DrawioMenu({ editor }: EditorMenuProps) {
     if (!uploadTarget) return;
     const attachmentId = editorState?.attachmentId;
 
-    let attachment: IAttachment = null;
-    if (attachmentId) {
-      attachment = await uploadFile(drawioSVGFile, uploadTarget, attachmentId);
-    } else {
-      attachment = await uploadFile(drawioSVGFile, uploadTarget);
-    }
+    const attachment: IAttachment = await uploadFile(
+      drawioSVGFile,
+      uploadTarget,
+      {
+        type: "drawio",
+        attachmentId,
+      },
+    );
 
     editor.commands.updateAttributes("drawio", {
-      src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
+      src: `/api/files/${attachment.id}/${encodeURIComponent(attachment.fileName)}?t=${new Date(attachment.updatedAt).getTime()}`,
       title: attachment.fileName,
       size: attachment.fileSize,
       attachmentId: attachment.id,

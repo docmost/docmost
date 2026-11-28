@@ -1,10 +1,17 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import * as JSZip from 'jszip';
+import { v7 } from 'uuid';
 import type { FileTask } from '@docmost/db/types/entity.types';
 import { ImportAttachmentService } from './import-attachment.service';
 import { ImportService } from './import.service';
 import { formatImportHtml } from '../utils/import-formatter';
+import { ExportFormat } from '../../export/dto/export-dto';
+import { ExportService } from '../../export/export.service';
+import { updateAttachmentUrlsToLocalPaths } from '../../export/utils';
+import { extractZip } from '../utils/file.utils';
+import { buildAttachmentCandidates } from '../utils/import.utils';
 
 jest.mock('p-limit', () => ({
   __esModule: true,
@@ -45,6 +52,185 @@ describe('HTML provider links', () => {
     ]);
   });
 });
+
+it.each(['drawio', 'excalidraw'])(
+  'preserves the %s diagram type when a regular attachment shares its filename in an archive',
+  async (type) => {
+    const fileName = `diagram.${type}.svg`;
+    const drawing = `drawing/${fileName}`;
+    const regular = `regular/${fileName}`;
+    const service = new ImportAttachmentService(null, null, null);
+    const upload = jest
+      .spyOn(service as any, 'uploadWithRetry')
+      .mockResolvedValue(undefined);
+
+    await service.processAttachments({
+      html:
+        `<div data-type="attachment" data-attachment-url="${drawing}"></div>` +
+        `<div data-type="attachment" data-attachment-url="${regular}"></div>` +
+        `<div data-type="${type}" data-src="${drawing}"></div>`,
+      pageRelativePath: 'page.html',
+      extractDir: '/archive',
+      pageId: 'page',
+      fileTask: {
+        workspaceId: 'workspace',
+        spaceId: 'space',
+        creatorId: 'user',
+      } as FileTask,
+      attachmentCandidates: new Map(
+        [drawing, regular].map((path) => [path, join('/archive', path)]),
+      ),
+    });
+
+    expect(upload).toHaveBeenCalledTimes(3);
+    expect(upload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        abs: join('/archive', drawing),
+        diagramType: null,
+      }),
+    );
+    expect(upload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        abs: join('/archive', drawing),
+        diagramType: type,
+      }),
+    );
+    expect(upload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        abs: join('/archive', regular),
+        diagramType: null,
+      }),
+    );
+  },
+);
+
+it.each(['drawio', 'excalidraw'])(
+  'restores a custom %s SVG from native archive HTML',
+  async (type) => {
+    const fileName = 'Architecture_100%_café.SVG';
+    const encodedFileName = encodeURIComponent(fileName);
+    const drawingId = v7();
+    const regularId = v7();
+    const previewId = v7();
+    const pageDir = 'Parent page';
+    const pageRelativePath = `${pageDir}/page.html`;
+    const drawing = `files/${drawingId}/${fileName}`;
+    const regular = `files/${regularId}/${fileName}`;
+    const nonSvg = `files/${previewId}/preview.png`;
+    const doc = {
+      type: 'doc',
+      content: [
+        {
+          type,
+          attrs: {
+            src: `/api/files/${drawingId}/${encodedFileName}?t=1`,
+            title: fileName,
+            attachmentId: drawingId,
+          },
+        },
+        {
+          type: 'image',
+          attrs: {
+            src: `/api/files/${regularId}/${encodedFileName}`,
+            width: 120,
+            attachmentId: regularId,
+          },
+        },
+        {
+          type,
+          attrs: { src: `/api/${nonSvg}`, attachmentId: previewId },
+        },
+      ],
+    };
+    const html = await ExportService.prototype.exportPage(ExportFormat.HTML, {
+      title: 'Archive page',
+      content: updateAttachmentUrlsToLocalPaths(doc),
+    } as any);
+
+    const zip = new JSZip();
+    zip.file(pageRelativePath, html);
+    const allowed = new Map(
+      [
+        [drawingId, fileName],
+        [regularId, fileName],
+        [previewId, 'preview.png'],
+      ].map(([id, fileName]) => [id, { id, fileName, filePath: id }]),
+    );
+    await ExportService.prototype.zipAttachments.call(
+      { storageService: { read: async () => Buffer.from('attachment') } },
+      doc,
+      zip.folder(pageDir),
+      allowed,
+    );
+
+    const importer = new ImportAttachmentService(null, null, null);
+    const upload = jest
+      .spyOn(importer as any, 'uploadWithRetry')
+      .mockResolvedValue(undefined);
+    const tempDir = await mkdtemp(join(tmpdir(), 'docmost-diagram-archive-'));
+    const archiveDir = join(tempDir, 'extracted');
+    let restoredHtml: string;
+    try {
+      const archivePath = join(tempDir, 'archive.zip');
+      await writeFile(
+        archivePath,
+        await zip.generateAsync({ type: 'nodebuffer' }),
+      );
+      await extractZip(archivePath, archiveDir);
+      restoredHtml = await importer.processAttachments({
+        html: await readFile(join(archiveDir, pageRelativePath), 'utf8'),
+        pageRelativePath,
+        extractDir: archiveDir,
+        pageId: 'page',
+        fileTask: {
+          workspaceId: 'workspace',
+          spaceId: 'space',
+          creatorId: 'user',
+        } as FileTask,
+        attachmentCandidates: await buildAttachmentCandidates(archiveDir),
+      });
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+
+    expect(upload).toHaveBeenCalledTimes(3);
+    const restoredDiagram = upload.mock.calls
+      .map(
+        ([attachment]) => attachment as { abs: string; attachmentId: string },
+      )
+      .find(({ abs }) => abs === join(archiveDir, pageDir, drawing));
+    expect(restoredDiagram).toMatchObject({
+      diagramType: type,
+      fileNameWithExt: fileName,
+      ext: '.svg',
+    });
+    expect(upload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        abs: join(archiveDir, pageDir, regular),
+        fileNameWithExt: 'Architecture_100%_café.svg',
+        diagramType: null,
+      }),
+    );
+    expect(upload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        abs: join(archiveDir, pageDir, nonSvg),
+        diagramType: null,
+      }),
+    );
+    const restoredDoc = await ImportService.prototype.processHTML(restoredHtml);
+    expect(restoredDoc.content).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type,
+          attrs: expect.objectContaining({
+            src: `/api/files/${restoredDiagram.attachmentId}/${encodedFileName}`,
+            title: fileName,
+          }),
+        }),
+      ]),
+    );
+  },
+);
 
 it('preserves a link destination in the first heading of imported HTML', async () => {
   const doc = await ImportService.prototype.processHTML(

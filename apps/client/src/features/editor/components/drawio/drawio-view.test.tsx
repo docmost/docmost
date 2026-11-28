@@ -38,7 +38,7 @@ const saveAndExitExport = {
 
 const attachment = {
   id: "att-1",
-  fileName: "diagram.drawio.svg",
+  fileName: "Architecture_100%_café.svg",
   fileSize: 10,
   updatedAt: "2026-01-01T00:00:00.000Z",
 } as Awaited<ReturnType<typeof uploadFile>>;
@@ -132,8 +132,8 @@ describe("a draw.io diagram that has not been saved yet", () => {
     await waitFor(() => expect(uploadFile).toHaveBeenCalledTimes(2));
 
     const [first, second] = vi.mocked(uploadFile).mock.calls;
-    expect(first[2]).toBeUndefined();
-    expect(second[2]).toBe("att-1");
+    expect(first[2]).toEqual({ type: "drawio", attachmentId: undefined });
+    expect(second[2]).toEqual({ type: "drawio", attachmentId: "att-1" });
   });
 
   it("uploads once for one Save & Exit", async () => {
@@ -145,6 +145,12 @@ describe("a draw.io diagram that has not been saved yet", () => {
     await waitFor(() => expect(diagramEditor()).toBeNull());
 
     expect(uploadFile).toHaveBeenCalledTimes(1);
+    expect(updateAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        src: "/api/files/att-1/Architecture_100%25_caf%C3%A9.svg?t=1767225600000",
+        title: attachment.fileName,
+      }),
+    );
   });
 
   it("saves a Save & Exit that arrives while an autosave is still uploading", async () => {
@@ -169,7 +175,7 @@ describe("a draw.io diagram that has not been saved yet", () => {
     await act(async () => uploads[1](attachment));
     await waitFor(() => expect(diagramEditor()).toBeNull());
 
-    expect(vi.mocked(uploadFile).mock.calls[1][2]).toBe("att-1");
+    expect(vi.mocked(uploadFile).mock.calls[1][2]?.attachmentId).toBe("att-1");
     expect(updateAttributes).toHaveBeenLastCalledWith(
       expect.objectContaining({
         src: expect.stringContaining("/api/files/att-1/"),

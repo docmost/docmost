@@ -60,13 +60,13 @@ export default function DrawioView(props: NodeViewProps) {
     const attachment: IAttachment = await uploadFile(
       drawioSVGFile,
       uploadTarget,
-      attachmentIdRef.current,
+      { type: "drawio", attachmentId: attachmentIdRef.current },
     );
     attachmentIdRef.current = attachment.id;
 
     if (updateSrc) {
       updateAttributes({
-        src: `/api/files/${attachment.id}/${attachment.fileName}?t=${new Date(attachment.updatedAt).getTime()}`,
+        src: `/api/files/${attachment.id}/${encodeURIComponent(attachment.fileName)}?t=${new Date(attachment.updatedAt).getTime()}`,
         title: attachment.fileName,
         size: attachment.fileSize,
         attachmentId: attachment.id,
