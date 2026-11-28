@@ -25,6 +25,7 @@ import {
   type LinkDisplaySource,
 } from "@/features/editor/utils/link-display";
 import { getLinkPreview } from "@/features/link-preview/services/link-preview-service";
+import { isLinkPreviewDisabled } from "@/lib/config";
 import { queryClient } from "@/main.tsx";
 import { IntegrationDisplayPicker } from "../integration-link/integration-display-picker";
 import {
@@ -66,11 +67,16 @@ function getDisplayTarget(
   const pasteState = linkPasteMenuKey.getState(editor.state);
   if (pasteState) {
     const { from, to, url } = pasteState;
-    return {
-      current: "url",
-      source: { kind: "link", from, to, url, attrs: { url } },
+    const source: Extract<LinkDisplaySource, { kind: "link" }> = {
+      kind: "link",
+      from,
+      to,
       url,
+      attrs: { url },
     };
+    // With previews off, a link that can't be embedded has nothing to choose.
+    if (isLinkPreviewDisabled() && !canEmbedLink(editor, source)) return null;
+    return { current: "url", source, url };
   }
 
   return getSelectedLinkDisplay(editor, LINK_PREVIEW_NODES);
@@ -97,10 +103,14 @@ export function LinkPasteMenu({ editor }: EditorMenuProps) {
   const canEmbed =
     target?.current === "url" ? canEmbedLink(editor, target.source) : false;
 
+  const previewsDisabled = isLinkPreviewDisabled();
+
   const pasteOptions = PASTE_OPTIONS.filter(
     (option) =>
       (option.value !== "card" || canUseCard) &&
-      (option.value !== "embed" || canEmbed),
+      (option.value !== "embed" || canEmbed) &&
+      (!previewsDisabled ||
+        (option.value !== "mention" && option.value !== "card")),
   );
 
   const activeIndex = Math.min(
@@ -419,7 +429,7 @@ export function LinkPasteMenu({ editor }: EditorMenuProps) {
             canUseCard={canUseCard}
             onChange={changeDisplay}
           />
-          {editor.isEditable ? (
+          {editor.isEditable && !previewsDisabled ? (
             <Tooltip label={t("Refresh preview")} withArrow withinPortal={false}>
               <ActionIcon
                 variant="subtle"

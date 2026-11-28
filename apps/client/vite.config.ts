@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
     BETA_PUBLIC_SPACES,
     BETA_BASE_FORMS,
     UNSPLASH_ACCESS_KEY,
+    DISABLE_LINK_PREVIEWS,
   } = loadEnv(mode, envPath, "");
 
   return {
@@ -39,6 +40,7 @@ export default defineConfig(({ mode }) => {
         BETA_PUBLIC_SPACES,
         BETA_BASE_FORMS,
         UNSPLASH_ENABLED: UNSPLASH_ACCESS_KEY?.trim() ? "true" : undefined,
+        DISABLE_LINK_PREVIEWS,
       },
       APP_VERSION: JSON.stringify(process.env.npm_package_version),
     },

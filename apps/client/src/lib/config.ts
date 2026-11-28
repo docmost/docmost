@@ -55,6 +55,10 @@ export function isUnsplashEnabled(): boolean {
   return castToBoolean(getConfigValue("UNSPLASH_ENABLED"));
 }
 
+export function isLinkPreviewDisabled(): boolean {
+  return castToBoolean(getConfigValue("DISABLE_LINK_PREVIEWS"));
+}
+
 export function getAiVectorDriver(): string {
   return getConfigValue("AI_VECTOR_DRIVER");
 }
