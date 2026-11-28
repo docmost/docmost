@@ -165,6 +165,19 @@ describe('IframelyClient', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it('logs a page that rate-limits a self-hosted Iframely at debug', async () => {
+    env = { url: 'http://iframely:8061' };
+    fetchFn.mockResolvedValue(
+      json(
+        { error: { source: 'iframely', code: 429, message: 'Server error' } },
+        429,
+      ),
+    );
+    expect(await build().getPreview('https://example.com/a')).toBeNull();
+    expect(debug).toHaveBeenCalledWith(expect.stringContaining('429'));
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it('warns when a self-hosted Iframely fails with a server error', async () => {
     env = { url: 'http://iframely:8061' };
     fetchFn.mockResolvedValue(

@@ -329,13 +329,20 @@ describe('getIframelyErrorCode', () => {
     ).toBe('api.key.required');
   });
 
-  it('names the status of a self-hosted error the way Iframely does', () => {
-    expect(
-      getIframelyErrorCode({
-        error: { source: 'iframely', code: 404, message: 'Page not found' },
-      }),
-    ).toBe('iframely.http.404');
-  });
+  it.each([
+    [404, 'origin.http.404'],
+    [429, 'origin.http.429'],
+    [417, 'origin.http.417'],
+    [500, 'iframely.http.500'],
+  ])(
+    'names a self-hosted %s after the page below 500 and after Iframely from 500',
+    (code, expected) =>
+      expect(
+        getIframelyErrorCode({
+          error: { source: 'iframely', code, message: 'Error' },
+        }),
+      ).toBe(expected),
+  );
 
   it.each([
     ['a preview', { url: 'https://example.com/a', meta: { title: 'A' } }],

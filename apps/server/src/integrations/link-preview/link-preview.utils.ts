@@ -228,10 +228,12 @@ function isJsonObject(value: unknown): value is Record<string, unknown> {
 export function getIframelyErrorCode(body: unknown): string | undefined {
   if (!isJsonObject(body)) return undefined;
   if (typeof body.code === 'string') return body.code;
-  // Self-hosted errors carry only an HTTP status, which Iframely names iframely.http.<status>.
+  // Self-hosted errors carry only an HTTP status: below 500 it is the page's own, from 500 Iframely failed.
   const { error } = body;
   if (isJsonObject(error) && error.source === 'iframely') {
-    return `iframely.http.${error.code}`;
+    const status = Number(error.code);
+    const source = Number.isInteger(status) && status < 500 ? 'origin' : 'iframely';
+    return `${source}.http.${error.code}`;
   }
   return undefined;
 }
