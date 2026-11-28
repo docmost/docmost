@@ -267,6 +267,14 @@ export class EnvironmentService {
     return disable === 'true';
   }
 
+  isDisableLinkPreviews(): boolean {
+    const disable = this.getConfigValue(
+      'DISABLE_LINK_PREVIEWS',
+      'false',
+    ).toLowerCase();
+    return disable === 'true';
+  }
+
   isBetaPublicSpaces(): boolean {
     const enabled = this.getConfigValue(
       'BETA_PUBLIC_SPACES',

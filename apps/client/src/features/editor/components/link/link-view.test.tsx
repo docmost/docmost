@@ -45,6 +45,12 @@ const installedIntegrations = vi.hoisted(() => [
   { type: "github", unfurlHosts: ["github.com"] },
 ]);
 const integrationsQuery = vi.hoisted(() => ({ loading: false }));
+const linkPreviewConfig = vi.hoisted(() => ({ disabled: false }));
+
+vi.mock("@/lib/config", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/config")>()),
+  isLinkPreviewDisabled: () => linkPreviewConfig.disabled,
+}));
 
 vi.mock("@/features/integration/queries/integration-query", () => ({
   useInstalledIntegrations: () =>
@@ -132,6 +138,7 @@ describe("LinkView", () => {
     cleanup();
     vi.clearAllMocks();
     integrationsQuery.loading = false;
+    linkPreviewConfig.disabled = false;
   });
 
   it("does not resolve the mark position while the popover is closed", () => {
@@ -379,5 +386,38 @@ describe("LinkView", () => {
     });
     expect(display).toBe("mention");
     expect(nodes).toBe(LINK_PREVIEW_NODES);
+  });
+
+  it("an external link offers no Display as when link previews are disabled", async () => {
+    linkPreviewConfig.disabled = true;
+    const { container } = renderDetachedLinkView({
+      href: "https://example.com/article",
+      internal: false,
+    });
+
+    fireEvent.click(container.querySelector("a")!);
+
+    const menu = await screen.findByRole("dialog", { hidden: true });
+    expect(
+      within(menu).getByRole("button", { name: "Edit link", hidden: true }),
+    ).toBeTruthy();
+    expect(
+      within(menu).queryByRole("button", { name: /Display as/, hidden: true }),
+    ).toBeNull();
+  });
+
+  it("an integration link keeps Display as when link previews are disabled", async () => {
+    linkPreviewConfig.disabled = true;
+    const { container } = renderDetachedLinkView();
+
+    fireEvent.click(container.querySelector("a")!);
+
+    const menu = await screen.findByRole("dialog", { hidden: true });
+    expect(
+      within(menu).getByRole("button", {
+        name: "Display as: URL",
+        hidden: true,
+      }),
+    ).toBeTruthy();
   });
 });

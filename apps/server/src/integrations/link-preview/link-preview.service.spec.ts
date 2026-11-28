@@ -26,6 +26,7 @@ describe('LinkPreviewService', () => {
   let lease: jest.Mock;
   let fetchFn: jest.Mock;
   let isCloud: boolean;
+  let disabled: boolean;
 
   let resolve4: jest.Mock;
   let resolve6: jest.Mock;
@@ -33,7 +34,7 @@ describe('LinkPreviewService', () => {
   const build = () => {
     const service = new LinkPreviewService(
       { lease } as any,
-      { isCloud: () => isCloud } as any,
+      { isCloud: () => isCloud, isDisableLinkPreviews: () => disabled } as any,
       { getOrThrow: () => redis } as any,
       fetchFn as any,
     );
@@ -59,6 +60,7 @@ describe('LinkPreviewService', () => {
     lease = jest.fn(async () => ({ dispatcher: {}, release }));
     fetchFn = jest.fn();
     isCloud = false;
+    disabled = false;
   });
 
   it("returns the page's preview and caches it for an hour", async () => {
@@ -146,6 +148,7 @@ describe('LinkPreviewService', () => {
     async (address) => {
       const env = {
         isCloud: () => false,
+        isDisableLinkPreviews: () => false,
         getAllowedPrivateNetworks: () => 'all,127.0.0.0/8',
       };
       const guard = new OutboundUrlGuard(env as any, async () => [
@@ -388,5 +391,23 @@ describe('LinkPreviewService', () => {
     await build().getPreview('https://[2606:2800:220:1::1]/a');
     expect(resolve4).not.toHaveBeenCalled();
     expect(resolve6).not.toHaveBeenCalled();
+  });
+
+  describe('with link previews disabled', () => {
+    it('returns null without touching Redis, DNS or the network', async () => {
+      disabled = true;
+      expect(await build().getPreview('https://example.com/a')).toBeNull();
+      for (const mock of [redis.get, redis.set, resolve4, resolve6, lease, fetchFn]) {
+        expect(mock).not.toHaveBeenCalled();
+      }
+    });
+
+    it('also skips a refresh request', async () => {
+      disabled = true;
+      expect(
+        await build().getPreview('https://example.com/a', { refresh: true }),
+      ).toBeNull();
+      expect(fetchFn).not.toHaveBeenCalled();
+    });
   });
 });

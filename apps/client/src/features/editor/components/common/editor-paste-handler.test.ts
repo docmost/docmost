@@ -47,6 +47,13 @@ vi.mock("@/main.tsx", async () => {
   return { queryClient: new QueryClient() };
 });
 
+const linkPreviewConfig = vi.hoisted(() => ({ disabled: false }));
+
+vi.mock("@/lib/config", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/config")>()),
+  isLinkPreviewDisabled: () => linkPreviewConfig.disabled,
+}));
+
 const PR_URL = "https://github.com/org/repo/pull/12";
 const text = (value: string, marks?: JSONContent["marks"]): JSONContent => ({
   type: "text",
@@ -401,6 +408,7 @@ describe("handlePaste plain external links", () => {
   afterEach(() => {
     editor?.destroy();
     queryClient.clear();
+    linkPreviewConfig.disabled = false;
   });
 
   function expectLinkWithMenu(url = URL_, from = 7) {
@@ -420,6 +428,21 @@ describe("handlePaste plain external links", () => {
 
     expectLinkWithMenu();
 
+    expect(editor.getJSON().content).toMatchObject([
+      paragraph(text("Hello "), linked(URL_)),
+    ]);
+  });
+
+  it("with link previews disabled, a bare URL pastes as a link without Paste as", () => {
+    linkPreviewConfig.disabled = true;
+    createEditor([paragraph(text("Hello "))], 7);
+
+    const { handled, preventDefault } = paste(URL_);
+
+    expect(handled).toBe(true);
+    expect(preventDefault).toHaveBeenCalled();
+    expect(linkPasteMenuKey.getState(editor.state)).toBeNull();
+    expect(editor.state.selection.from).toBe(7 + URL_.length);
     expect(editor.getJSON().content).toMatchObject([
       paragraph(text("Hello "), linked(URL_)),
     ]);
@@ -498,6 +521,17 @@ describe("handlePaste plain external links", () => {
     expect(handled).toBe(true);
     expect(hasIntegrationCard()).toBe(true);
     expect(linkPasteMenuKey.getState(editor.state)).toBeNull();
+  });
+
+  it("with link previews disabled, an installed integration URL still pastes as a card", () => {
+    linkPreviewConfig.disabled = true;
+    createEditor([paragraph(text("Hello"))], 6);
+
+    const { handled } = paste(PR_URL);
+
+    expect(handled).toBe(true);
+    expect(hasIntegrationCard()).toBe(true);
+    expect(integrationPasteMenuKey.getState(editor.state)).not.toBeNull();
   });
 
   it("a page link copied from another Docmost host gets the menu", () => {

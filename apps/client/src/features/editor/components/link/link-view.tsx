@@ -43,6 +43,7 @@ import {
   isHttpUrl,
 } from "@docmost/editor-ext";
 import { normalizeUrl } from "@/lib/utils";
+import { isLinkPreviewDisabled } from "@/lib/config";
 import { useInstalledIntegrations } from "@/features/integration/queries/integration-query";
 import {
   convertIntegrationDisplay,
@@ -141,7 +142,9 @@ export default function LinkView(props: MarkViewProps) {
     !(isIntegrationCandidate && isIntegrationsPending) &&
     isHttpUrl(href) &&
     isEditable;
-  const hasDisplayMenu = Boolean(integrationProvider) || isPlainExternalLink;
+  const hasDisplayMenu =
+    Boolean(integrationProvider) ||
+    (isPlainExternalLink && !isLinkPreviewDisabled());
 
   const isPopoverVisible = popoverState !== "closed";
   const activeView = isPopoverVisible ? popoverState : lastOpenState.current;

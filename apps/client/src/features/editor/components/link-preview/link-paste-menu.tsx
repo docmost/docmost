@@ -25,6 +25,7 @@ import {
   type LinkDisplaySource,
 } from "@/features/editor/utils/link-display";
 import { getLinkPreview } from "@/features/link-preview/services/link-preview-service";
+import { isLinkPreviewDisabled } from "@/lib/config";
 import { queryClient } from "@/main.tsx";
 import { IntegrationDisplayPicker } from "../integration-link/integration-display-picker";
 import {
@@ -102,6 +103,8 @@ export function LinkPasteMenu({ editor }: EditorMenuProps) {
       (option.value !== "card" || canUseCard) &&
       (option.value !== "embed" || canEmbed),
   );
+
+  const previewsDisabled = isLinkPreviewDisabled();
 
   const activeIndex = Math.min(
     selectedPasteIndex,
@@ -419,7 +422,7 @@ export function LinkPasteMenu({ editor }: EditorMenuProps) {
             canUseCard={canUseCard}
             onChange={changeDisplay}
           />
-          {editor.isEditable ? (
+          {editor.isEditable && !previewsDisabled ? (
             <Tooltip label={t("Refresh preview")} withArrow withinPortal={false}>
               <ActionIcon
                 variant="subtle"

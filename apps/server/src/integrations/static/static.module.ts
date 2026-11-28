@@ -43,6 +43,7 @@ export class StaticModule implements OnModuleInit {
         UNSPLASH_ENABLED: Boolean(
           this.environmentService.getUnsplashAccessKey(),
         ),
+        DISABLE_LINK_PREVIEWS: this.environmentService.isDisableLinkPreviews(),
         SUBDOMAIN_HOST: this.environmentService.isCloud()
           ? this.environmentService.getSubdomainHost()
           : undefined,

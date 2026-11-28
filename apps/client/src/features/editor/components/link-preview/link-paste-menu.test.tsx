@@ -27,8 +27,14 @@ const mocks = vi.hoisted(() => ({
   markPending: vi.fn(),
   getLinkPreview: vi.fn(),
   showNotification: vi.fn(),
+  isLinkPreviewDisabled: vi.fn(),
   hasFocus: true,
   handlers: {} as Record<string, (props: any) => void>,
+}));
+
+vi.mock("@/lib/config", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/config")>()),
+  isLinkPreviewDisabled: mocks.isLinkPreviewDisabled,
 }));
 
 vi.mock("react-i18next", () => ({
@@ -187,6 +193,7 @@ describe("LinkPasteMenu", () => {
     mocks.markPending.mockReset();
     mocks.getLinkPreview.mockReset();
     mocks.showNotification.mockReset();
+    mocks.isLinkPreviewDisabled.mockReset().mockReturnValue(false);
     mocks.hasFocus = true;
     mocks.handlers = {};
     queryClient.clear();
@@ -546,5 +553,24 @@ describe("LinkPasteMenu", () => {
         );
       },
     );
+  });
+
+  describe("with link previews disabled", () => {
+    beforeEach(() => {
+      mocks.isLinkPreviewDisabled.mockReturnValue(true);
+    });
+
+    it("a selected card keeps Display as and loses Refresh preview", () => {
+      mocks.selectedDisplay = { current: "card", source: nodeSource, url };
+      renderMenu();
+
+      const toolbar = screen.getByRole("toolbar", { name: "Link actions" });
+      expect(
+        within(toolbar).getByRole("radiogroup", { name: "Display as" }),
+      ).toBeTruthy();
+      expect(
+        within(toolbar).queryByRole("button", { name: "Refresh preview" }),
+      ).toBeNull();
+    });
   });
 });

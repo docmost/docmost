@@ -55,6 +55,8 @@ export class LinkPreviewService {
     url: string,
     options?: { refresh?: boolean },
   ): Promise<LinkPreview | null> {
+    if (this.environmentService.isDisableLinkPreviews()) return null;
+
     const parsed = this.parseHttpUrl(url);
     if (!parsed) return null;
     parsed.hash = '';
