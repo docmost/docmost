@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { Logger } from '@nestjs/common';
 import { LinkPreviewService } from './link-preview.service';
+import { IframelyClient } from './iframely.client';
 import {
   OutboundUrlError,
   OutboundUrlGuard,
@@ -496,6 +497,55 @@ describe('LinkPreviewService', () => {
       expect(urlGuard.validate).toHaveBeenCalledWith('https://10.0.0.5/', {
         publicOnly: true,
       });
+    });
+
+    it('drops the preview when a self-hosted Iframely lands on a private address', async () => {
+      const selfHostedReply = {
+        meta: { title: 'Jenkins', canonical: 'http://10.0.0.5:8080/' },
+        links: [],
+      };
+      iframelyClient = new IframelyClient(
+        {
+          getIframelyUrl: () => 'http://iframely:8061',
+          getIframelyApiKey: () => undefined,
+        } as any,
+        jest.fn(
+          async () =>
+            new Response(JSON.stringify(selfHostedReply), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            }),
+        ) as any,
+      ) as any;
+      urlGuard.validate.mockImplementation(async (url: string) => {
+        if (new URL(url).hostname === '10.0.0.5') {
+          throw new OutboundUrlError('private');
+        }
+        return { address: '93.184.216.34', family: 4 };
+      });
+      expect(await build().getPreview('https://attacker.example/r')).toBeNull();
+    });
+
+    it('keeps the preview when Iframely reports no address, checking only the pasted URL', async () => {
+      iframelyClient.getPreview.mockResolvedValue({ preview: { title: 'A' } });
+      expect(await build().getPreview('https://example.com/a')).toEqual({
+        title: 'A',
+      });
+      expect(urlGuard.validate).toHaveBeenCalledTimes(1);
+      expect(urlGuard.validate).toHaveBeenCalledWith('https://example.com/a', {
+        publicOnly: true,
+      });
+    });
+
+    it('does not check the reported address again when it is on the pasted host', async () => {
+      iframelyClient.getPreview.mockResolvedValue({
+        preview: { title: 'A' },
+        reportedUrl: 'https://example.com/b',
+      });
+      expect(await build().getPreview('https://example.com/a')).toEqual({
+        title: 'A',
+      });
+      expect(urlGuard.validate).toHaveBeenCalledTimes(1);
     });
 
     it('keeps the preview when the reported host does not resolve', async () => {

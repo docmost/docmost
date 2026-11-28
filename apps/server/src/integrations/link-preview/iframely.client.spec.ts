@@ -55,6 +55,20 @@ describe('IframelyClient', () => {
     expect(sent.searchParams.has('api_key')).toBe(false);
   });
 
+  it('reports the canonical URL of a self-hosted reply, which has no top-level url', async () => {
+    env = { url: 'http://iframely:8061' };
+    fetchFn.mockResolvedValue(
+      json({
+        meta: { title: 'Jenkins', canonical: 'http://10.0.0.5:8080/' },
+        links: [],
+      }),
+    );
+    expect(await build().getPreview('https://attacker.example/r')).toEqual({
+      preview: expect.objectContaining({ title: 'Jenkins' }),
+      reportedUrl: 'http://10.0.0.5:8080/',
+    });
+  });
+
   it('returns null for an account error on HTTP 200 and warns without the key', async () => {
     fetchFn.mockResolvedValue(
       json({

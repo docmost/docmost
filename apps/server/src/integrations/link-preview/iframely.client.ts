@@ -62,12 +62,11 @@ export class IframelyClient {
       return null;
     }
 
-    const reached = body.url ?? body.meta?.canonical;
-    if (reached && isSignInUrl(reached) && !isSignInUrl(url)) return null;
+    const reportedUrl = body.url ?? body.meta?.canonical;
+    if (reportedUrl && isSignInUrl(reportedUrl) && !isSignInUrl(url)) {
+      return null;
+    }
 
-    return {
-      preview: parseIframelyPreview(body, url),
-      reportedUrl: body.url,
-    };
+    return { preview: parseIframelyPreview(body, url), reportedUrl };
   }
 }
