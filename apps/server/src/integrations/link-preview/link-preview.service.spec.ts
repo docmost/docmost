@@ -27,6 +27,9 @@ describe('LinkPreviewService', () => {
   let fetchFn: jest.Mock;
   let isCloud: boolean;
   let disabled: boolean;
+  let driver: string;
+  let urlGuard: { validate: jest.Mock };
+  let iframelyClient: { getPreview: jest.Mock };
 
   let resolve4: jest.Mock;
   let resolve6: jest.Mock;
@@ -34,8 +37,14 @@ describe('LinkPreviewService', () => {
   const build = () => {
     const service = new LinkPreviewService(
       { lease } as any,
-      { isCloud: () => isCloud, isDisableLinkPreviews: () => disabled } as any,
+      {
+        isCloud: () => isCloud,
+        isDisableLinkPreviews: () => disabled,
+        getLinkPreviewDriver: () => driver,
+      } as any,
       { getOrThrow: () => redis } as any,
+      urlGuard as any,
+      iframelyClient as any,
       fetchFn as any,
     );
     (service as any).resolver = { resolve4, resolve6 };
@@ -61,6 +70,11 @@ describe('LinkPreviewService', () => {
     fetchFn = jest.fn();
     isCloud = false;
     disabled = false;
+    driver = '';
+    urlGuard = {
+      validate: jest.fn(async () => ({ address: '93.184.216.34', family: 4 })),
+    };
+    iframelyClient = { getPreview: jest.fn() };
   });
 
   it("returns the page's preview and caches it for an hour", async () => {
@@ -149,6 +163,7 @@ describe('LinkPreviewService', () => {
       const env = {
         isCloud: () => false,
         isDisableLinkPreviews: () => false,
+        getLinkPreviewDriver: () => '',
         getAllowedPrivateNetworks: () => 'all,127.0.0.0/8',
       };
       const guard = new OutboundUrlGuard(env as any, async () => [
@@ -158,6 +173,8 @@ describe('LinkPreviewService', () => {
         new OutboundAgentFactory(guard),
         env as any,
         { getOrThrow: () => redis } as any,
+        guard,
+        { getPreview: jest.fn() } as any,
         fetchFn as any,
       );
       (service as any).resolver = { resolve4, resolve6 };
@@ -408,6 +425,89 @@ describe('LinkPreviewService', () => {
         await build().getPreview('https://example.com/a', { refresh: true }),
       ).toBeNull();
       expect(fetchFn).not.toHaveBeenCalled();
+    });
+
+    it('wins over the Iframely driver', async () => {
+      disabled = true;
+      driver = 'iframely';
+      expect(await build().getPreview('https://example.com/a')).toBeNull();
+      expect(iframelyClient.getPreview).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('with the Iframely driver', () => {
+    beforeEach(() => {
+      driver = 'iframely';
+    });
+
+    it('checks the pasted URL is public, asks Iframely, never fetches the page, and caches for an hour', async () => {
+      iframelyClient.getPreview.mockResolvedValue({
+        preview: { title: 'A' },
+        reportedUrl: 'https://example.com/a',
+      });
+      expect(await build().getPreview('https://example.com/a')).toEqual({
+        title: 'A',
+      });
+      expect(urlGuard.validate).toHaveBeenCalledWith('https://example.com/a', {
+        publicOnly: true,
+      });
+      expect(lease).not.toHaveBeenCalled();
+      expect(fetchFn).not.toHaveBeenCalled();
+      expect(redis.set).toHaveBeenCalledWith(
+        keyFor('https://example.com/a'),
+        JSON.stringify({ title: 'A' }),
+        'EX',
+        3600,
+      );
+    });
+
+    it('does not ask Iframely about a private address', async () => {
+      urlGuard.validate.mockRejectedValue(new OutboundUrlError('private'));
+      expect(await build().getPreview('http://10.0.0.5/')).toBeNull();
+      expect(iframelyClient.getPreview).not.toHaveBeenCalled();
+      expect(redis.set).toHaveBeenCalledWith(
+        keyFor('http://10.0.0.5/'),
+        'null',
+        'EX',
+        300,
+      );
+    });
+
+    it('drops the preview when Iframely reports a private address', async () => {
+      iframelyClient.getPreview.mockResolvedValue({
+        preview: { title: 'Intranet' },
+        reportedUrl: 'http://10.0.0.5/',
+      });
+      urlGuard.validate.mockImplementation(async (url: string) => {
+        if (new URL(url).hostname === '10.0.0.5') {
+          throw new OutboundUrlError('private');
+        }
+        return { address: '93.184.216.34', family: 4 };
+      });
+      expect(await build().getPreview('https://short.example/x')).toBeNull();
+    });
+
+    it('keeps the preview when the reported host does not resolve', async () => {
+      iframelyClient.getPreview.mockResolvedValue({
+        preview: { title: 'Moved' },
+        reportedUrl: 'https://gone.example/',
+      });
+      urlGuard.validate.mockImplementation(async (url: string) => {
+        if (new URL(url).hostname === 'gone.example') {
+          throw new OutboundUrlError('Could not resolve', true);
+        }
+        return { address: '93.184.216.34', family: 4 };
+      });
+      expect(await build().getPreview('https://example.com/a')).toEqual({
+        title: 'Moved',
+      });
+    });
+
+    it('returns null when Iframely times out', async () => {
+      iframelyClient.getPreview.mockRejectedValue(
+        Object.assign(new Error('timed out'), { name: 'TimeoutError' }),
+      );
+      expect(await build().getPreview('https://example.com/a')).toBeNull();
     });
   });
 });

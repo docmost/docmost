@@ -5,7 +5,10 @@ import { createHash } from 'crypto';
 import { isIP } from 'net';
 import { Resolver } from 'node:dns/promises';
 import { fetch as undiciFetch } from 'undici';
-import { OutboundUrlError } from '../outbound/outbound-url.guard';
+import {
+  OutboundUrlError,
+  OutboundUrlGuard,
+} from '../outbound/outbound-url.guard';
 import { OutboundAgentFactory } from '../outbound/outbound-agent.factory';
 import { EnvironmentService } from '../environment/environment.service';
 import {
@@ -21,6 +24,7 @@ import {
   LINK_PREVIEW_URL_MAX_LENGTH,
   LINK_PREVIEW_USER_AGENT,
 } from './link-preview.constants';
+import { IframelyClient } from './iframely.client';
 import { LinkPreview, LinkPreviewHop } from './link-preview.types';
 import {
   decodeHtml,
@@ -45,6 +49,8 @@ export class LinkPreviewService {
     private readonly agentFactory: OutboundAgentFactory,
     private readonly environmentService: EnvironmentService,
     private readonly redisService: RedisService,
+    private readonly urlGuard: OutboundUrlGuard,
+    private readonly iframelyClient: IframelyClient,
     @Optional() @Inject(LINK_PREVIEW_FETCH) fetchFn?: typeof fetch,
   ) {
     this.redis = this.redisService.getOrThrow();
@@ -74,7 +80,10 @@ export class LinkPreviewService {
     if (parsed.protocol === 'http:' && this.environmentService.isCloud()) {
       parsed.protocol = 'https:';
     }
-    const result = await this.fetchPreview(parsed.href);
+    const result =
+      this.environmentService.getLinkPreviewDriver() === 'iframely'
+        ? await this.fetchIframelyPreview(parsed.href)
+        : await this.fetchPreview(parsed.href);
 
     await this.redis.set(
       key,
@@ -134,6 +143,58 @@ export class LinkPreviewService {
     } catch (err) {
       this.logFailure(new URL(current).host, err);
       return null;
+    }
+  }
+
+  private async fetchIframelyPreview(url: string): Promise<LinkPreview | null> {
+    const host = new URL(url).host;
+    try {
+      await this.failOnDnsTimeout(url);
+      await this.urlGuard.validate(url, { publicOnly: true });
+
+      const result = await this.iframelyClient.getPreview(url);
+      if (!result) return null;
+
+      if (!(await this.isReportedHostPublic(result.reportedUrl, host))) {
+        return null;
+      }
+      return result.preview;
+    } catch (err) {
+      this.logFailure(host, err);
+      return null;
+    }
+  }
+
+  // Iframely may follow redirects to a host we would never fetch, so check where it landed.
+  private async isReportedHostPublic(
+    reportedUrl: string | undefined,
+    pastedHost: string,
+  ): Promise<boolean> {
+    let reportedHost: string;
+    try {
+      reportedHost = new URL(reportedUrl ?? '').host;
+    } catch {
+      return true;
+    }
+    if (reportedHost === pastedHost) return true;
+
+    const reported = `https://${reportedHost}/`;
+    try {
+      await this.failOnDnsTimeout(reported);
+      await this.urlGuard.validate(reported, { publicOnly: true });
+      return true;
+    } catch (err) {
+      if (err instanceof OutboundUrlError && !err.retryable) {
+        this.logFailure(reportedHost, err);
+        return false;
+      }
+      if (
+        err instanceof OutboundUrlError ||
+        (err as Error)?.name === 'DnsTimeoutError'
+      ) {
+        return true;
+      }
+      throw err;
     }
   }
 
