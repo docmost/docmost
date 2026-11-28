@@ -15,6 +15,8 @@ export const LINK_PREVIEW_ACCEPT =
 export const LINK_PREVIEW_USER_AGENT = 'DocmostBot-LinkPreview (+https://docmost.com/robots)';
 
 export const LINK_PREVIEW_FETCH = 'LINK_PREVIEW_FETCH';
+export const LINK_PREVIEW_IFRAMELY_FETCH = 'LINK_PREVIEW_IFRAMELY_FETCH';
+export const LINK_PREVIEW_IFRAMELY_TIMEOUT_MS = 15_000;
 
 export const LINK_PREVIEW_SIGN_IN_HOSTS = [
   'accounts.google.com',
