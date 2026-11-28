@@ -1,7 +1,10 @@
 import { CheerioAPI, load } from 'cheerio';
-import { LinkPreview } from './link-preview.types';
+import { LinkPreview, LinkPreviewPage } from './link-preview.types';
 import {
   LINK_PREVIEW_DESCRIPTION_MAX_LENGTH,
+  LINK_PREVIEW_MIN_IMAGE_SIZE,
+  LINK_PREVIEW_OEMBED_PROVIDERS,
+  LINK_PREVIEW_SECTION_TITLE_MAX_LENGTH,
   LINK_PREVIEW_SIGN_IN_HOST_SUFFIXES,
   LINK_PREVIEW_SIGN_IN_HOSTS,
   LINK_PREVIEW_SIGN_IN_PATH_SEGMENTS,
@@ -19,17 +22,34 @@ const DESCRIPTION_KEYS = [
   'twitter:description',
   'description',
 ];
-const IMAGE_KEYS = [
-  'og:image:secure_url',
-  'og:image',
-  'og:image:url',
-  'twitter:image',
-  'twitter:image:src',
-];
+const OG_IMAGE_KEYS = ['og:image:secure_url', 'og:image', 'og:image:url'];
+const TWITTER_IMAGE_KEYS = ['twitter:image', 'twitter:image:src'];
+const OEMBED_LINK_TYPES = ['application/json+oembed', 'text/json+oembed'];
+const HEADINGS = 'h1, h2, h3, h4, h5, h6';
+
+// A tag with attributes, a closing tag or a self-closing tag means the text carries markup.
+const MARKUP = /<[a-z][a-z0-9-]*\s[^<>=]*=[^<>]*>|<\/[a-z][a-z0-9-]*\s*>|<[a-z][a-z0-9-]*\s*\/>/i;
+const TAG = /<\/?([a-z][a-z0-9-]*)(?:\s[^<>]*)?\/?>/gi;
+const INLINE_TAGS = new Set([
+  'a', 'abbr', 'b', 'code', 'em', 'i', 'mark', 's', 'small', 'span', 'strong', 'sub', 'sup', 'u',
+]);
+const ENTITY = /&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]+);/i;
+
+// Some sites escape HTML into their meta text: decode it, then drop the tags; a bare "<a>" named in prose stays.
+function stripMarkup(value: string): string {
+  const text = ENTITY.test(value)
+    ? load(value.replace(/</g, '&lt;'), null, false).text()
+    : value;
+  return MARKUP.test(text)
+    ? text.replace(TAG, (_, name: string) =>
+        INLINE_TAGS.has(name.toLowerCase()) ? '' : ' ',
+      )
+    : text;
+}
 
 function cleanText(value: string | undefined, maxLength: number): string | undefined {
   if (!value) return undefined;
-  const cleaned = value
+  const cleaned = stripMarkup(value)
     .replace(/[\u0000-\u0008\u000e-\u001f\u007f-\u009f]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -147,30 +167,174 @@ function pickIcon($: CheerioAPI, base: string, pageUrl: string): string {
   return `${new URL(pageUrl).origin}/favicon.ico`;
 }
 
-export function parseLinkPreview(html: string, pageUrl: string): LinkPreview {
+function isTiny(...sizes: unknown[]): boolean {
+  return sizes.some((size) => {
+    if (typeof size !== 'number' && typeof size !== 'string') return false;
+    const value = Number(size);
+    return value > 0 && value < LINK_PREVIEW_MIN_IMAGE_SIZE;
+  });
+}
+
+function findSection(
+  $: CheerioAPI,
+  fragment: string,
+): { title?: string; description?: string } {
+  const target = [fragment, `user-content-${fragment}`]
+    .map((id) =>
+      $('[id], a[name]')
+        .filter((_, el) => (el.attribs.id ?? el.attribs.name) === id)
+        .first(),
+    )
+    .find((el) => el.length > 0);
+  if (!target) return {};
+
+  const heading = target.is(`${HEADINGS}, dt`)
+    ? target
+    : [
+        target.find(HEADINGS).first(),
+        target.closest(HEADINGS),
+        target.prev(HEADINGS),
+      ].find((el) => el.length > 0);
+  // The first paragraph after el, climbing out of wrappers, never past the next heading.
+  const paragraphAfter = (el: NonNullable<typeof heading>) => {
+    for (let node = el, depth = 0; node.length && depth < 3; node = node.parent(), depth++) {
+      for (const sibling of node.nextAll().toArray()) {
+        const next = $(sibling);
+        if (next.is('p')) return next;
+        if (next.is(HEADINGS) || next.find(HEADINGS).length) return undefined;
+        // Collapsed history and metadata tables are not the section's text.
+        const inner = next
+          .find('p')
+          .filter((_, p) => !$(p).closest('table, details').length)
+          .first();
+        if (inner.length) return inner;
+      }
+    }
+    return undefined;
+  };
+  const inside = target.find('p').first();
+  const paragraph = target.is('dt')
+    ? target.next('dd')
+    : inside.length
+      ? inside
+      : paragraphAfter(heading ?? target);
+
+  // Permalink anchors such as "#" or "¶" are not part of the heading.
+  const label = heading?.clone();
+  label
+    ?.find('a[href^="#"]')
+    .filter((_, a) => Array.from($(a).text().trim()).length <= 1)
+    .remove();
+
+  return {
+    title: cleanText(
+      label?.text().replace(/[¶§]/g, ''),
+      LINK_PREVIEW_SECTION_TITLE_MAX_LENGTH,
+    ),
+    description: cleanText(paragraph?.text(), LINK_PREVIEW_DESCRIPTION_MAX_LENGTH),
+  };
+}
+
+export function parseLinkPreview(
+  html: string,
+  pageUrl: string,
+  fragment?: string,
+): LinkPreviewPage {
   const $ = load(html);
   const base = resolveBase($, pageUrl);
 
+  const pageTitle = firstText(
+    [...readMeta($, TITLE_KEYS), $('title').first().text()],
+    LINK_PREVIEW_TITLE_MAX_LENGTH,
+  );
+  const section = fragment ? findSection($, safeDecode(fragment)) : {};
   const title =
-    firstText(
-      [...readMeta($, TITLE_KEYS), $('title').first().text()],
-      LINK_PREVIEW_TITLE_MAX_LENGTH,
-    ) ?? buildFallbackTitle(pageUrl);
+    section.title && !pageTitle?.includes(section.title)
+      ? cleanText(
+          pageTitle ? `${section.title} - ${pageTitle}` : section.title,
+          LINK_PREVIEW_TITLE_MAX_LENGTH,
+        )
+      : pageTitle;
 
+  const ogImageIsTiny = isTiny(
+    readMeta($, ['og:image:width'])[0],
+    readMeta($, ['og:image:height'])[0],
+  );
   const image = firstUrl(
-    [...readMeta($, IMAGE_KEYS), $('link[rel="image_src"]').first().attr('href')],
+    [
+      ...(ogImageIsTiny ? [] : readMeta($, OG_IMAGE_KEYS)),
+      ...readMeta($, TWITTER_IMAGE_KEYS),
+      $('link[rel="image_src"]').first().attr('href'),
+    ],
+    base,
+  );
+
+  const oembedUrl = firstUrl(
+    $('link[type][href]')
+      .filter((_, el) =>
+        OEMBED_LINK_TYPES.includes(el.attribs.type.trim().toLowerCase()),
+      )
+      .map((_, el) => el.attribs.href)
+      .get(),
     base,
   );
 
   return {
     title,
-    description: firstText(
-      readMeta($, DESCRIPTION_KEYS),
-      LINK_PREVIEW_DESCRIPTION_MAX_LENGTH,
-    ),
+    description:
+      section.description ??
+      firstText(readMeta($, DESCRIPTION_KEYS), LINK_PREVIEW_DESCRIPTION_MAX_LENGTH),
     image,
     icon: pickIcon($, base, pageUrl),
+    oembedUrl,
   };
+}
+
+// Only plain fields are read: the html field is never used.
+export function parseOembed(data: unknown, pageUrl: string): Partial<LinkPreview> {
+  if (!data || typeof data !== 'object') return {};
+  const fields = data as Record<string, unknown>;
+  const text = (value: unknown) => (typeof value === 'string' ? value : undefined);
+  const provider = toHttpUrl(text(fields.provider_url), pageUrl) ?? pageUrl;
+
+  return {
+    title: cleanText(text(fields.title), LINK_PREVIEW_TITLE_MAX_LENGTH),
+    image: isTiny(fields.thumbnail_width, fields.thumbnail_height)
+      ? undefined
+      : toHttpUrl(text(fields.thumbnail_url), pageUrl),
+    icon: `${new URL(provider).origin}/favicon.ico`,
+  };
+}
+
+export function getOembedEndpoint(url: string): string | undefined {
+  const host = new URL(url).hostname.toLowerCase().replace(/\.$/, '');
+  const provider = LINK_PREVIEW_OEMBED_PROVIDERS.find(({ hosts }) =>
+    hosts.some((h) => host === h || host.endsWith(`.${h}`)),
+  );
+  if (!provider) return undefined;
+
+  const endpoint = new URL(provider.endpoint);
+  endpoint.searchParams.set('url', url);
+  return endpoint.href;
+}
+
+export function mergeCookies(
+  header: string | undefined,
+  setCookies: string[],
+): string | undefined {
+  const jar = new Map<string, string>();
+  const pairs = [
+    ...(header ? header.split('; ') : []),
+    ...setCookies.map((cookie) => cookie.split(';')[0]),
+  ];
+  for (const pair of pairs) {
+    const eq = pair.indexOf('=');
+    const name = pair.slice(0, eq).trim();
+    if (eq > 0 && name) jar.set(name, pair.slice(eq + 1).trim());
+  }
+  return jar.size
+    ? Array.from(jar, ([name, value]) => `${name}=${value}`).join('; ')
+    : undefined;
 }
 
 export function detectCharset(
@@ -267,9 +431,10 @@ export function isSignInUrl(url: string): boolean {
 
 const HEAD_END = '</head';
 
-export async function readUntilHeadEnd(
+export async function readBody(
   body: ReadableStream<Uint8Array> | null,
   maxBytes: number,
+  untilHeadEnd: boolean,
 ): Promise<Uint8Array> {
   if (!body) return new Uint8Array(0);
   const reader = body.getReader();
@@ -283,6 +448,7 @@ export async function readUntilHeadEnd(
       const chunk = value.subarray(0, maxBytes - total);
       chunks.push(chunk);
       total += chunk.length;
+      if (!untilHeadEnd) continue;
       const text = previousTail + Buffer.from(chunk).toString('latin1');
       if (text.toLowerCase().includes(HEAD_END)) break;
       previousTail = text.slice(-(HEAD_END.length - 1));
