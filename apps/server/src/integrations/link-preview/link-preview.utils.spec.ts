@@ -3,7 +3,9 @@ import {
   decodeHtml,
   detectCharset,
   getFileNameTitle,
+  isIframelyAccountError,
   isSignInUrl,
+  parseIframelyPreview,
   parseLinkPreview,
 } from './link-preview.utils';
 
@@ -235,4 +237,58 @@ describe('isSignInUrl', () => {
   ])('is false for %s', (url) => {
     expect(isSignInUrl(url)).toBe(false);
   });
+});
+
+describe('parseIframelyPreview', () => {
+  it('maps meta and links grouped by rel, one link or a list', () => {
+    expect(parseIframelyPreview({
+      meta: { title: '  Hello   world ', description: 'About it' },
+      links: {
+        thumbnail: [{ href: 'https://cdn.example.com/t.png', rel: ['thumbnail'] }],
+        icon: { href: 'https://example.com/i.svg', rel: ['icon'] },
+      },
+    }, page)).toEqual({
+      title: 'Hello world', description: 'About it',
+      image: 'https://cdn.example.com/t.png', icon: 'https://example.com/i.svg',
+    });
+  });
+
+  it('reads the ungrouped list a self-hosted server returns', () => {
+    expect(parseIframelyPreview({
+      meta: { title: 'T' },
+      links: [
+        { href: 'https://example.com/i.png', rel: ['icon'] },
+        { href: 'https://cdn.example.com/big.jpg', rel: ['image', 'thumbnail'] },
+      ],
+    }, page)).toMatchObject({ image: 'https://cdn.example.com/big.jpg', icon: 'https://example.com/i.png' });
+  });
+
+  it('falls back to the image rel, a title from the URL and the site favicon', () => {
+    expect(parseIframelyPreview({ links: { image: { href: 'https://cdn.example.com/a.png' } } }, page))
+      .toEqual({ title: buildFallbackTitle(page), image: 'https://cdn.example.com/a.png', icon: 'https://example.com/favicon.ico' });
+  });
+
+  it('resolves relative and protocol-relative hrefs against the page', () => {
+    expect(parseIframelyPreview({
+      meta: { title: 'T' },
+      links: { thumbnail: { href: '//cdn.example.com/t.png' }, icon: { href: '/fav.png' } },
+    }, page)).toMatchObject({ image: 'https://cdn.example.com/t.png', icon: 'https://example.com/fav.png' });
+  });
+
+  it('skips unsafe or over-long links and caps the text', () => {
+    const preview = parseIframelyPreview({
+      meta: { title: 'x'.repeat(400), description: 'y'.repeat(600) },
+      links: { thumbnail: [{ href: 'javascript:alert(1)' }, { href: `https://cdn.example.com/${'a'.repeat(2100)}` }] },
+    }, page);
+    expect(preview.title).toHaveLength(300);
+    expect(preview.description).toHaveLength(500);
+    expect(preview.image).toBeUndefined();
+  });
+});
+
+describe('isIframelyAccountError', () => {
+  it.each(['api.key.required', 'account.plan.expired', 'api.origin.not_allowed', 'iframely.http.429'])(
+    '%s is about the account', (code) => expect(isIframelyAccountError(code)).toBe(true));
+  it.each(['api.url.invalid', 'origin.net.timeout', 'origin.http.404', 'iframely.robots.disallowed'])(
+    '%s is about the URL', (code) => expect(isIframelyAccountError(code)).toBe(false));
 });

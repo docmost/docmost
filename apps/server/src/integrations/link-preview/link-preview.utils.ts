@@ -1,5 +1,9 @@
 import { CheerioAPI, load } from 'cheerio';
-import { LinkPreview } from './link-preview.types';
+import {
+  IframelyLink,
+  IframelyResponse,
+  LinkPreview,
+} from './link-preview.types';
 import {
   LINK_PREVIEW_DESCRIPTION_MAX_LENGTH,
   LINK_PREVIEW_SIGN_IN_HOST_SUFFIXES,
@@ -171,6 +175,42 @@ export function parseLinkPreview(html: string, pageUrl: string): LinkPreview {
     image,
     icon: pickIcon($, base, pageUrl),
   };
+}
+
+function iframelyHrefs(links: IframelyResponse['links'], rel: string): (string | undefined)[] {
+  if (!links) return [];
+  if (Array.isArray(links)) {
+    return links
+      .filter((link) => [link.rel ?? []].flat().includes(rel))
+      .map((link) => link.href);
+  }
+  const grouped: IframelyLink | IframelyLink[] | undefined = links[rel];
+  return [grouped ?? []].flat().map((link) => link.href);
+}
+
+export function parseIframelyPreview(body: IframelyResponse, pageUrl: string): LinkPreview {
+  const { meta, links } = body;
+  return {
+    title:
+      cleanText(meta?.title, LINK_PREVIEW_TITLE_MAX_LENGTH) ??
+      buildFallbackTitle(pageUrl),
+    description: cleanText(meta?.description, LINK_PREVIEW_DESCRIPTION_MAX_LENGTH),
+    image: firstUrl(
+      [...iframelyHrefs(links, 'thumbnail'), ...iframelyHrefs(links, 'image')],
+      pageUrl,
+    ),
+    icon:
+      firstUrl(iframelyHrefs(links, 'icon'), pageUrl) ??
+      `${new URL(pageUrl).origin}/favicon.ico`,
+  };
+}
+
+export function isIframelyAccountError(code: string): boolean {
+  return (
+    code.startsWith('account.') ||
+    (code.startsWith('api.') && !code.startsWith('api.url.')) ||
+    code === 'iframely.http.429'
+  );
 }
 
 export function detectCharset(
