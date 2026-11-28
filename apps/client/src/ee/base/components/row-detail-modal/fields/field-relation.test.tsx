@@ -325,4 +325,9 @@ describe("FieldRelation", () => {
     fireEvent.click(screen.getByRole("group", { name: "Projects" }));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
+
+  it("shows no editing controls until the row's relation data arrives", () => {
+    renderField(undefined);
+    expect(screen.queryByRole("button", { name: "Link a row for Projects" })).toBeNull();
+  });
 });

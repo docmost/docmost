@@ -198,10 +198,14 @@ describe("FilterRelationInput", () => {
         fetchNextPage,
       };
     });
+    mocks.resolve.mockImplementation(({ rowIds }: { rowIds: string[] }) => ({
+      data: { items: pages[0].filter((row) => rowIds.includes(row.id)) },
+      isLoading: false,
+    }));
     // every row of the first page is already picked, so the list can't scroll
     renderInput(pages[0].map((row) => row.id));
 
-    fireEvent.click(screen.getByRole("button", { name: "Select" }));
+    fireEvent.click(screen.getByRole("button", { name: /Row 25/ }));
     expect(screen.queryAllByRole("option")).toHaveLength(0);
     expect(screen.queryByText("No matching rows")).toBeNull();
     const observer = watchingObserver();
@@ -226,5 +230,21 @@ describe("FilterRelationInput", () => {
     fireEvent.click(screen.getByRole("button", { name: "No access" }));
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(mocks.resolve).toHaveBeenLastCalledWith(expect.objectContaining({ rowIds: [] }));
+  });
+
+  it("shows a picked row that was deleted as a chip you can remove", () => {
+    const { onChange } = renderInput(["a", "gone"]);
+
+    expect(screen.getAllByText("Deleted row").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: /Deleted row/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Deleted row" }));
+    expect(onChange).toHaveBeenLastCalledWith(["a"]);
+  });
+
+  it("names no row deleted while the picked rows are still loading", () => {
+    mocks.resolve.mockReturnValue({ data: undefined, isLoading: true });
+    renderInput(["gone"]);
+
+    expect(screen.queryByText("Deleted row")).toBeNull();
   });
 });

@@ -67,7 +67,7 @@ function createFakeSocket() {
 
 function seedRows(queryClient: QueryClient, pageId: string) {
   queryClient.setQueryData<InfiniteData<IPagination<IBaseRow>>>(
-    ["base-rows", pageId, "view-1"],
+    ROWS(pageId),
     { pages: [{ items: [], meta: {} } as IPagination<IBaseRow>], pageParams: [null] },
   );
 }
@@ -121,11 +121,7 @@ describe("retainBaseSubscription", () => {
     const releaseSecond = retainBaseSubscription(socket, "page-1", queryClient);
     receive({ operation: "base:row:created", pageId: "page-1", row: { id: "row-1" } });
 
-    const rows = queryClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>([
-      "base-rows",
-      "page-1",
-      "view-1",
-    ]);
+    const rows = queryClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(ROWS("page-1"));
     expect(rows.pages[0].items.map((row) => row.id)).toEqual(["row-1"]);
 
     releaseFirst();
@@ -203,7 +199,7 @@ describe("retainBaseSubscription", () => {
   it("refreshes all rows once, 300 ms after batch updates that touch a loaded row", async () => {
     vi.useFakeTimers();
     const { queryClient: appClient } = await import("@/main.tsx");
-    const key = ["base-rows", "page-9", "view-1"];
+    const key = ROWS("page-9");
     appClient.setQueryData(key, { pages: [{ items: [{ id: "row-1" }], meta: {} }], pageParams: [null] });
     const { socket, receive } = createFakeSocket();
     const release = retainBaseSubscription(socket, "page-9", appClient);
@@ -220,7 +216,7 @@ describe("retainBaseSubscription", () => {
   it("relations updated refetches previews for cached rows only", async () => {
     vi.useFakeTimers();
     const { queryClient: appClient } = await import("@/main.tsx");
-    const key = ["base-rows", "page-7", "view-1"];
+    const key = ROWS("page-7");
     appClient.setQueryData(key, {
       pages: [{ items: [{ id: "row-1", relations: {} }], meta: {} }],
       pageParams: [null],
@@ -257,7 +253,7 @@ describe("retainBaseSubscription", () => {
 
   it("own relation edits refresh the other rows the event names", async () => {
     const { queryClient: appClient } = await import("@/main.tsx");
-    const key = ["base-rows", "page-14", "view-1"];
+    const key = ROWS("page-14");
     appClient.setQueryData(key, {
       pages: [{ items: [{ id: "row-x", relations: {} }, { id: "row-y", relations: {} }], meta: {} }],
       pageParams: [null],
@@ -307,7 +303,7 @@ describe("retainBaseSubscription", () => {
 
   it("the tab's own link echo skips the edited cell and its list, and refreshes the rest", async () => {
     const { queryClient: appClient } = await import("@/main.tsx");
-    const rowsKey = ["base-rows", "page-31", "view-1"];
+    const rowsKey = ROWS("page-31");
     const listKey = ["base-relations", "list", "page-31", "row-1", "rel", ""];
     appClient.setQueryData(rowsKey, {
       pages: [{ items: [{ id: "row-1", relations: {} }, { id: "row-2", relations: {} }], meta: {} }],
@@ -410,7 +406,7 @@ describe("retainBaseSubscription", () => {
     const setup = async (pageId: string) => {
       const { queryClient: appClient } = await import("@/main.tsx");
       const listKey = ["base-relations", "list", pageId, "row-1", "rel", ""];
-      appClient.setQueryData(["base-rows", pageId, "view-1"], {
+      appClient.setQueryData(ROWS(pageId), {
         pages: [{ items: [{ id: "row-1", relations: { rel: { count: 1, rows: [{ id: "t1", title: "T1" }] } } }], meta: {} }],
         pageParams: [null],
       });
@@ -454,7 +450,7 @@ describe("retainBaseSubscription", () => {
         });
       };
       const cell = () =>
-        appClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(["base-rows", pageId, "view-1"])!
+        appClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(ROWS(pageId))!
           .pages[0].items[0].relations?.rel;
       const listStale = () => appClient.getQueryState(listKey)?.isInvalidated;
       const freshList = () => appClient.setQueryData(listKey, { pages: [], pageParams: [] });
@@ -493,7 +489,7 @@ describe("retainBaseSubscription", () => {
 
   it("the tab's own echo of a one-cell link edit fetches nothing more", async () => {
     const { queryClient: appClient } = await import("@/main.tsx");
-    appClient.setQueryData(["base-rows", "page-32", "view-1"], {
+    appClient.setQueryData(ROWS("page-32"), {
       pages: [{ items: [{ id: "row-1", relations: {} }], meta: {} }],
       pageParams: [null],
     });
@@ -533,7 +529,7 @@ describe("retainBaseSubscription", () => {
     vi.useFakeTimers();
     const { queryClient: appClient } = await import("@/main.tsx");
     const ids = Array.from({ length: 250 }, (_, i) => `row-${i}`);
-    const key = ["base-rows", "page-17", "view-1"];
+    const key = ROWS("page-17");
     appClient.setQueryData(key, {
       pages: [{ items: ids.map((id) => ({ id, relations: {} })), meta: {} }],
       pageParams: [null],
@@ -568,7 +564,7 @@ describe("retainBaseSubscription", () => {
   it("a failed preview refresh falls back to a rows refresh", async () => {
     vi.useFakeTimers();
     const { queryClient: appClient } = await import("@/main.tsx");
-    const key = ["base-rows", "page-18", "view-1"];
+    const key = ROWS("page-18");
     appClient.setQueryData(key, {
       pages: [{ items: [{ id: "row-1", relations: {} }], meta: {} }],
       pageParams: [null],
@@ -624,7 +620,7 @@ describe("retainBaseSubscription", () => {
   it("a created relation property refreshes the base's rows", async () => {
     vi.useFakeTimers();
     const { queryClient: appClient } = await import("@/main.tsx");
-    const key = ["base-rows", "page-15", "view-1"];
+    const key = ROWS("page-15");
     appClient.setQueryData(key, { pages: [{ items: [{ id: "row-1" }], meta: {} }], pageParams: [null] });
     const { socket, receive } = createFakeSocket();
     const release = retainBaseSubscription(socket, "page-15", appClient);
@@ -642,6 +638,86 @@ describe("retainBaseSubscription", () => {
     receive(created({ id: "inverse", type: "relation" }));
     vi.advanceTimersByTime(300);
     expect(appClient.getQueryState(key)?.isInvalidated).toBe(true);
+    release();
+  });
+
+  it("a relation that starts showing on the other base refreshes the base's rows, a rename doesn't", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const key = ROWS("page-19");
+    appClient.setQueryData(key, { pages: [{ items: [{ id: "row-1" }], meta: {} }], pageParams: [null] });
+    const relation = (inversePropertyId: string | null, name = "Client") => ({
+      id: "rel",
+      name,
+      type: "relation",
+      typeOptions: { relationId: "r1", targetBaseId: "base-2", direction: "source", inversePropertyId },
+    });
+    appClient.setQueryData(["bases", "page-19"], { id: "page-19", properties: [relation(null)], views: [] });
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-19", appClient);
+    const updated = (property: object) => ({
+      operation: "base:property:updated",
+      pageId: "page-19",
+      property,
+      requestId: null,
+    });
+
+    receive(updated(relation(null, "Customer")));
+    vi.advanceTimersByTime(5000);
+    expect(appClient.getQueryState(key)?.isInvalidated).toBe(false);
+
+    receive(updated(relation("inverse")));
+    vi.advanceTimersByTime(300);
+    expect(appClient.getQueryState(key)?.isInvalidated).toBe(true);
+    release();
+  });
+
+  it("a row another user creates gets this viewer's relation previews", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    const key = ROWS("page-20");
+    appClient.setQueryData(key, {
+      pages: [{ items: [{ id: "row-1", cells: {}, relations: {} }], meta: {} }],
+      pageParams: [null],
+    });
+    appClient.setQueryData(["bases", "page-20"], {
+      id: "page-20",
+      properties: [{ id: "rel", type: "relation" }],
+      views: [],
+    });
+    vi.mocked(expandRows).mockReset();
+    vi.mocked(expandRows).mockResolvedValue({
+      "row-2": { relations: { rel: { count: 0, rows: [], restricted: true } } },
+    });
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-20", appClient);
+
+    receive({ operation: "base:row:created", pageId: "page-20", row: { id: "row-2", cells: {} } });
+    await vi.advanceTimersByTimeAsync(150);
+
+    expect(expandRows).toHaveBeenCalledWith("page-20", ["row-2"]);
+    const rows = appClient.getQueryData<InfiniteData<IPagination<IBaseRow>>>(key)!.pages[0].items;
+    expect(rows.find((row) => row.id === "row-2")?.relations?.rel).toMatchObject({ restricted: true });
+    release();
+  });
+
+  it("a row created in a base without relations asks for no previews", async () => {
+    vi.useFakeTimers();
+    const { queryClient: appClient } = await import("@/main.tsx");
+    appClient.setQueryData(ROWS("page-21"), { pages: [{ items: [], meta: {} }], pageParams: [null] });
+    appClient.setQueryData(["bases", "page-21"], {
+      id: "page-21",
+      properties: [{ id: "name", type: "text" }],
+      views: [],
+    });
+    vi.mocked(expandRows).mockReset();
+    const { socket, receive } = createFakeSocket();
+    const release = retainBaseSubscription(socket, "page-21", appClient);
+
+    receive({ operation: "base:row:created", pageId: "page-21", row: { id: "row-2", cells: {} } });
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(expandRows).not.toHaveBeenCalled();
     release();
   });
 
@@ -693,7 +769,7 @@ describe("retainBaseSubscription", () => {
   it("drops a pending refresh when the last view of the base leaves", async () => {
     vi.useFakeTimers();
     const { queryClient: appClient } = await import("@/main.tsx");
-    const key = ["base-rows", "page-8", "view-1"];
+    const key = ROWS("page-8");
     appClient.setQueryData(key, { pages: [{ items: [{ id: "row-1" }], meta: {} }], pageParams: [null] });
     const { socket, receive } = createFakeSocket();
     const release = retainBaseSubscription(socket, "page-8", appClient);
@@ -937,6 +1013,41 @@ describe("retainBaseSubscription", () => {
       appClient.setQueryData(["bases", pageId], withProperty({ id: "prpedited001", type: "lastEditedAt" }));
       receive(linkStamp());
       expect(allRowsRefreshes()).toBe(0);
+    });
+
+    const filterOnRelation = { op: "and", children: [{ propertyId: "rel", op: "isEmpty" }] };
+    const withRelation = () => withProperty({ id: "rel", type: "relation" });
+
+    it("refreshes all rows once when links change on a relation the list filters by", async () => {
+      const { receive, allRowsRefreshes, appClient } = await observeList(filterOnRelation, undefined);
+      appClient.setQueryData(["bases", pageId], withRelation());
+      receive(linkStamp(stamped));
+      expect(allRowsRefreshes()).toBe(1);
+    });
+
+    it("refreshes all rows once when a deleted row's links go under a list filtered by that relation", async () => {
+      const { receive, allRowsRefreshes, appClient } = await observeList(filterOnRelation, undefined);
+      appClient.setQueryData(["bases", pageId], withRelation());
+      receive(linkStamp());
+      expect(allRowsRefreshes()).toBe(1);
+    });
+
+    it("refreshes nothing for a link change on a relation the list doesn't use", async () => {
+      const { receive, allRowsRefreshes, appClient } = await observeList(filterOnText, undefined);
+      appClient.setQueryData(["bases", pageId], withRelation());
+      receive(linkStamp(stamped));
+      expect(allRowsRefreshes()).toBe(0);
+    });
+
+    it("refreshes a calendar window filtered by a relation when its links change", async () => {
+      const { receive, appClient } = await observeList(undefined, undefined);
+      appClient.setQueryData(["bases", pageId], withRelation());
+      const windowKey = ["base-rows", pageId, "calendar", "prpdue0000001", "2026-11-01", "2026-11-30", filterOnRelation];
+      appClient.setQueryData(windowKey, { items: [], total: 0 });
+      const observer = new QueryObserver(appClient, { queryKey: windowKey, queryFn: () => new Promise(() => {}), staleTime: Infinity });
+      unsubscribes.push(observer.subscribe(() => {}));
+      receive(linkStamp());
+      expect(appClient.getQueryState(windowKey)?.isInvalidated).toBe(true);
     });
 
     it("refreshes all rows once when the link editor is not known yet and Last edited by shows", async () => {

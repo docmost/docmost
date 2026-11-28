@@ -8,6 +8,7 @@ import {
   IBaseProperty,
   IBaseRow,
   IBaseView,
+  RelationTypeOptions,
   RowReferences,
 } from "@/ee/base/types/base.types";
 import {
@@ -360,8 +361,12 @@ function createBaseEventHandler(
           );
           if (rowsOrderDependsOn(pageId, "any", baseForCreate)) {
             scheduleRowsRefresh(pageId, "all");
-          } else if (refreshCalendar) {
-            scheduleRowsRefresh(pageId, "calendar");
+          } else {
+            if (refreshCalendar) scheduleRowsRefresh(pageId, "calendar");
+            // previews follow each viewer's access, so the event leaves them out
+            if (createProperties.some((p) => p.type === "relation")) {
+              scheduleRelationPreviewRefresh(pageId, queryClient, state, [e.row.id]);
+            }
           }
         }
         break;
@@ -549,29 +554,38 @@ function createBaseEventHandler(
             // the edit refetches its own list once it succeeds
             !(own && queryKey[3] === own.rowId && queryKey[4] === own.propertyId),
         });
-        if (typeof e.updatedAt !== "string") break;
-
-        const stamp = { updatedAt: e.updatedAt, lastUpdatedById: e.lastUpdatedById ?? null };
-        const stampRow = (row: IBaseRow) => (rowIds.has(row.id) ? { ...row, ...stamp } : row);
-        queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
-          { queryKey: ["base-rows", pageId] },
-          (old) =>
-            old && {
-              ...old,
-              pages: old.pages.map((page) => ({ ...page, items: page.items.map(stampRow) })),
-            },
-        );
-        for (const rowId of e.rowIds) {
-          queryClient.setQueryData<IBaseRow>(["base-row", pageId, rowId], (old) => old && stampRow(old));
-        }
         const baseForLinks = queryClient.getQueryData<IBase>(["bases", pageId]);
-        const linkEditorUnknown =
-          typeof stamp.lastUpdatedById === "string" &&
-          (baseForLinks?.properties ?? []).some((p) => p.type === "lastEditedBy") &&
-          !getDefaultStore().get(referenceStoreAtomFamily(pageId)).users[stamp.lastUpdatedById];
-        if (linkEditorUnknown || rowsOrderDependsOn(pageId, [], baseForLinks)) {
+        // a deleted row's links go without stamping the rows that showed them
+        const updatedAt = typeof e.updatedAt === "string" ? e.updatedAt : undefined;
+        let linkEditorUnknown = false;
+        if (updatedAt !== undefined) {
+          const stamp = { updatedAt, lastUpdatedById: e.lastUpdatedById ?? null };
+          const stampRow = (row: IBaseRow) => (rowIds.has(row.id) ? { ...row, ...stamp } : row);
+          queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+            { queryKey: ["base-rows", pageId] },
+            (old) =>
+              old && {
+                ...old,
+                pages: old.pages.map((page) => ({ ...page, items: page.items.map(stampRow) })),
+              },
+          );
+          for (const rowId of e.rowIds) {
+            queryClient.setQueryData<IBaseRow>(["base-row", pageId, rowId], (old) => old && stampRow(old));
+          }
+          linkEditorUnknown =
+            typeof stamp.lastUpdatedById === "string" &&
+            (baseForLinks?.properties ?? []).some((p) => p.type === "lastEditedBy") &&
+            !getDefaultStore().get(referenceStoreAtomFamily(pageId)).users[stamp.lastUpdatedById];
+        }
+        const changeOptions = { stampsRows: updatedAt !== undefined };
+        if (
+          linkEditorUnknown ||
+          rowsOrderDependsOn(pageId, e.propertyIds, baseForLinks, changeOptions)
+        ) {
           scheduleRowsRefresh(pageId, "all");
-        } else if (invalidateAffectedCalendarWindows(queryClient, pageId, [], baseForLinks)) {
+        } else if (
+          invalidateAffectedCalendarWindows(queryClient, pageId, e.propertyIds, baseForLinks, changeOptions)
+        ) {
           scheduleRowsRefresh(pageId, "calendar");
         }
         break;
@@ -672,6 +686,13 @@ function createBaseEventHandler(
             ) {
               invalidatePublicFormForView(pageId, view.id);
             }
+          }
+          const inverseOf = (property: IBaseProperty | undefined) =>
+            (property?.typeOptions as RelationTypeOptions | undefined)?.inversePropertyId ?? null;
+          const before = cachedBase?.properties?.find((property) => property.id === propertyId);
+          // editing links needs edit on the other base only while the relation shows there
+          if (e.property.type === "relation" && inverseOf(before) !== inverseOf(e.property)) {
+            scheduleRowsRefresh(pageId, "all");
           }
         } else if (e.operation === "base:property:created" && e.property?.type === "relation") {
           // rows loaded before this side existed carry no preview for it

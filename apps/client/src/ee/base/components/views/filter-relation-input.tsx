@@ -62,7 +62,11 @@ export function FilterRelationInput({
     query,
     enabled: opened && targetBase !== null,
   });
-  const { data: resolved, isLoading: resolving } = useResolveRelationRows({
+  const {
+    data: resolved,
+    isLoading: resolving,
+    isPlaceholderData,
+  } = useResolveRelationRows({
     pageId: property.pageId,
     propertyId: property.id,
     rowIds: targetBase === null ? [] : ids,
@@ -78,9 +82,11 @@ export function FilterRelationInput({
 
   const titles = new Map(Object.entries(pickedTitles));
   for (const row of resolved?.items ?? []) titles.set(row.id, row.title);
-  // ids of deleted rows have no title and stay hidden
-  const shownIds = ids.filter((id) => titles.has(id));
-  const titleOf = (id: string) => titles.get(id) || t("Untitled");
+  // once this selection has loaded, an id it left out belongs to a deleted row
+  const selectionLoaded = resolved !== undefined && !isPlaceholderData;
+  const shownIds = selectionLoaded ? ids : ids.filter((id) => titles.has(id));
+  const titleOf = (id: string) =>
+    titles.has(id) ? titles.get(id) || t("Untitled") : t("Deleted row");
 
   const options = (suggestions ?? []).filter((row) => !ids.includes(row.id));
   const atLimit = ids.length >= RELATION_MAX_IDS_PER_CALL;

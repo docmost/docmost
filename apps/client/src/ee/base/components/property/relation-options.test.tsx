@@ -32,8 +32,9 @@ vi.mock("@/ee/base/services/base-relation-service", () => ({
 vi.mock("@/ee/base/queries/page-expand-loader", () => ({
   expandPagesBatched: vi.fn(),
 }));
+const thisPage = vi.hoisted(() => ({ title: "Tasks" }));
 vi.mock("@/features/page/queries/page-query", () => ({
-  usePageQuery: () => ({ data: { id: "base-1", title: "Tasks" } }),
+  usePageQuery: () => ({ data: { id: "base-1", title: thisPage.title } }),
 }));
 
 import { queryClient } from "@/main.tsx";
@@ -170,6 +171,7 @@ beforeEach(() => {
     },
   );
   queryClient.clear();
+  thisPage.title = "Tasks";
   vi.mocked(searchRelationTargets).mockReset();
   vi.mocked(searchRelationTargets).mockImplementation(async (query) =>
     [projects, reading].filter((base) => base.title.toLowerCase().includes((query ?? "").toLowerCase())),
@@ -232,6 +234,14 @@ describe("creating a relation property", () => {
     fireEvent.change(name, { target: { value: "  " } });
     expect(name).toHaveProperty("placeholder", "Tasks");
     expect(onUpdate.mock.lastCall?.[0]).toEqual({ allowMultiple: true, targetBaseId: "base-2", twoWay: true });
+  });
+
+  it("cuts a long base title to the 255-character name limit", async () => {
+    thisPage.title = "T".repeat(300);
+    const { onUpdate } = renderOptions(draft({ allowMultiple: true, targetBaseId: "base-2" }), true);
+    fireEvent.click(await enabledSwitch("Show on Projects"));
+    expect(onUpdate.mock.lastCall?.[0].inverseName).toBe("T".repeat(255));
+    expect(screen.getByRole("textbox", { name: "Name on Projects" })).toHaveProperty("maxLength", 255);
   });
 
   it("Show on is disabled with a reason when the user can't edit the other base", async () => {

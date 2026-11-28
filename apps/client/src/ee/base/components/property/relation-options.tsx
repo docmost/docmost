@@ -12,6 +12,7 @@ import { useEditableTypeOptions } from "@/ee/base/hooks/use-editable-type-option
 import { useResolvedPages } from "@/ee/base/queries/base-page-resolver-query";
 import { useBaseQuery } from "@/ee/base/queries/base-query";
 import { usePageQuery } from "@/features/page/queries/page-query";
+import { RELATION_NAME_MAX_LENGTH } from "@/ee/base/constants/relations";
 import { OptionsFooter } from "./options-footer";
 import { RelationTargetSelect } from "./relation-target-select";
 
@@ -145,7 +146,9 @@ export function RelationOptions({
             update({
               twoWay: checked,
               inverseName:
-                checked && !hadOtherSide ? thisBaseTitle || undefined : undefined,
+                checked && !hadOtherSide
+                  ? thisBaseTitle.slice(0, RELATION_NAME_MAX_LENGTH) || undefined
+                  : undefined,
             });
           }}
         />
@@ -155,6 +158,7 @@ export function RelationOptions({
           size="xs"
           label={t("Name on {{base}}", { base: relatedTitle })}
           placeholder={thisBaseTitle || t("Untitled")}
+          maxLength={RELATION_NAME_MAX_LENGTH}
           value={options.inverseName ?? ""}
           onChange={(e) =>
             update({

@@ -20,7 +20,7 @@ type FieldRelationProps = FieldProps & { preview: RelationPreview | undefined };
 
 export function FieldRelation({ property, rowId, readOnly, preview }: FieldRelationProps) {
   const { t } = useTranslation();
-  const linksReadOnly = readOnly || preview?.permissions?.canEdit === false;
+  const linksReadOnly = readOnly || !preview || preview.permissions?.canEdit === false;
   const { targetBaseId } = property.typeOptions as RelationTypeOptions;
   const [opened, setOpened] = useState(false);
   const [expanded, setExpanded] = useState(false);

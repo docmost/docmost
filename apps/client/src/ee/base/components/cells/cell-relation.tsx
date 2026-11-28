@@ -16,8 +16,12 @@ export function CellRelation({
   onCancel,
 }: CellComponentProps) {
   const { targetBaseId } = property.typeOptions as RelationTypeOptions;
+  // a row whose relation data hasn't arrived yet stays read-only until it does
   const canEdit =
-    !readOnly && !relation?.restricted && relation?.permissions?.canEdit !== false;
+    !readOnly &&
+    relation !== undefined &&
+    !relation.restricted &&
+    relation.permissions?.canEdit !== false;
 
   // a cell that can't be edited hands focus straight back to the grid
   useEffect(() => {

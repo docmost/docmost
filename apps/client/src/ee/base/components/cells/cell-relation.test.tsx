@@ -119,6 +119,12 @@ describe("CellRelation", () => {
     expect(screen.queryByRole("combobox")).toBeNull();
   });
 
+  it("keeps the picker closed until the row's relation data arrives", () => {
+    const { onCancel } = renderCell(undefined);
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(onCancel).toHaveBeenCalled();
+  });
+
   it("keeps a relation the server marks read-only closed for an editor", () => {
     const { onCancel } = renderCell({
       count: 1,
