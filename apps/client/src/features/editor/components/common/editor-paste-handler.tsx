@@ -14,6 +14,7 @@ import {
   type UploadTarget,
 } from "@docmost/editor-ext";
 import { linkPasteMenuKey } from "@/features/editor/extensions/link-paste-menu";
+import { isLinkPreviewDisabled } from "@/lib/config";
 import { integrationPasteMenuKey } from "@/features/editor/extensions/integration-paste-menu";
 import { canPlaceIntegrationCard } from "@/features/editor/components/integration-link/integration-display";
 import { queryClient } from "@/main.tsx";
@@ -198,8 +199,10 @@ export const handlePaste = (
     tr.insertText(pastedUrl, from)
       .addMark(from, to, linkType.create({ href: pastedUrl }))
       .setSelection(TextSelection.create(tr.doc, to))
-      .setMeta(linkPasteMenuKey, { from, to, url: pastedUrl })
       .scrollIntoView();
+    if (!isLinkPreviewDisabled()) {
+      tr.setMeta(linkPasteMenuKey, { from, to, url: pastedUrl });
+    }
     editor.view.dispatch(tr);
     return true;
   }

@@ -67,16 +67,11 @@ function getDisplayTarget(
   const pasteState = linkPasteMenuKey.getState(editor.state);
   if (pasteState) {
     const { from, to, url } = pasteState;
-    const source: Extract<LinkDisplaySource, { kind: "link" }> = {
-      kind: "link",
-      from,
-      to,
+    return {
+      current: "url",
+      source: { kind: "link", from, to, url, attrs: { url } },
       url,
-      attrs: { url },
     };
-    // With previews off, a link that can't be embedded has nothing to choose.
-    if (isLinkPreviewDisabled() && !canEmbedLink(editor, source)) return null;
-    return { current: "url", source, url };
   }
 
   return getSelectedLinkDisplay(editor, LINK_PREVIEW_NODES);
@@ -103,15 +98,13 @@ export function LinkPasteMenu({ editor }: EditorMenuProps) {
   const canEmbed =
     target?.current === "url" ? canEmbedLink(editor, target.source) : false;
 
-  const previewsDisabled = isLinkPreviewDisabled();
-
   const pasteOptions = PASTE_OPTIONS.filter(
     (option) =>
       (option.value !== "card" || canUseCard) &&
-      (option.value !== "embed" || canEmbed) &&
-      (!previewsDisabled ||
-        (option.value !== "mention" && option.value !== "card")),
+      (option.value !== "embed" || canEmbed),
   );
+
+  const previewsDisabled = isLinkPreviewDisabled();
 
   const activeIndex = Math.min(
     selectedPasteIndex,

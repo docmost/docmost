@@ -560,24 +560,6 @@ describe("LinkPasteMenu", () => {
       mocks.isLinkPreviewDisabled.mockReturnValue(true);
     });
 
-    it("a pasted link offers only URL and Embed", () => {
-      mocks.pasteState = { from, to, url };
-      renderMenu();
-
-      expect(
-        screen.getAllByRole("option").map((option) => option.textContent),
-      ).toEqual(["URL", "Embed"]);
-    });
-
-    it("a pasted link that can't be embedded shows no prompt", () => {
-      mocks.pasteState = { from, to, url };
-      mocks.canEmbed.mockReturnValue(false);
-      renderMenu();
-
-      expect(screen.queryByRole("listbox", { name: "Paste as" })).toBeNull();
-      expect(screen.queryByRole("toolbar")).toBeNull();
-    });
-
     it("a selected card keeps Display as and loses Refresh preview", () => {
       mocks.selectedDisplay = { current: "card", source: nodeSource, url };
       renderMenu();
