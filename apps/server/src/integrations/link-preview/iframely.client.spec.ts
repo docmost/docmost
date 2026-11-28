@@ -107,6 +107,131 @@ describe('IframelyClient', () => {
     expect(warn).toHaveBeenCalled();
   });
 
+  it('warns with the code for an account error sent as HTTP 403', async () => {
+    fetchFn.mockResolvedValue(
+      json(
+        {
+          code: 'api.key.required',
+          status: 403,
+          title: 'A valid API key is required',
+        },
+        403,
+      ),
+    );
+    expect(await build().getPreview('https://example.com/a')).toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('api.key.required'));
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('secret-key');
+  });
+
+  it.each([200, 500])(
+    'warns with the code for an Iframely service error on HTTP %i',
+    async (status) => {
+      fetchFn.mockResolvedValue(
+        json(
+          { code: 'system.internal.500', status: 500, title: 'Internal error' },
+          status,
+        ),
+      );
+      expect(await build().getPreview('https://example.com/a')).toBeNull();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('system.internal.500'),
+      );
+    },
+  );
+
+  it('logs an error about the URL sent as HTTP 404 at debug, with its code', async () => {
+    fetchFn.mockResolvedValue(
+      json({ code: 'origin.http.404', status: 404, title: 'Not found' }, 404),
+    );
+    expect(await build().getPreview('https://example.com/a')).toBeNull();
+    expect(debug).toHaveBeenCalledWith(
+      expect.stringContaining('origin.http.404'),
+    );
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('logs a self-hosted error about the page at debug', async () => {
+    env = { url: 'http://iframely:8061' };
+    fetchFn.mockResolvedValue(
+      json(
+        {
+          error: { source: 'iframely', code: 404, message: 'Page not found' },
+        },
+        404,
+      ),
+    );
+    expect(await build().getPreview('https://example.com/a')).toBeNull();
+    expect(debug).toHaveBeenCalledWith(expect.stringContaining('404'));
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('warns when a self-hosted Iframely fails with a server error', async () => {
+    env = { url: 'http://iframely:8061' };
+    fetchFn.mockResolvedValue(
+      json(
+        { error: { source: 'iframely', code: 500, message: 'Server error' } },
+        500,
+      ),
+    );
+    expect(await build().getPreview('https://example.com/a')).toBeNull();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringMatching(/http:\/\/iframely:8061 .*500/),
+    );
+  });
+
+  it('warns with the status, not the body, when something other than Iframely answers', async () => {
+    fetchFn.mockResolvedValue(
+      new Response('<html>Cannot GET /api/iframely</html>', {
+        status: 404,
+        headers: { 'content-type': 'text/html' },
+      }),
+    );
+    expect(await build().getPreview('https://example.com/a')).toBeNull();
+    expect(warn).toHaveBeenCalledWith(
+      'Iframely at https://iframe.ly answered HTTP 404',
+    );
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('Cannot GET');
+  });
+
+  it.each(['null', '"OK"', '42', '[]'])(
+    'warns that a 2xx reply of %s is not an Iframely reply',
+    async (text) => {
+      fetchFn.mockResolvedValue(new Response(text, { status: 200 }));
+      expect(await build().getPreview('https://example.com/a')).toBeNull();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('not send an Iframely reply'),
+      );
+    },
+  );
+
+  it('warns when a 2xx reply carries an error it cannot read', async () => {
+    fetchFn.mockResolvedValue(json({ status: 404, error: 'Not Found' }));
+    expect(await build().getPreview('https://example.com/a')).toBeNull();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('not send an Iframely reply'),
+    );
+  });
+
+  it('warns that Iframely timed out while sending its reply', async () => {
+    fetchFn.mockResolvedValue(
+      new Response(
+        new ReadableStream({
+          pull(controller) {
+            controller.error(
+              Object.assign(
+                new Error('The operation was aborted due to timeout'),
+                { name: 'TimeoutError' },
+              ),
+            );
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    expect(await build().getPreview('https://example.com/a')).toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('timed out'));
+  });
+
   it('logs no part of a fetch error message, which can hold the API key', async () => {
     const otherLevels = (['log', 'error', 'verbose', 'fatal'] as const).map(
       (level) => jest.spyOn(Logger.prototype, level).mockImplementation(),

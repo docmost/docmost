@@ -213,6 +213,33 @@ export function isIframelyAccountError(code: string): boolean {
   );
 }
 
+export function isIframelyAccountOrServiceError(code: string): boolean {
+  return (
+    isIframelyAccountError(code) ||
+    code.startsWith('system.') ||
+    /^iframely\.http\.5\d\d$/.test(code)
+  );
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function getIframelyErrorCode(body: unknown): string | undefined {
+  if (!isJsonObject(body)) return undefined;
+  if (typeof body.code === 'string') return body.code;
+  // Self-hosted errors carry only an HTTP status, which Iframely names iframely.http.<status>.
+  const { error } = body;
+  if (isJsonObject(error) && error.source === 'iframely') {
+    return `iframely.http.${error.code}`;
+  }
+  return undefined;
+}
+
+export function isIframelyReply(body: unknown): body is IframelyResponse {
+  return isJsonObject(body) && !body.error;
+}
+
 export function describeIframelyOrigin(base: string): string {
   try {
     const { origin } = new URL(base);

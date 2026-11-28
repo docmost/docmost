@@ -4,7 +4,10 @@ import {
   describeIframelyOrigin,
   detectCharset,
   getFileNameTitle,
+  getIframelyErrorCode,
   isIframelyAccountError,
+  isIframelyAccountOrServiceError,
+  isIframelyReply,
   isSignInUrl,
   parseIframelyPreview,
   parseLinkPreview,
@@ -292,6 +295,71 @@ describe('isIframelyAccountError', () => {
     '%s is about the account', (code) => expect(isIframelyAccountError(code)).toBe(true));
   it.each(['api.url.invalid', 'origin.net.timeout', 'origin.http.404', 'iframely.robots.disallowed'])(
     '%s is about the URL', (code) => expect(isIframelyAccountError(code)).toBe(false));
+});
+
+describe('isIframelyAccountOrServiceError', () => {
+  it.each([
+    'api.key.required',
+    'account.plan.expired',
+    'iframely.http.429',
+    'system.internal.500',
+    'system.http.503',
+    'iframely.http.500',
+  ])('%s is about the account or Iframely itself', (code) =>
+    expect(isIframelyAccountOrServiceError(code)).toBe(true));
+  it.each([
+    'api.url.invalid',
+    'origin.net.timeout',
+    'origin.http.503',
+    'iframely.http.404',
+    'iframely.robots.disallowed',
+  ])('%s is about the URL', (code) =>
+    expect(isIframelyAccountOrServiceError(code)).toBe(false));
+});
+
+describe('getIframelyErrorCode', () => {
+  it('reads the code of a hosted error', () => {
+    expect(
+      getIframelyErrorCode({
+        code: 'api.key.required',
+        status: 403,
+        title: 'A valid API key is required',
+        error: 'A valid API key is required',
+      }),
+    ).toBe('api.key.required');
+  });
+
+  it('names the status of a self-hosted error the way Iframely does', () => {
+    expect(
+      getIframelyErrorCode({
+        error: { source: 'iframely', code: 404, message: 'Page not found' },
+      }),
+    ).toBe('iframely.http.404');
+  });
+
+  it.each([
+    ['a preview', { url: 'https://example.com/a', meta: { title: 'A' } }],
+    [
+      'an error from another server',
+      { error: { code: 404, message: 'Not found' } },
+    ],
+    ['a plain error text', { status: 404, error: 'Not Found' }],
+    ['JSON null', null],
+    ['a JSON array', [{ code: 'api.key.required' }]],
+    ['a reply that is not JSON', undefined],
+  ])('finds no Iframely error in %s', (_, body) =>
+    expect(getIframelyErrorCode(body)).toBeUndefined());
+});
+
+describe('isIframelyReply', () => {
+  it('accepts a JSON object', () => {
+    expect(isIframelyReply({ meta: { title: 'A' }, links: [] })).toBe(true);
+  });
+
+  it.each([null, 'OK', 42, [], undefined, { error: 'Not Found' }])(
+    'rejects %p',
+    (body) => expect(isIframelyReply(body)).toBe(false),
+  );
 });
 
 describe('describeIframelyOrigin', () => {

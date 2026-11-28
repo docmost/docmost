@@ -6,10 +6,12 @@ import {
   LINK_PREVIEW_IFRAMELY_TIMEOUT_MS,
   LINK_PREVIEW_USER_AGENT,
 } from './link-preview.constants';
-import { IframelyResponse, IframelyResult } from './link-preview.types';
+import { IframelyResult } from './link-preview.types';
 import {
   describeIframelyOrigin,
-  isIframelyAccountError,
+  getIframelyErrorCode,
+  isIframelyAccountOrServiceError,
+  isIframelyReply,
   isSignInUrl,
   parseIframelyPreview,
 } from './link-preview.utils';
@@ -28,11 +30,13 @@ export class IframelyClient {
 
   async getPreview(url: string): Promise<IframelyResult | null> {
     const base = this.environmentService.getIframelyUrl().replace(/\/+$/, '');
+    const origin = describeIframelyOrigin(base);
     const query = new URLSearchParams({ url });
     const apiKey = this.environmentService.getIframelyApiKey();
     if (apiKey) query.set('api_key', apiKey);
 
     let response: Response;
+    let text: string;
     try {
       response = await this.fetchFn(`${base}/iframely?${query}`, {
         headers: {
@@ -41,31 +45,38 @@ export class IframelyClient {
         },
         signal: AbortSignal.timeout(LINK_PREVIEW_IFRAMELY_TIMEOUT_MS),
       });
+      text = await response.text();
     } catch (err) {
-      this.logRequestFailure(describeIframelyOrigin(base), err);
+      this.logRequestFailure(origin, err);
       return null;
     }
 
-    if (!response.ok) {
-      this.logger.debug(`Iframely answered with HTTP ${response.status}`);
-      return null;
-    }
-
-    let body: IframelyResponse;
+    let body: unknown;
     try {
-      body = await response.json();
+      body = JSON.parse(text);
     } catch {
-      this.logger.warn('Iframely returned a reply that is not JSON');
-      return null;
+      body = undefined;
     }
 
-    if (typeof body?.code === 'string' || body?.error) {
-      const code = typeof body.code === 'string' ? body.code : 'unknown';
-      if (isIframelyAccountError(code)) {
-        this.logger.warn(`Iframely rejected the request: ${code}`);
+    const errorCode = getIframelyErrorCode(body);
+    if (errorCode) {
+      if (isIframelyAccountOrServiceError(errorCode)) {
+        this.logger.warn(
+          `Iframely at ${origin} returned an error: ${errorCode}`,
+        );
       } else {
-        this.logger.debug(`Iframely could not preview the link: ${code}`);
+        this.logger.debug(`Iframely could not preview the link: ${errorCode}`);
       }
+      return null;
+    }
+    if (!response.ok) {
+      this.logger.warn(
+        `Iframely at ${origin} answered HTTP ${response.status}`,
+      );
+      return null;
+    }
+    if (!isIframelyReply(body)) {
+      this.logger.warn(`Iframely at ${origin} did not send an Iframely reply`);
       return null;
     }
 

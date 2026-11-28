@@ -185,7 +185,9 @@ export class LinkPreviewService {
       return true;
     } catch (err) {
       if (err instanceof OutboundUrlError && !err.retryable) {
-        this.logFailure(reportedHost, err);
+        this.logger.warn(
+          `Dropped the link preview for ${pastedHost}: Iframely reported a private or reserved address`,
+        );
         return false;
       }
       if (

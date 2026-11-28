@@ -31,6 +31,8 @@ describe('LinkPreviewService', () => {
   let driver: string;
   let urlGuard: { validate: jest.Mock };
   let iframelyClient: { getPreview: jest.Mock };
+  let warn: jest.SpyInstance;
+  let debug: jest.SpyInstance;
 
   let resolve4: jest.Mock;
   let resolve6: jest.Mock;
@@ -54,8 +56,8 @@ describe('LinkPreviewService', () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
-    jest.spyOn(Logger.prototype, 'debug').mockImplementation();
-    jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    debug = jest.spyOn(Logger.prototype, 'debug').mockImplementation();
+    warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
     store = new Map();
     redis = {
       get: jest.fn(async (k: string) => store.get(k) ?? null),
@@ -497,6 +499,24 @@ describe('LinkPreviewService', () => {
       expect(urlGuard.validate).toHaveBeenCalledWith('https://10.0.0.5/', {
         publicOnly: true,
       });
+    });
+
+    it('warns, naming the pasted host, when Iframely reports a private address', async () => {
+      iframelyClient.getPreview.mockResolvedValue({
+        preview: { title: 'Intranet' },
+        reportedUrl: 'http://10.0.0.5/',
+      });
+      urlGuard.validate.mockImplementation(async (url: string) => {
+        if (new URL(url).hostname === '10.0.0.5') {
+          throw new OutboundUrlError('private');
+        }
+        return { address: '93.184.216.34', family: 4 };
+      });
+      expect(await build().getPreview('https://short.example/x')).toBeNull();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringMatching(/short\.example.*private or reserved address/),
+      );
+      expect(debug).not.toHaveBeenCalled();
     });
 
     it('drops the preview when a self-hosted Iframely lands on a private address', async () => {
