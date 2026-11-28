@@ -1070,6 +1070,7 @@ export class PageService {
               .values({
                 id: newAttachmentId,
                 type: attachment.type,
+                diagramType: attachment.diagramType,
                 filePath: newPathFile,
                 fileName: attachment.fileName,
                 fileSize: attachment.fileSize,

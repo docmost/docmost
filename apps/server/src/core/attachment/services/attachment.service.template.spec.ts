@@ -5,7 +5,7 @@ let preparedExt = '.png';
 jest.mock('../attachment.utils', () => ({
   ...jest.requireActual('../attachment.utils'),
   prepareFile: async () => ({
-    fileName: `a${preparedExt}`,
+    fileName: preparedExt === '.svg' ? 'diagram.drawio.svg' : `a${preparedExt}`,
     fileExtension: preparedExt,
     mimeType: 'x/y',
     fileSize: 0,
@@ -27,6 +27,7 @@ const NEW_ID = 'new-1';
 const source = (id: string, ext: string, extra = {}) => ({
   id,
   type: 'file',
+  diagramType: null,
   filePath: `${WORKSPACE_ID}/files/${id}/a${ext}`,
   fileName: `a${ext}`,
   fileSize: 10,
@@ -103,6 +104,7 @@ describe('AttachmentService template files', () => {
       expect(repo.insertAttachment).toHaveBeenCalledWith({
         id: NEW_ID,
         type: 'file',
+        diagramType: null,
         filePath: `ws/files/${NEW_ID}/a.png`,
         fileName: 'a.png',
         fileSize: 10,
@@ -120,6 +122,29 @@ describe('AttachmentService template files', () => {
         expect.objectContaining({ attempts: 2 }),
       );
     });
+
+    it.each(['excalidraw', null])(
+      'copies the stored diagram type %s when applying a template',
+      async (diagramType) => {
+        const fileName = 'diagram.excalidraw.svg';
+        const diagram = source(OLD_ID, '.svg', {
+          fileName,
+          filePath: `${WORKSPACE_ID}/files/${OLD_ID}/${fileName}`,
+          diagramType,
+        });
+
+        await service.copyAttachmentsToPage(
+          [diagram] as any,
+          new Map([[OLD_ID, NEW_ID]]),
+          page,
+          'user-9',
+        );
+
+        expect(repo.insertAttachment).toHaveBeenCalledWith(
+          expect.objectContaining({ id: NEW_ID, fileName, diagramType }),
+        );
+      },
+    );
 
     it('continues with the next file when a copy fails', async () => {
       storage.copy.mockRejectedValueOnce(new Error('boom'));
@@ -172,6 +197,16 @@ describe('AttachmentService template files', () => {
   });
 
   describe('uploadFile owner check', () => {
+    const diagram = (extra = {}) =>
+      source(OLD_ID, '.svg', {
+        fileName: 'diagram.drawio.svg',
+        diagramType: 'drawio',
+        ...extra,
+      });
+    beforeEach(() => {
+      preparedExt = '.svg';
+    });
+
     const upload = (opts: object) =>
       service.uploadFile({
         filePromise: Promise.resolve({} as any),
@@ -179,13 +214,12 @@ describe('AttachmentService template files', () => {
         userId: 'user-1',
         workspaceId: WORKSPACE_ID,
         attachmentId: OLD_ID,
+        diagramType: 'drawio',
         ...opts,
       });
 
     it('refuses to overwrite a file owned by another template', async () => {
-      repo.findById.mockResolvedValue(
-        source(OLD_ID, '.png', { templateId: 'tpl-1' }),
-      );
+      repo.findById.mockResolvedValue(diagram({ templateId: 'tpl-1' }));
 
       await expect(upload({ templateId: 'tpl-2' })).rejects.toBeInstanceOf(
         BadRequestException,
@@ -195,7 +229,7 @@ describe('AttachmentService template files', () => {
 
     it('refuses to overwrite a page file from a template', async () => {
       repo.findById.mockResolvedValue(
-        source(OLD_ID, '.png', { templateId: null, pageId: 'page-1' }),
+        diagram({ templateId: null, pageId: 'page-1' }),
       );
 
       await expect(upload({ templateId: 'tpl-1' })).rejects.toBeInstanceOf(
@@ -205,15 +239,15 @@ describe('AttachmentService template files', () => {
     });
 
     it('refuses to overwrite a template file from a page', async () => {
-      repo.findById.mockResolvedValue(source(OLD_ID, '.png'));
+      repo.findById.mockResolvedValue(diagram());
 
       await expect(upload({ pageId: 'page-1' })).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });
 
-    it('updates the row when the owner matches', async () => {
-      repo.findById.mockResolvedValue(source(OLD_ID, '.png'));
+    it('updates the diagram when the owner matches', async () => {
+      repo.findById.mockResolvedValue(diagram());
 
       await upload({ templateId: 'tpl-1' });
 

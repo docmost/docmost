@@ -68,6 +68,7 @@ export interface Attachments {
   createdAt: Generated<Timestamp>;
   creatorId: string;
   deletedAt: Timestamp | null;
+  diagramType: string | null;
   fileExt: string;
   fileName: string;
   filePath: string;

@@ -19,6 +19,7 @@ import { integrationPasteMenuKey } from "@/features/editor/extensions/integratio
 import { canPlaceIntegrationCard } from "@/features/editor/components/integration-link/integration-display";
 import { queryClient } from "@/main.tsx";
 import { Integration } from "@/features/integration/types/integration.types";
+import type { DiagramType, IAttachment } from "@/features/attachments/types/attachment.types";
 import {
   getAttachmentInfo,
   uploadFile,
@@ -34,7 +35,7 @@ const ATTACHMENT_NODE_TYPES = [
   "drawio",
 ];
 
-const ATTACHMENT_URL_RE = /\/api\/files\/([0-9a-f-]+)\//;
+const ATTACHMENT_URL_RE = /\/files\/[0-9a-f-]+\//;
 
 // copied cards and mentions paste back as nodes
 const INTEGRATION_NODE_HTML_RE = /data-type="integration(Card|Mention)"/;
@@ -250,14 +251,10 @@ async function reuploadPastedAttachments(
   type PastedNode = {
     pos: number;
     attachmentId: string;
-    nodeTypeName: string;
-    src?: string;
-    url?: string;
-    fileName?: string;
   };
 
   const pastedNodes: PastedNode[] = [];
-  const seenAttachmentIds = new Set<string>();
+  const files = new Map<string, { name?: string; diagramType?: DiagramType }>();
 
   editor.state.doc.nodesBetween(pasteFrom, pasteEnd, (node, pos) => {
     if (!ATTACHMENT_NODE_TYPES.includes(node.type.name)) return;
@@ -265,97 +262,58 @@ async function reuploadPastedAttachments(
     if (!attachmentId) return;
 
     const src = node.attrs.src || node.attrs.url || "";
-    const match = ATTACHMENT_URL_RE.exec(src);
-    if (!match) return;
+    if (!ATTACHMENT_URL_RE.test(src)) return;
 
-    const cleanSrc = src.split("?")[0];
-    const fileName =
-      node.attrs.name || cleanSrc.split("/").pop() || "file";
-
-    pastedNodes.push({
-      pos,
-      attachmentId,
-      nodeTypeName: node.type.name,
-      src: node.attrs.src,
-      url: node.attrs.url,
-      fileName,
-    });
-    seenAttachmentIds.add(attachmentId);
+    pastedNodes.push({ pos, attachmentId });
+    const type = node.type.name;
+    const diagramType = type === "drawio" || type === "excalidraw" ? type : undefined;
+    const file = files.get(attachmentId);
+    if (!file) {
+      files.set(attachmentId, { diagramType, name: node.attrs.name });
+    } else if (file.diagramType !== diagramType) {
+      // Keep a shared copy immutable when the paste also uses it as an ordinary file.
+      file.diagramType = undefined;
+    }
   });
 
   if (pastedNodes.length === 0) return;
 
-  const attachmentOwnerMap = new Map<
-    string,
-    { pageId: string | null; templateId: string | null } | null
-  >();
+  const copies = new Map<string, IAttachment>();
   await Promise.all(
-    [...seenAttachmentIds].map(async (id) => {
+    Array.from(files, async ([id, file]) => {
       try {
-        const info = await getAttachmentInfo(id);
-        attachmentOwnerMap.set(id, {
-          pageId: info.pageId,
-          templateId: info.templateId ?? null,
-        });
-      } catch {
-        attachmentOwnerMap.set(id, null);
-      }
-    }),
-  );
+        const source = await getAttachmentInfo(id);
+        const sameOwner =
+          "pageId" in uploadTarget
+            ? source.pageId === uploadTarget.pageId
+            : source.templateId === uploadTarget.templateId;
+        if (sameOwner) return;
 
-  const nodesToReupload = pastedNodes.filter((n) => {
-    const owner = attachmentOwnerMap.get(n.attachmentId);
-    if (!owner) return false;
-    return "pageId" in uploadTarget
-      ? owner.pageId !== uploadTarget.pageId
-      : owner.templateId !== uploadTarget.templateId;
-  });
-
-  if (nodesToReupload.length === 0) return;
-
-  const uniqueNodes = new Map<string, (typeof nodesToReupload)[0]>();
-  for (const node of nodesToReupload) {
-    if (!uniqueNodes.has(node.attachmentId)) {
-      uniqueNodes.set(node.attachmentId, node);
-    }
-  }
-
-  const reuploadResults = new Map<
-    string,
-    { id: string; fileName: string; fileSize: number; mimeType: string }
-  >();
-
-  await Promise.all(
-    [...uniqueNodes.values()].map(async (node) => {
-      const fileUrl = node.src || node.url;
-      if (!fileUrl) return;
-
-      try {
-        const response = await fetch(fileUrl, { credentials: "include" });
+        const url = `/api/files/${id}/${encodeURIComponent(source.fileName)}`;
+        const response = await fetch(url, { credentials: "include" });
         if (!response.ok) return;
         const blob = await response.blob();
-        const file = new File([blob], node.fileName, { type: blob.type });
-        const newAttachment = await uploadFile(file, uploadTarget);
-        reuploadResults.set(node.attachmentId, {
-          id: newAttachment.id,
-          fileName: newAttachment.fileName,
-          fileSize: newAttachment.fileSize,
-          mimeType: newAttachment.mimeType,
+        const upload = new File([blob], file.name || source.fileName, {
+          type: blob.type,
         });
+        const copy = file.diagramType
+          ? await uploadFile(upload, uploadTarget, { type: file.diagramType })
+          : await uploadFile(upload, uploadTarget);
+        copies.set(id, copy);
       } catch {
         // keep original reference on failure
       }
     }),
   );
 
-  if (reuploadResults.size === 0) return;
+  if (copies.size === 0) return;
   if (editor.isDestroyed) return;
 
   editor.chain().command(({ tr }) => {
-    const sorted = [...nodesToReupload].sort((a, b) => b.pos - a.pos);
+    const sorted = pastedNodes.sort((a, b) => b.pos - a.pos);
 
     for (const pastedNode of sorted) {
-      const result = reuploadResults.get(pastedNode.attachmentId);
+      const result = copies.get(pastedNode.attachmentId);
       if (!result) continue;
 
       const node = tr.doc.nodeAt(pastedNode.pos);
@@ -365,13 +323,13 @@ async function reuploadPastedAttachments(
       const newAttrs = { ...node.attrs };
       newAttrs.attachmentId = result.id;
 
-      if (newAttrs.src) {
-        newAttrs.src = `/api/files/${result.id}/${result.fileName}`;
+      const url = `/api/files/${result.id}/${encodeURIComponent(result.fileName)}`;
+      if (newAttrs.src) newAttrs.src = url;
+      if (newAttrs.url) newAttrs.url = url;
+      if (node.type.name === "drawio" || node.type.name === "excalidraw") {
+        newAttrs.title = result.fileName;
       }
-      if (newAttrs.url) {
-        newAttrs.url = `/api/files/${result.id}/${result.fileName}`;
-      }
-      if (pastedNode.nodeTypeName === "attachment") {
+      if (node.type.name === "attachment") {
         newAttrs.name = result.fileName;
         newAttrs.mime = result.mimeType;
         newAttrs.size = result.fileSize;

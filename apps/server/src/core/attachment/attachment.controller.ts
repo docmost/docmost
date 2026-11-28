@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   ForbiddenException,
   Get,
@@ -173,10 +174,16 @@ export class AttachmentController {
       throw new BadRequestException('Invalid attachment id');
     }
 
-    const type = file.fields?.type?.value;
+    const type: unknown = file.fields?.type?.value;
     const isCover = type === AttachmentType.PageCover;
     const isFile = type === undefined || type === AttachmentType.File;
-    if ((!isFile && !isCover) || (isCover && (attachmentId || templateId))) {
+    const diagramType =
+      type === 'drawio' || type === 'excalidraw' ? type : undefined;
+    if (
+      (!isFile && !isCover && !diagramType) ||
+      (attachmentId && type !== undefined && !diagramType) ||
+      (isCover && templateId)
+    ) {
       throw new BadRequestException('Invalid attachment type');
     }
 
@@ -190,6 +197,7 @@ export class AttachmentController {
         workspaceId: workspace.id,
         attachmentId: attachmentId,
         type: isCover ? AttachmentType.PageCover : AttachmentType.File,
+        diagramType,
       });
 
       this.auditService.log({
@@ -210,8 +218,10 @@ export class AttachmentController {
         url: this.buildFileUrl(workspace, fileResponse),
       });
     } catch (err: any) {
-      // cover uploads tell the user why they were refused
-      if (isCover && err instanceof HttpException) {
+      if (
+        (isCover && err instanceof HttpException) ||
+        err instanceof ConflictException
+      ) {
         throw err;
       }
       if (err?.statusCode === 413) {

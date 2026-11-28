@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -16,7 +17,11 @@ import {
 } from '../attachment.utils';
 import { v4 as uuid4, v7 as uuid7 } from 'uuid';
 import { AttachmentRepo } from '@docmost/db/repos/attachment/attachment.repo';
-import { AttachmentType, validImageExtensions } from '../attachment.constants';
+import {
+  AttachmentType,
+  type DiagramType,
+  validImageExtensions,
+} from '../attachment.constants';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { Attachment, User, Workspace } from '@docmost/db/types/entity.types';
 import { InjectKysely } from 'nestjs-kysely';
@@ -61,13 +66,23 @@ export class AttachmentService {
     workspaceId: string;
     attachmentId?: string;
     type?: AttachmentType.File | AttachmentType.PageCover;
+    diagramType?: DiagramType;
   }) {
     const { filePromise, pageId, templateId, spaceId, userId, workspaceId } =
       opts;
     const type = opts.type ?? AttachmentType.File;
+    const diagramType = opts.diagramType;
     const preparedFile: PreparedFile = await prepareFile(filePromise, {
       skipBuffer: true,
     });
+
+    if (
+      (diagramType || opts.attachmentId) &&
+      (preparedFile.fileExtension !== '.svg' ||
+        !preparedFile.fileName.toLowerCase().endsWith('.svg'))
+    ) {
+      throw new BadRequestException('Diagrams must be SVG files');
+    }
 
     if (
       type === AttachmentType.PageCover &&
@@ -76,13 +91,10 @@ export class AttachmentService {
       throw new BadRequestException('Cover must be a JPG, PNG or WebP image');
     }
 
-    let isUpdate = false;
-    let attachmentId = null;
+    let existingAttachment: Attachment | undefined;
 
-    // passing attachmentId to allow for updating diagrams
-    // instead of creating new files for each save
-    if (opts?.attachmentId) {
-      const existingAttachment = await this.attachmentRepo.findById(
+    if (opts.attachmentId) {
+      existingAttachment = await this.attachmentRepo.findById(
         opts.attachmentId,
       );
       if (!existingAttachment) {
@@ -94,18 +106,35 @@ export class AttachmentService {
       if (
         (existingAttachment.pageId ?? null) !== (pageId ?? null) ||
         (existingAttachment.templateId ?? null) !== (templateId ?? null) ||
-        existingAttachment.fileExt !== preparedFile.fileExtension ||
-        existingAttachment.workspaceId !== workspaceId
+        existingAttachment.workspaceId !== workspaceId ||
+        existingAttachment.type !== AttachmentType.File ||
+        existingAttachment.fileExt.toLowerCase() !== '.svg' ||
+        existingAttachment.deletedAt ||
+        existingAttachment.aiChatId
       ) {
         throw new BadRequestException('File attachment does not match');
       }
-      attachmentId = opts.attachmentId;
-      isUpdate = true;
-    } else {
-      attachmentId = uuid7();
+      if (!existingAttachment.diagramType) {
+        throw new ConflictException({
+          code: 'ATTACHMENT_NOT_DIAGRAM',
+          message: 'This attachment cannot be overwritten as a diagram.',
+        });
+      }
+
+      // Editors opened before the upgrade send the format only in the export filename.
+      const matchesFormat = diagramType
+        ? diagramType === existingAttachment.diagramType
+        : preparedFile.fileName ===
+          `diagram.${existingAttachment.diagramType}.svg`;
+      if (!matchesFormat) {
+        throw new BadRequestException('Diagram format does not match');
+      }
     }
 
-    const filePath = `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
+    const attachmentId = existingAttachment?.id ?? uuid7();
+    const filePath =
+      existingAttachment?.filePath ??
+      `${getAttachmentFolderPath(AttachmentType.File, workspaceId)}/${attachmentId}/${preparedFile.fileName}`;
 
     // Update fileSize from the consumed stream
     const isCover = type === AttachmentType.PageCover;
@@ -129,7 +158,7 @@ export class AttachmentService {
 
     let attachment: Attachment = null;
     try {
-      if (isUpdate) {
+      if (existingAttachment) {
         attachment = await this.attachmentRepo.updateAttachment(
           {
             fileSize: preparedFile.fileSize,
@@ -143,6 +172,7 @@ export class AttachmentService {
           preparedFile,
           filePath,
           type,
+          diagramType,
           userId,
           spaceId,
           workspaceId,
@@ -293,6 +323,7 @@ export class AttachmentService {
     preparedFile: PreparedFile;
     filePath: string;
     type: AttachmentType;
+    diagramType?: DiagramType | null;
     userId: string;
     workspaceId: string;
     pageId?: string;
@@ -316,6 +347,7 @@ export class AttachmentService {
       {
         id: attachmentId,
         type: type,
+        diagramType: opts.diagramType ?? null,
         filePath: filePath,
         fileName: preparedFile.fileName,
         fileSize: preparedFile.fileSize,
@@ -396,6 +428,7 @@ export class AttachmentService {
         await this.attachmentRepo.insertAttachment({
           id: newId,
           type: source.type,
+          diagramType: source.diagramType,
           filePath: newPath,
           fileName: source.fileName,
           fileSize: source.fileSize,

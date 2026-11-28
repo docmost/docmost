@@ -26,6 +26,7 @@ export class AttachmentRepo {
     'fileExt',
     'mimeType',
     'type',
+    'diagramType',
     'creatorId',
     'pageId',
     'spaceId',
