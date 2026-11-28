@@ -464,7 +464,12 @@ describe('LinkPreviewService', () => {
     it('does not ask Iframely about a private address', async () => {
       urlGuard.validate.mockRejectedValue(new OutboundUrlError('private'));
       expect(await build().getPreview('http://10.0.0.5/')).toBeNull();
+      expect(urlGuard.validate).toHaveBeenCalledWith('http://10.0.0.5/', {
+        publicOnly: true,
+      });
       expect(iframelyClient.getPreview).not.toHaveBeenCalled();
+      expect(lease).not.toHaveBeenCalled();
+      expect(fetchFn).not.toHaveBeenCalled();
       expect(redis.set).toHaveBeenCalledWith(
         keyFor('http://10.0.0.5/'),
         'null',
@@ -485,6 +490,12 @@ describe('LinkPreviewService', () => {
         return { address: '93.184.216.34', family: 4 };
       });
       expect(await build().getPreview('https://short.example/x')).toBeNull();
+      expect(iframelyClient.getPreview).toHaveBeenCalledWith(
+        'https://short.example/x',
+      );
+      expect(urlGuard.validate).toHaveBeenCalledWith('https://10.0.0.5/', {
+        publicOnly: true,
+      });
     });
 
     it('keeps the preview when the reported host does not resolve', async () => {
@@ -508,6 +519,16 @@ describe('LinkPreviewService', () => {
         Object.assign(new Error('timed out'), { name: 'TimeoutError' }),
       );
       expect(await build().getPreview('https://example.com/a')).toBeNull();
+      expect(iframelyClient.getPreview).toHaveBeenCalledWith(
+        'https://example.com/a',
+      );
+      expect(fetchFn).not.toHaveBeenCalled();
+      expect(redis.set).toHaveBeenCalledWith(
+        keyFor('https://example.com/a'),
+        'null',
+        'EX',
+        300,
+      );
     });
   });
 });
