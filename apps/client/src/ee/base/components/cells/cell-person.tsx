@@ -61,11 +61,8 @@ export function CellPerson({
 
   const suggestions = usePersonSearch(search, isEditing);
 
-  // In multi mode omit already-selected from the list (they appear as tags above).
-  // Single mode keeps the selected row visible so it can be deselected.
-  const filteredMembers = allowMultiple
-    ? suggestions.filter((m) => !selectedSet.has(m.id))
-    : suggestions;
+  // chosen people show as tags above, so the list leaves them out
+  const filteredMembers = suggestions.filter((m) => !selectedSet.has(m.id));
 
   const { activeIndex, setActiveIndex, handleNavKey, setOptionRef } =
     useListKeyboardNav(filteredMembers.length, [search, isEditing]);
@@ -195,14 +192,12 @@ export function CellPerson({
           )}
           <div className={cellClasses.selectDropdown}>
             {filteredMembers.map((member, idx) => {
-              const isSelected = selectedSet.has(member.id);
               return (
                 <div
                   key={member.id}
                   ref={setOptionRef(idx)}
                   className={clsx(
                     cellClasses.selectOption,
-                    isSelected && cellClasses.selectOptionActive,
                     idx === activeIndex && cellClasses.selectOptionKeyboardActive,
                   )}
                   onMouseEnter={() => setActiveIndex(idx)}

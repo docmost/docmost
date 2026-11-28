@@ -5,9 +5,7 @@ import {
   Select,
   Switch,
   Text,
-  Button,
   Group,
-  Divider,
   TextInput,
   Textarea,
 } from "@mantine/core";
@@ -21,6 +19,9 @@ import {
 } from "@/ee/base/types/base.types";
 import { ChoiceEditor } from "./choice-editor";
 import { RemoveTimeConfirmation } from "./remove-time-confirmation";
+import { OptionsFooter } from "./options-footer";
+import { RelationOptions } from "./relation-options";
+import { useEditableTypeOptions } from "@/ee/base/hooks/use-editable-type-options";
 import { FilterPersonInput } from "@/ee/base/components/views/filter-person-input";
 import {
   CURRENCIES,
@@ -116,6 +117,17 @@ export function PropertyOptions({
           dropdownPortalTarget={dropdownPortalTarget}
         />
       );
+    case "relation":
+      return (
+        <RelationOptions
+          property={property}
+          onUpdate={onUpdate}
+          onClose={onClose}
+          onDirtyChange={onDirtyChange}
+          hideButtons={hideButtons}
+          dropdownPortalTarget={dropdownPortalTarget}
+        />
+      );
     case "text":
     case "longText":
     case "url":
@@ -156,103 +168,6 @@ type OptionEditorProps = {
   hideButtons?: boolean;
   dropdownPortalTarget?: HTMLElement | null;
 };
-
-const EMPTY_OPTIONS: Record<string, unknown> = {};
-
-function optionsEqual(
-  a: Record<string, unknown>,
-  b: Record<string, unknown>,
-): boolean {
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
-  for (const key of keys) {
-    const av = a[key];
-    const bv = b[key];
-    if (Array.isArray(av) && Array.isArray(bv)) {
-      if (av.length !== bv.length || av.some((v, i) => v !== bv[i])) {
-        return false;
-      }
-    } else if (av !== bv) {
-      return false;
-    }
-  }
-  return true;
-}
-
-// Draft hook for non-choice option editors: live in create flow, staged in edit menu.
-function useEditableTypeOptions(
-  initialRaw: Record<string, unknown> | undefined,
-  {
-    onUpdate,
-    onClose,
-    onDirtyChange,
-    hideButtons,
-  }: {
-    onUpdate: (opts: Record<string, unknown>) => void;
-    onClose: () => void;
-    onDirtyChange?: (dirty: boolean) => void;
-    hideButtons?: boolean;
-  },
-) {
-  const initial = initialRaw ?? EMPTY_OPTIONS;
-  const [draft, setDraft] = useState<Record<string, unknown>>(initial);
-
-  useEffect(() => {
-    if (!hideButtons) setDraft(initial);
-  }, [initial, hideButtons]);
-
-  const onUpdateRef = useRef(onUpdate);
-  onUpdateRef.current = onUpdate;
-  useEffect(() => {
-    if (hideButtons) onUpdateRef.current(draft);
-  }, [hideButtons, draft]);
-
-  const isDirty = useMemo(() => !optionsEqual(draft, initial), [draft, initial]);
-  useEffect(() => {
-    onDirtyChange?.(isDirty);
-  }, [isDirty, onDirtyChange]);
-
-  const update = useCallback(
-    (patch: Record<string, unknown>) =>
-      setDraft((prev) => ({ ...prev, ...patch })),
-    [],
-  );
-  const save = useCallback(() => {
-    onUpdate(draft);
-    onClose();
-  }, [draft, onUpdate, onClose]);
-  const cancel = useCallback(() => {
-    setDraft(initial);
-    onDirtyChange?.(false);
-    onClose();
-  }, [initial, onClose, onDirtyChange]);
-
-  return { draft, update, isDirty, save, cancel };
-}
-
-function OptionsFooter({
-  isDirty,
-  onCancel,
-  onSave,
-}: {
-  isDirty: boolean;
-  onCancel: () => void;
-  onSave: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <>
-      <Divider />
-      <Group justify="flex-end" gap="xs">
-        <Button variant="default" size="xs" onClick={onCancel}>
-          {t("Cancel")}
-        </Button>
-        <Button size="xs" onClick={onSave} disabled={!isDirty}>
-          {t("Save")}
-        </Button>
-      </Group>
-    </>
-  );
-}
 
 function SelectOptions({
   property,

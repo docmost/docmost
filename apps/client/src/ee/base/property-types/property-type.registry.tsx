@@ -9,6 +9,7 @@ import {
   IconUser,
   IconPaperclip,
   IconFileDescription,
+  IconArrowUpRight,
   IconCheckbox,
   IconLink,
   IconMail,
@@ -37,6 +38,7 @@ import { CellEmail } from "@/ee/base/components/cells/cell-email";
 import { CellPerson } from "@/ee/base/components/cells/cell-person";
 import { CellFile } from "@/ee/base/components/cells/cell-file";
 import { CellPage } from "@/ee/base/components/cells/cell-page";
+import { CellRelation } from "@/ee/base/components/cells/cell-relation";
 import { CellSystemUser } from "@/ee/base/components/cells/cell-system-user";
 import { CellFormula } from "@/ee/base/components/cells/cell-formula";
 import { defaultStatusChoices } from "@/ee/base/components/property/choice-editor";
@@ -168,6 +170,17 @@ export const PROPERTY_TYPE_REGISTRY: Record<
     isSystem: false,
     hasOptions: false,
   },
+  relation: {
+    type: "relation",
+    cellComponent: CellRelation,
+    icon: IconArrowUpRight,
+    labelKey: "Relation",
+    filterOperators: ["any", "none", "isEmpty", "isNotEmpty"],
+    filterInput: "relation",
+    isSystem: false,
+    hasOptions: true,
+    defaultTypeOptions: () => ({ allowMultiple: true }),
+  },
   checkbox: {
     type: "checkbox",
     cellComponent: CellCheckbox,
@@ -285,7 +298,7 @@ export function filterSpecOf(
 
 export const PROPERTY_PICKER_ORDER: BasePropertyType[] = [
   "text", "longText", "number", "select", "status", "multiSelect", "date",
-  "person", "file", "formula", "page", "checkbox", "url", "email",
+  "person", "file", "formula", "page", "relation", "checkbox", "url", "email",
   "createdAt", "createdBy", "lastEditedAt", "lastEditedBy",
 ];
 

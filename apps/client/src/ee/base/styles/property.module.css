@@ -21,3 +21,42 @@
 .chevronBack {
   transform: rotate(180deg);
 }
+
+.relationTarget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* long titles truncate instead of widening the menu */
+  contain: inline-size;
+}
+
+.relationTargetIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1;
+  color: var(--mantine-color-dimmed);
+}
+
+.relationTargetTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.relationTargetSpace {
+  flex: 0 1 auto;
+  max-width: 45%;
+}
+
+.relationTargetCheck {
+  flex: none;
+  color: var(--mantine-color-dimmed);
+  visibility: hidden;
+}
+
+.relationTargetChecked {
+  visibility: visible;
+}

@@ -83,7 +83,7 @@
 }
 
 .titleInput::placeholder {
-  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  color: var(--mantine-color-placeholder);
   font-weight: 700;
 }
 
@@ -303,6 +303,36 @@
   align-items: center;
   gap: 4px;
   min-height: 22px;
+}
+
+/* A relation chip's title opens the linked row; the pill keeps its look. */
+.fieldChipLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Quiet text actions after the chips: "Show all", "Add a link". */
+.fieldChipButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border: none;
+  border-radius: var(--mantine-radius-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.5;
+  white-space: nowrap;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  cursor: pointer;
+  transition: background-color 100ms ease, color 100ms ease;
+}
+
+.fieldChipButton:hover,
+.fieldChipButton:focus-visible {
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  color: light-dark(var(--mantine-color-gray-9), var(--mantine-color-dark-0));
 }
 
 .fieldCellDisplay {

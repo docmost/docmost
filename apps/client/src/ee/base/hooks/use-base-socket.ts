@@ -8,6 +8,7 @@ import {
   IBaseProperty,
   IBaseRow,
   IBaseView,
+  RelationTypeOptions,
   RowReferences,
 } from "@/ee/base/types/base.types";
 import {
@@ -33,6 +34,9 @@ import {
   cancelRowsRefresh,
   scheduleRowsRefresh,
 } from "@/ee/base/queries/rows-refresh";
+import { patchRelationPreviews } from "@/ee/base/queries/base-relation-query";
+import { expandRows } from "@/ee/base/services/base-service";
+import { RELATION_MAX_IDS_PER_CALL } from "@/ee/base/constants/relations";
 import {
   formShareQueryKey,
   invalidatePublicFormForView,
@@ -161,6 +165,7 @@ type BaseInboundEvent =
   | BaseRowsDeleted
   | BaseRowReordered
   | BaseRowsUpdated
+  | BaseRelationsUpdated
   | BaseFormulaRecomputeStarted
   | BaseFormulaRecomputeCompleted
   | BaseSchemaBumped
@@ -186,9 +191,108 @@ export function markRequestIdOutbound(requestId: string): void {
   }
 }
 
+// Link edits this tab sent. Their echo can name rows this tab didn't patch, so it
+// isn't dropped; the handler skips only the cell and list the edit already refreshed.
+const ownRelationEdits = new Map<string, { rowId: string; propertyId: string }>();
+
+export function markRelationEditOutbound(
+  requestId: string,
+  edit: { rowId: string; propertyId: string },
+): void {
+  ownRelationEdits.set(requestId, edit);
+  if (ownRelationEdits.size > OUTBOUND_MAX) {
+    const oldest = ownRelationEdits.keys().next().value;
+    if (oldest) ownRelationEdits.delete(oldest);
+  }
+}
+
+// A failed edit may still have saved; its echo then refreshes like anyone else's.
+export function forgetRelationEditOutbound(requestId: string): void {
+  ownRelationEdits.delete(requestId);
+}
+
+type BaseRelationsUpdated = {
+  operation: "base:relations:updated";
+  pageId: string;
+  rowIds: string[];
+  propertyIds: string[];
+  actorId: string | null;
+  requestId: string | null;
+  // sent when a link edit counts as an edit of these rows
+  updatedAt?: string;
+  lastUpdatedById?: string | null;
+};
+
 type BaseSubscriptionState = {
   missedEvents: boolean;
+  relationRefresh?: {
+    timer: ReturnType<typeof setTimeout>;
+    rowIds: Set<string>;
+  };
 };
+
+const RELATIONS_REFRESH_DELAY_MS = 150;
+
+function cachedRowIds(queryClient: QueryClient, pageId: string): Set<string> {
+  const ids = new Set<string>();
+  for (const [, data] of queryClient.getQueriesData<
+    InfiniteData<IPagination<IBaseRow>>
+  >({ queryKey: ["base-rows", pageId] })) {
+    for (const page of data?.pages ?? []) {
+      for (const row of page.items) ids.add(row.id);
+    }
+  }
+  // a row modal opened from a link holds its row outside the lists
+  for (const [, row] of queryClient.getQueriesData<IBaseRow>({
+    queryKey: ["base-row", pageId],
+  })) {
+    if (row) ids.add(row.id);
+  }
+  return ids;
+}
+
+function scheduleRelationPreviewRefresh(
+  pageId: string,
+  queryClient: QueryClient,
+  state: BaseSubscriptionState,
+  rowIds: string[],
+) {
+  const cached = cachedRowIds(queryClient, pageId);
+  const touched = rowIds.filter((id) => cached.has(id));
+  if (touched.length === 0) return;
+
+  const pending = state.relationRefresh;
+  if (pending) {
+    touched.forEach((id) => pending.rowIds.add(id));
+    return;
+  }
+  const next = {
+    rowIds: new Set(touched),
+    timer: setTimeout(() => {
+      state.relationRefresh = undefined;
+      const stillCached = cachedRowIds(queryClient, pageId);
+      const ids = [...next.rowIds].filter((id) => stillCached.has(id));
+      if (ids.length === 0) return;
+      const chunks: string[][] = [];
+      for (let i = 0; i < ids.length; i += RELATION_MAX_IDS_PER_CALL) {
+        chunks.push(ids.slice(i, i + RELATION_MAX_IDS_PER_CALL));
+      }
+      Promise.all(chunks.map((chunk) => expandRows(pageId, chunk)))
+        .then((results) => {
+          const relationsByRow: Record<string, NonNullable<IBaseRow["relations"]>> = {};
+          for (const items of results) {
+            for (const [rowId, row] of Object.entries(items)) {
+              if (row.relations) relationsByRow[rowId] = row.relations;
+            }
+          }
+          patchRelationPreviews(queryClient, pageId, relationsByRow);
+        })
+        // refetched rows carry fresh previews, so no chip is left stale
+        .catch(() => scheduleRowsRefresh(pageId, "all"));
+    }, RELATIONS_REFRESH_DELAY_MS),
+  };
+  state.relationRefresh = next;
+}
 
 function createBaseEventHandler(
   pageId: string,
@@ -257,8 +361,12 @@ function createBaseEventHandler(
           );
           if (rowsOrderDependsOn(pageId, "any", baseForCreate)) {
             scheduleRowsRefresh(pageId, "all");
-          } else if (refreshCalendar) {
-            scheduleRowsRefresh(pageId, "calendar");
+          } else {
+            if (refreshCalendar) scheduleRowsRefresh(pageId, "calendar");
+            // previews follow each viewer's access, so the event leaves them out
+            if (createProperties.some((p) => p.type === "relation")) {
+              scheduleRelationPreviewRefresh(pageId, queryClient, state, [e.row.id]);
+            }
           }
         }
         break;
@@ -423,6 +531,65 @@ function createBaseEventHandler(
         }
         break;
       }
+      case "base:relations:updated": {
+        const e = event as BaseRelationsUpdated;
+        const own = e.requestId ? ownRelationEdits.get(e.requestId) : undefined;
+        if (e.requestId) ownRelationEdits.delete(e.requestId);
+        // the edit's response patched its cell, unless the change also reached other fields
+        const ownCellOnly = own !== undefined && e.propertyIds.every((id) => id === own.propertyId);
+        scheduleRelationPreviewRefresh(
+          pageId,
+          queryClient,
+          state,
+          ownCellOnly ? e.rowIds.filter((id) => id !== own?.rowId) : e.rowIds,
+        );
+        // an open full list (row modal "Show all") refetches; closed ones go stale
+        const rowIds = new Set(e.rowIds);
+        const propertyIds = new Set(e.propertyIds);
+        queryClient.invalidateQueries({
+          queryKey: ["base-relations", "list", pageId],
+          predicate: ({ queryKey }) =>
+            rowIds.has(queryKey[3] as string) &&
+            propertyIds.has(queryKey[4] as string) &&
+            // the edit refetches its own list once it succeeds
+            !(own && queryKey[3] === own.rowId && queryKey[4] === own.propertyId),
+        });
+        const baseForLinks = queryClient.getQueryData<IBase>(["bases", pageId]);
+        // a deleted row's links go without stamping the rows that showed them
+        const updatedAt = typeof e.updatedAt === "string" ? e.updatedAt : undefined;
+        let linkEditorUnknown = false;
+        if (updatedAt !== undefined) {
+          const stamp = { updatedAt, lastUpdatedById: e.lastUpdatedById ?? null };
+          const stampRow = (row: IBaseRow) => (rowIds.has(row.id) ? { ...row, ...stamp } : row);
+          queryClient.setQueriesData<InfiniteData<IPagination<IBaseRow>>>(
+            { queryKey: ["base-rows", pageId] },
+            (old) =>
+              old && {
+                ...old,
+                pages: old.pages.map((page) => ({ ...page, items: page.items.map(stampRow) })),
+              },
+          );
+          for (const rowId of e.rowIds) {
+            queryClient.setQueryData<IBaseRow>(["base-row", pageId, rowId], (old) => old && stampRow(old));
+          }
+          linkEditorUnknown =
+            typeof stamp.lastUpdatedById === "string" &&
+            (baseForLinks?.properties ?? []).some((p) => p.type === "lastEditedBy") &&
+            !getDefaultStore().get(referenceStoreAtomFamily(pageId)).users[stamp.lastUpdatedById];
+        }
+        const changeOptions = { stampsRows: updatedAt !== undefined };
+        if (
+          linkEditorUnknown ||
+          rowsOrderDependsOn(pageId, e.propertyIds, baseForLinks, changeOptions)
+        ) {
+          scheduleRowsRefresh(pageId, "all");
+        } else if (
+          invalidateAffectedCalendarWindows(queryClient, pageId, e.propertyIds, baseForLinks, changeOptions)
+        ) {
+          scheduleRowsRefresh(pageId, "calendar");
+        }
+        break;
+      }
       case "base:schema:bumped": {
         // Worker committed a type conversion or cell GC; re-fetch under the new schema.
         queryClient.invalidateQueries({ queryKey: ["base-rows", pageId] });
@@ -520,6 +687,16 @@ function createBaseEventHandler(
               invalidatePublicFormForView(pageId, view.id);
             }
           }
+          const inverseOf = (property: IBaseProperty | undefined) =>
+            (property?.typeOptions as RelationTypeOptions | undefined)?.inversePropertyId ?? null;
+          const before = cachedBase?.properties?.find((property) => property.id === propertyId);
+          // editing links needs edit on the other base only while the relation shows there
+          if (e.property.type === "relation" && inverseOf(before) !== inverseOf(e.property)) {
+            scheduleRowsRefresh(pageId, "all");
+          }
+        } else if (e.operation === "base:property:created" && e.property?.type === "relation") {
+          // rows loaded before this side existed carry no preview for it
+          scheduleRowsRefresh(pageId, "all");
         } else if (e.operation === "base:view:updated" && e.view?.type === "form") {
           invalidatePublicFormForView(pageId, e.view.id);
         } else if (e.operation === "base:view:deleted" && e.viewId) {
@@ -594,6 +771,7 @@ export function retainBaseSubscription(
     if (retained.count > 0) return;
     subscriptions.delete(pageId);
     cancelRowsRefresh(pageId);
+    clearTimeout(retained.state.relationRefresh?.timer);
     socket.off("message", retained.handler);
     socket.off("connect", retained.subscribe);
     socket.off("disconnect", retained.markMissedEvents);

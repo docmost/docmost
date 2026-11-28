@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
 import { expandPagesBatched } from "./page-expand-loader";
 
 export type ResolvedPage = {
@@ -31,6 +31,9 @@ function normalize(ids: (string | null | undefined)[]): string[] {
   return Array.from(set).sort();
 }
 
+const resolvedPagesKey = (normalizedIds: string[]) =>
+  ["bases", "pages", "expand", normalizedIds] as const;
+
 export type PageResolution = {
   // Map lookup states: key absent = not requested, undefined = resolving, null = inaccessible, ResolvedPage = accessible.
   pages: Map<string, ResolvedPage | null | undefined>;
@@ -43,7 +46,7 @@ export function useResolvedPages(
   const normalized = useMemo(() => normalize(pageIds), [pageIds]);
 
   const { data, isSuccess, isLoading } = useQuery({
-    queryKey: ["bases", "pages", "expand", normalized],
+    queryKey: resolvedPagesKey(normalized),
     queryFn: () => resolvePages(normalized),
     enabled: normalized.length > 0,
     staleTime: 30_000,
@@ -58,4 +61,15 @@ export function useResolvedPages(
   }, [normalized, data, isSuccess]);
 
   return { pages, isLoading };
+}
+
+// Caches a page the caller already has, so a just-picked page resolves without a request.
+export function useHydrateResolvedPage(): (page: ResolvedPage) => void {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (page: ResolvedPage) => {
+      queryClient.setQueryData<ResolvedPage[]>(resolvedPagesKey([page.id]), [page]);
+    },
+    [queryClient],
+  );
 }

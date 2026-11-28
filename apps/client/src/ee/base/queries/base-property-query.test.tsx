@@ -58,4 +58,38 @@ describe("useUpdatePropertyMutation", () => {
     await update({ includeTime: true }, { property: due({ includeTime: true, dateFormat: "full" }), jobId: null });
     expect(rowsInvalidated()).toBe(false);
   });
+
+  it("relation property changes refresh the other base's cached rows", async () => {
+    const options = {
+      relationId: "relation-1",
+      targetBaseId: "base-2",
+      direction: "source",
+      inversePropertyId: null,
+      allowMultiple: true,
+    };
+    const account = (typeOptions: object) =>
+      ({ id: "p2", pageId: "base-1", name: "Account", type: "relation", typeOptions }) as never;
+    const otherBase = ["bases", "base-2"];
+    const otherRows = ["base-rows", "base-2", undefined, undefined];
+    const otherFilteredRows = ["base-rows", "base-2", { op: "and", children: [] }, undefined];
+    queryClient.clear();
+    queryClient.setQueryData(BASE, { id: "base-1", properties: [account(options)], views: [] });
+    queryClient.setQueryData(otherBase, { id: "base-2", properties: [], views: [] });
+    for (const key of [ROWS, otherRows, otherFilteredRows]) {
+      queryClient.setQueryData(key, { pages: [], pageParams: [] });
+    }
+    // turning on Show on the other base adds the inverse side there
+    vi.mocked(updateProperty).mockResolvedValue({
+      property: account({ ...options, inversePropertyId: "p9" }),
+      jobId: null,
+    });
+    const { result: hook } = renderHook(() => useUpdatePropertyMutation(), { wrapper });
+
+    await act(() => hook.current.mutateAsync({ propertyId: "p2", pageId: "base-1", typeOptions: {} }));
+
+    expect(queryClient.getQueryState(otherBase)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(otherRows)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(otherFilteredRows)?.isInvalidated).toBe(true);
+    expect(rowsInvalidated()).toBe(false);
+  });
 });

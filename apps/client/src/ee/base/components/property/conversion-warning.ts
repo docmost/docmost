@@ -6,6 +6,7 @@ export const NON_USER_TARGET_TYPES = new Set<BasePropertyType>([
   "lastEditedAt",
   "lastEditedBy",
   "formula",
+  "relation",
 ]);
 
 type ConversionInfo = {

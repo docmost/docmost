@@ -7,12 +7,15 @@ import {
   IBaseProperty,
   SelectTypeOptions,
   NumberTypeOptions,
+  RelationPreview,
+  RelationTypeOptions,
   isFormulaErrorCell,
 } from "@/ee/base/types/base.types";
 import { choiceColor } from "@/ee/base/components/cells/choice-color";
 import { ChoiceBadge } from "@/ee/base/components/cells/choice-badge";
 import { BadgeOverflowList } from "@/ee/base/components/cells/badge-overflow";
 import { PersonReadList } from "@/ee/base/components/cells/person-read-list";
+import { RelationReadList } from "@/ee/base/components/cells/relation-read-list";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { useReferenceStore, useResolvePage } from "@/ee/base/reference/reference-store";
 import {
@@ -28,11 +31,17 @@ type CardFieldProps = {
   property: IBaseProperty;
   value: unknown;
   pageId: string;
+  /** Relation fields only: the row's linked-row preview. */
+  relation?: RelationPreview;
 };
 
-export function CardField({ property, value, pageId }: CardFieldProps) {
+export function CardField({ property, value, pageId, relation }: CardFieldProps) {
   if (property.type === "checkbox") {
     return <CheckboxField checked={value === true} name={property.name} />;
+  }
+  if (property.type === "relation") {
+    const { targetBaseId } = property.typeOptions as RelationTypeOptions;
+    return <RelationReadList preview={relation} targetBaseId={targetBaseId} />;
   }
   if (value === null || value === undefined || value === "") return null;
   if (Array.isArray(value) && value.length === 0) return null;
@@ -236,7 +245,7 @@ function PageField({
         {resolvedPage.icon ? (
           <span className={cellClasses.pagePillIcon}>{resolvedPage.icon}</span>
         ) : (
-          <IconFileDescription size={14} className={cellClasses.pagePillIconFallback} />
+          <IconFileDescription size={14} stroke={1.75} className={cellClasses.pagePillIconFallback} />
         )}
         <span className={cellClasses.pagePillText}>{title}</span>
       </Link>

@@ -14,6 +14,8 @@ import {
   DeletePropertyInput,
   ReorderPropertyInput,
   UpdatePropertyResult,
+  RelationTypeOptions,
+  TypeOptions,
 } from "@/ee/base/types/base.types";
 import { dateKindOfProperty } from "@docmost/base-formula/client";
 import { notifications } from "@mantine/notifications";
@@ -22,12 +24,23 @@ import { useTranslation } from "react-i18next";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { IPagination } from "@/lib/types";
 
+function invalidateRelationTarget(typeOptions: TypeOptions) {
+  const targetBaseId = (typeOptions as Partial<RelationTypeOptions>).targetBaseId;
+  if (typeof targetBaseId !== "string") return;
+  queryClient.invalidateQueries({ queryKey: ["bases", targetBaseId] });
+  // rows cached before a new side existed carry no preview for it
+  queryClient.invalidateQueries({ queryKey: ["base-rows", targetBaseId] });
+}
+
 export function useCreatePropertyMutation(mutationKey?: MutationKey) {
   const { t } = useTranslation();
   return useMutation<IBaseProperty, Error, CreatePropertyInput>({
     mutationKey,
     mutationFn: (data) => createProperty(data),
     onSuccess: (newProperty) => {
+      if (newProperty.type === "relation") {
+        invalidateRelationTarget(newProperty.typeOptions);
+      }
       queryClient.setQueryData<IBase>(
         ["bases", newProperty.pageId],
         (old) => {
@@ -53,6 +66,9 @@ export function useUpdatePropertyMutation() {
   return useMutation<UpdatePropertyResult, Error, UpdatePropertyInput>({
     mutationFn: (data) => updateProperty(data),
     onSuccess: (result, variables) => {
+      if (result.property.type === "relation") {
+        invalidateRelationTarget(result.property.typeOptions);
+      }
       const stored = queryClient
         .getQueryData<IBase>(["bases", variables.pageId])
         ?.properties.find((p) => p.id === result.property.id);
@@ -94,6 +110,12 @@ export function useDeletePropertyMutation() {
   return useMutation<void, Error, DeletePropertyInput>({
     mutationFn: (data) => deleteProperty(data),
     onSuccess: (_, variables) => {
+      const deleted = queryClient
+        .getQueryData<IBase>(["bases", variables.pageId])
+        ?.properties.find((p) => p.id === variables.propertyId);
+      if (deleted?.type === "relation") {
+        invalidateRelationTarget(deleted.typeOptions);
+      }
       queryClient.setQueryData<IBase>(
         ["bases", variables.pageId],
         (old) => {

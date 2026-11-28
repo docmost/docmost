@@ -164,6 +164,7 @@ export interface IBaseFormulaRecomputeJob {
     | 'dep_deleted'
     | 'refresh'
     | 'bulk_import'
+    | 'links_edited'
     | 'manual';
   actorId?: string | null;
   // When set, scope recompute to these row IDs instead of the whole base.

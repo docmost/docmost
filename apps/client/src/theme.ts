@@ -140,5 +140,8 @@ export const mantineCssResolver: CSSVariablesResolver = (theme) => ({
     ...v8CssVariablesResolver(theme).dark,
     "--mantine-color-dark-light-color": "var(--mantine-color-gray-4)",
     "--mantine-color-dark-light-hover": "var(--mantine-color-default-hover)",
+    // Mantine's dark placeholder (dark.3, about 2.8:1) fails WCAG AA 4.5:1.
+    // #9a9a9a gives 4.83:1 on dark.6 popovers and 5.52:1 on the dark.7 body.
+    "--mantine-color-placeholder": "#9a9a9a",
   },
 });

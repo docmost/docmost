@@ -17,6 +17,7 @@ import { MAX_BASE_PROPERTIES } from "@/ee/base/constants/properties";
 import {
   BasePropertyType,
   IBaseProperty,
+  RelationCreateTypeOptions,
   TypeOptions,
 } from "@/ee/base/types/base.types";
 import { useCreatePropertyMutation } from "@/ee/base/queries/base-property-query";
@@ -44,6 +45,12 @@ type CreatePropertyPopoverProps = {
 };
 
 type Panel = "typePicker" | "configure" | "confirmDiscard";
+
+// Panels whose content would otherwise size the popover.
+const PANEL_WIDTHS: Partial<Record<BasePropertyType, number>> = {
+  formula: 460,
+  relation: 320,
+};
 
 const noop = () => {};
 
@@ -88,6 +95,10 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
     () => getAvailablePropertyName(selectedTypeLabel || "Property", properties),
     [selectedTypeLabel, properties],
   );
+
+  const needsRelatedBase =
+    selectedType === "relation" &&
+    !(typeOptions as Partial<RelationCreateTypeOptions>).targetBaseId;
 
   const resetState = useCallback(() => {
     setPanel("typePicker");
@@ -158,7 +169,7 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
   }, [panel]);
 
   const handleCreate = useCallback(() => {
-    if (!selectedType || nameTaken) return;
+    if (!selectedType || nameTaken || needsRelatedBase) return;
     const finalName = name.trim() || fallbackName;
     createPropertyMutation.mutate(
       {
@@ -176,7 +187,7 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
       },
     );
     handleClose();
-  }, [selectedType, nameTaken, name, fallbackName, typeOptions, pageId, createPropertyMutation, handleClose, onPropertyCreated]);
+  }, [selectedType, nameTaken, needsRelatedBase, name, fallbackName, typeOptions, pageId, createPropertyMutation, handleClose, onPropertyCreated]);
 
   const handleBackToTypePicker = useCallback(() => {
     setPanel("typePicker");
@@ -279,7 +290,7 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
           onKeyDown={handleKeyDown}
           style={{
             zIndex: 300,
-            width: selectedType === "formula" ? 460 : undefined,
+            width: selectedType ? PANEL_WIDTHS[selectedType] : undefined,
             minWidth: selectedType === "formula" ? undefined : 320,
             maxWidth: "calc(100vw - 32px)",
           }}
@@ -388,7 +399,11 @@ export function CreatePropertyPopover({ pageId, properties, onPropertyCreated, r
                 <Button variant="default" size="xs" onClick={attemptClose}>
                   {t("Cancel")}
                 </Button>
-                <Button size="xs" onClick={handleCreate} disabled={nameTaken}>
+                <Button
+                  size="xs"
+                  onClick={handleCreate}
+                  disabled={nameTaken || needsRelatedBase}
+                >
                   {t("Create property")}
                 </Button>
               </Group>

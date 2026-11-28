@@ -17,10 +17,12 @@ import {
   SelectTypeOptions,
   FilterCondition,
   FilterOperator,
+  RelationTypeOptions,
 } from "@/ee/base/types/base.types";
 import { useTranslation } from "react-i18next";
 import { filterSpecOf } from "@/ee/base/property-types/property-type.registry";
 import { FilterPersonInput } from "./filter-person-input";
+import { FilterRelationInput } from "./filter-relation-input";
 import { FilterDateInput } from "./filter-date-input";
 import { useEscapeClose } from "@/ee/base/hooks/use-escape-close";
 import viewClasses from "@/ee/base/styles/views.module.css";
@@ -60,6 +62,14 @@ function valueClass(op: FilterOperator, inputKind: string): string {
     return op === "isWithin" ? "dateRange" : "dateInstant";
   }
   return "scalar";
+}
+
+// relation row ids carry over only between relations to the same base
+function filterValueKind(property: IBaseProperty | undefined): string {
+  if (!property) return "text";
+  const { input } = filterSpecOf(property);
+  if (input !== "relation") return input;
+  return `relation:${(property.typeOptions as RelationTypeOptions).targetBaseId}`;
 }
 
 function isMultiChoice(op: FilterCondition["op"]): boolean {
@@ -104,6 +114,21 @@ function FilterValueInput({
         value={condition.value}
         onChange={onChange}
         placeholder={t("Select")}
+      />
+    );
+  }
+
+  if (kind === "relation") {
+    const { value } = condition;
+    return (
+      <FilterRelationInput
+        property={property}
+        value={
+          Array.isArray(value)
+            ? value.filter((id): id is string => typeof id === "string")
+            : undefined
+        }
+        onChange={onChange}
       />
     );
   }
@@ -277,9 +302,7 @@ export function ViewFilterConfigPopover({
       const validOperators = filterSpecOf(newProperty).operators;
       const currentOperatorValid = validOperators.includes(draft.op);
       const oldProperty = properties.find((p) => p.id === draft.propertyId);
-      const sameKind =
-        (oldProperty ? filterSpecOf(oldProperty).input : "text") ===
-        filterSpecOf(newProperty).input;
+      const sameKind = filterValueKind(oldProperty) === filterValueKind(newProperty);
       setDraft({
         ...draft,
         propertyId,
@@ -330,9 +353,7 @@ export function ViewFilterConfigPopover({
             const validOperators = filterSpecOf(newProperty).operators;
             const currentOperatorValid = validOperators.includes(f.op);
             const oldProperty = properties.find((p) => p.id === f.propertyId);
-            const sameKind =
-              (oldProperty ? filterSpecOf(oldProperty).input : "text") ===
-              filterSpecOf(newProperty).input;
+            const sameKind = filterValueKind(oldProperty) === filterValueKind(newProperty);
             return {
               ...f,
               propertyId,

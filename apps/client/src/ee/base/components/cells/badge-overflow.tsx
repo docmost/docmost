@@ -38,12 +38,15 @@ type BadgeOverflowListProps = {
   chips: ReactElement[];
   measureKey: string;
   tooltipLabel?: string;
+  /** Items beyond `chips` that were never loaded, counted into the "+N" chip. */
+  extraCount?: number;
 };
 
 export function BadgeOverflowList({
   chips,
   measureKey,
   tooltipLabel,
+  extraCount = 0,
 }: BadgeOverflowListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -75,7 +78,7 @@ export function BadgeOverflowList({
   }, [measureKey]);
 
   const visible = chips.slice(0, visibleCount);
-  const overflow = chips.length - visibleCount;
+  const overflow = chips.length - visibleCount + extraCount;
 
   return (
     <Tooltip
@@ -88,7 +91,7 @@ export function BadgeOverflowList({
       <div className={cellClasses.badgeGroup} ref={containerRef}>
         <div className={cellClasses.badgeMeasure} ref={measureRef} aria-hidden>
           {chips}
-          <span className={cellClasses.overflowCount}>+{chips.length}</span>
+          <span className={cellClasses.overflowCount}>+{chips.length + extraCount}</span>
         </div>
         {visible}
         {overflow > 0 && (

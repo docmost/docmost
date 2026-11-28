@@ -111,10 +111,14 @@ function filterPropertyIds(filter: FilterNode | undefined): string[] {
 
 const EVERY_EDIT_TYPES = new Set(["formula", "lastEditedAt", "lastEditedBy"]);
 
+// stampsRows false: the change set no Last edited, so formulas and edit stamps stay as they were
+type ChangeOptions = { stampsRows?: boolean };
+
 function dependsOnChange(
   referenced: string[],
   changedPropertyIds: readonly string[] | "any",
   base: IBase | undefined,
+  { stampsRows = true }: ChangeOptions = {},
 ): boolean {
   if (referenced.length === 0) return false;
   if (changedPropertyIds === "any") return true;
@@ -123,7 +127,7 @@ function dependsOnChange(
     return (
       type === undefined ||
       changedPropertyIds.includes(id) ||
-      EVERY_EDIT_TYPES.has(type)
+      (stampsRows && EVERY_EDIT_TYPES.has(type))
     );
   });
 }
@@ -135,6 +139,7 @@ export function invalidateAffectedCalendarWindows(
   pageId: string,
   changedPropertyIds: readonly string[] | "any",
   base?: IBase,
+  options?: ChangeOptions,
 ): boolean {
   const cache = client.getQueryCache();
   let needsRefresh = false;
@@ -143,7 +148,7 @@ export function invalidateAffectedCalendarWindows(
     if (typeof datePropertyId !== "string") continue;
     const filter = query.queryKey[6] as FilterNode | undefined;
     const referenced = [datePropertyId, ...filterPropertyIds(filter)];
-    if (!dependsOnChange(referenced, changedPropertyIds, base)) continue;
+    if (!dependsOnChange(referenced, changedPropertyIds, base, options)) continue;
     if (!query.isActive()) {
       cache.remove(query);
       continue;
@@ -160,6 +165,7 @@ export function rowsOrderDependsOn(
   pageId: string,
   changedPropertyIds: readonly string[] | "any",
   base: IBase | undefined,
+  options?: ChangeOptions,
 ): boolean {
   let dependsOn = false;
   for (const query of queryClient.getQueryCache().findAll({
@@ -172,7 +178,7 @@ export function rowsOrderDependsOn(
       ...filterPropertyIds(filter),
       ...(sorts ?? []).map((sort) => sort.propertyId),
     ];
-    if (!dependsOnChange(referenced, changedPropertyIds, base)) continue;
+    if (!dependsOnChange(referenced, changedPropertyIds, base, options)) continue;
     if (query.getObserversCount() > 0) {
       dependsOn = true;
     } else {

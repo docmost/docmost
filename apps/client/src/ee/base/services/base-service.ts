@@ -163,6 +163,14 @@ export async function getRowInfo(
   return req.data;
 }
 
+export async function expandRows(
+  pageId: string,
+  rowIds: string[],
+): Promise<Record<string, Pick<IBaseRow, "relations">>> {
+  const req = await api.post("/bases/rows/expand", { pageId, rowIds });
+  return req.data.items;
+}
+
 export async function updateRow(data: UpdateRowInput): Promise<IBaseRow> {
   const req = await api.post<IBaseRow>("/bases/rows/update", data, {
     timeout: 30_000,

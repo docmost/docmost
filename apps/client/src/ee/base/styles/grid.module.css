@@ -408,7 +408,7 @@
 }
 
 .embedTitleInput::placeholder {
-  color: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  color: var(--mantine-color-placeholder);
   font-weight: 600;
 }
 

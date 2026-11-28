@@ -4,6 +4,7 @@ import type {
   BasePropertyType,
   IBaseProperty,
   IBaseRow,
+  RelationPreview,
   TypeOptions,
 } from '@/ee/base/types/base.types';
 
@@ -12,6 +13,8 @@ export type CellComponentProps = {
   property: IBaseProperty;
   rowId: string;
   isEditing: boolean;
+  /** Relation cells only: the row's linked-row preview. */
+  relation?: RelationPreview;
   /** When true the cell must not write; reveal content read-only. */
   readOnly?: boolean;
   onCommit: (value: unknown) => void;
@@ -26,6 +29,7 @@ export type FilterInputKind =
   | 'boolean'
   | 'text'
   | 'person'
+  | 'relation'
   | 'date';
 
 export type ClientPropertyTypeDescriptor = {

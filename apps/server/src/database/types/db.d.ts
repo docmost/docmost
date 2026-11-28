@@ -175,6 +175,14 @@ export interface BaseProperties {
   workspaceId: string;
 }
 
+export interface BaseRowLinks {
+  createdAt: Generated<Timestamp>;
+  relationId: string;
+  sourceRowId: string;
+  targetRowId: string;
+  workspaceId: string;
+}
+
 export interface BaseRows {
   cells: Generated<Json>;
   createdAt: Generated<Timestamp>;
@@ -824,6 +832,7 @@ export interface DB {
   backlinks: Backlinks;
   basePendingConversions: BasePendingConversions;
   baseProperties: BaseProperties;
+  baseRowLinks: BaseRowLinks;
   baseRows: BaseRows;
   baseViewShares: BaseViewShares;
   baseViews: BaseViews;
